@@ -1,0 +1,109 @@
+{
+ "platform_meminfo": {
+  "cgroup_limit_bytes": "max",
+  "MemTotal": "3813268 kB",
+  "MemAvailable": "2237604 kB",
+  "SwapTotal": "2035708 kB"
+ },
+ "orchestration_baseline": {
+  "system_used_kb_before_launch": 1544004,
+  "swap_used_kb_before_launch": 2328,
+  "outside_our_tree": {
+   "total_mib": 2554.4,
+   "top": [
+    {
+     "comm": "k3s-server",
+     "rss_mib": 574.4
+    },
+    {
+     "comm": "containerd",
+     "rss_mib": 179.6
+    },
+    {
+     "comm": "kubectl",
+     "rss_mib": 135.7
+    },
+    {
+     "comm": "YDService",
+     "rss_mib": 73.4
+    },
+    {
+     "comm": "controller",
+     "rss_mib": 73.0
+    },
+    {
+     "comm": "metrics-server",
+     "rss_mib": 64.6
+    },
+    {
+     "comm": "coredns",
+     "rss_mib": 58.9
+    },
+    {
+     "comm": "coredns",
+     "rss_mib": 58.2
+    },
+    {
+     "comm": "manager",
+     "rss_mib": 57.2
+    },
+    {
+     "comm": "vector",
+     "rss_mib": 55.9
+    },
+    {
+     "comm": "vector",
+     "rss_mib": 52.6
+    },
+    {
+     "comm": "victoria-metric",
+     "rss_mib": 50.8
+    }
+   ]
+  },
+  "system_used_mib_before_launch": 1507.8,
+  "system_used_mib_after_teardown": 1538.7
+ },
+ "marks_kb": {
+  "baseline_kb": 32044,
+  "browser_launched_kb": 432572,
+  "two_contexts_idle_kb": 607756,
+  "concurrent_load_seconds": 1.78,
+  "both_loaded_kb": 993724,
+  "after_artifact_capture_kb": 1000412,
+  "after_screenshots_kb": 1020136,
+  "screenshot_bytes": [
+   174890,
+   181460
+  ]
+ },
+ "marks_mib": {
+  "baseline_kb": 31.3,
+  "browser_launched_kb": 422.4,
+  "two_contexts_idle_kb": 593.5,
+  "both_loaded_kb": 970.4,
+  "after_artifact_capture_kb": 977.0,
+  "after_screenshots_kb": 996.2
+ },
+ "app_tree_peak_rss_mib": 996.7,
+ "swap": {
+  "observable": true,
+  "baseline_mib": 2.3,
+  "peak_mib": 2.3,
+  "growth_during_run_mib": 0.0,
+  "touched_by_this_run": false,
+  "verdict": "PASS - no swap growth"
+ },
+ "peak_by_process_mib": {
+  "python3": 32.0,
+  "MainThread": 142.4,
+  "chrome-headless": 818.3,
+  "ps": 4.1
+ },
+ "artifact_dom_chars": {
+  "heavy": 2154816,
+  "light": 52426
+ },
+ "load_errors": [],
+ "samples": 63
+}

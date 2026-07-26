@@ -353,3 +353,9 @@ Dockerfile 現在的 CMD 還是 M0 那個佔位的，部署前記得換掉
 我出了一個 mistake
 看來 OS 應該要選 ZeaburOS 才能用 Zeabur 的服務
 我現在要重灌，幫我確認一下所有資料都有備份我可以安心重灌
+
+==========
+
+重灌好了，IP 沒變，ssh key也幫你弄好了
+先跑 reachability，把進度恢復到剛剛的樣子
+然後繼續自己做

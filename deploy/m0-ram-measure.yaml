@@ -17,6 +17,11 @@
 #                        it is left commented so the two options stay visible together
 #                        rather than one being silently assumed.
 #   restartPolicy Never- one measurement, then the logs are the result.
+#
+# The official Playwright image ships the browsers at /ms-playwright and their shared
+# libraries, but NOT the `playwright` Python package - that is expected to be installed in
+# your own layer, which the repo Dockerfile does. This pod runs against the bare base
+# image, so it installs the package first. No browser is downloaded; only the ~2 MB wheel.
 apiVersion: v1
 kind: Pod
 metadata:
@@ -30,7 +35,15 @@ spec:
     - name: measure
       image: mcr.microsoft.com/playwright/python:v1.61.0-noble
       workingDir: /work
-      command: ["python", "preflight/measure_ram.py", "--hold", "20"]
+      env:
+        - name: PLAYWRIGHT_BROWSERS_PATH
+          value: /ms-playwright
+      command:
+        - bash
+        - -lc
+        - >-
+          python3 -m pip install --quiet --no-cache-dir playwright &&
+          python3 preflight/measure_ram.py --hold 20
       volumeMounts:
         - name: preflight
           mountPath: /work/preflight

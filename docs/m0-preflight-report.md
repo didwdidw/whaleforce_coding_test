@@ -8,8 +8,8 @@ by reality and is resolved by Amendment 9, approved.
 
 | M0 item | Gate | Status |
 |---|---|---|
-| M0.1 RAM headroom, browser + 2 contexts + app under load | 13(a) | **Pass** — 899.9 MiB peak on the host, no swap growth, ~1.7–1.9 GB headroom |
-| M0.2 Reachability from the deployment IP | 13(b) | **Pass** — all clear from `43.166.128.37`; every target 200, both expected non-200s correct |
+| M0.1 RAM headroom, browser + 2 contexts + app under load | 13(a) | **Pass** — 996.7 MiB peak in a k3s pod, no swap growth, **1,219 MiB** headroom (§1.1) |
+| M0.2 Reachability from the deployment IP | 13(b) | **Pass** — all clear from `43.166.128.37`, re-confirmed after the OS reinstall (§2.1) |
 | M0.3 §3.4 policy facts re-verified | 13(c) | **Pass** — all facts hold verbatim; one correction, one new hard requirement (both now A9.8/A9.9) |
 | M0.4 Account's actual Gemini rate limits | 13(d) | **Pass** — RPM 15 / TPM 250,000 / RPD 500, read from AI Studio |
 | M0.5 Token + USD per run, requests/day feasibility | A7.8 | **Pass** — measured; arithmetic closed in §6 |
@@ -78,9 +78,9 @@ the development machine, not less.
 |---|---|---|
 | MemTotal | 3,723.9 | measured |
 | − system used before launch | −627.7 | measured |
-| − k3s + Zeabur agent | −300 to −500 | **estimated; confirmed at the M1 pod re-verification** |
+| − k3s + Zeabur agent | −300 to −500 | **estimate — superseded by the measured 1,507.8 MiB total baseline in §1.1** |
 | − app peak | −899.9 | measured |
-| **= remaining** | **~1,700–1,900** | |
+| **= remaining** | ~~~1,700–1,900~~ | **superseded: the measured figure is 1,219.4 MiB (§1.1)** |
 
 Two notes on the baseline term. The 627.7 MiB reading is **higher than the 477 MB seen at idle**
 earlier because the measurement script had just run `apt-get` and `pip` — `packagekitd` (20.7 MiB)
@@ -92,8 +92,61 @@ is kernel memory, slab and non-reclaimable cache that no process's RSS accounts 
 figure is the right one for headroom. **None of it is k3s** — that term is still an estimate and is
 added on top.
 
-**~1.7 GB spare against a 900 MiB app.** The RAM gate is not the binding constraint on this host,
-which is what A9.10's 4 GB was chosen to buy.
+This section's arithmetic was taken on plain Ubuntu before the box was reimaged and its k3s
+term was an estimate. **§1.1 supersedes it with every term measured: 1,219.4 MiB spare.** The
+conclusion survives — the RAM gate is not the binding constraint on this host, which is what
+A9.10's 4 GB was chosen to buy — but with roughly 500 MiB less margin than this estimate
+implied.
+
+### 1.1 Pod re-verification on ZeaburOS — the deferred measurement, now closed
+
+The host was reimaged to ZeaburOS (Ubuntu 24.04 with Zeabur's k3s stack) after the figures
+above were taken, so the same measurement was re-run **inside a k3s pod** — the runtime that
+actually serves production. Raw result: `preflight/results/cloud-ram-tencent-pod.json`.
+
+| Measure | Plain Ubuntu, host | ZeaburOS, in a pod |
+|---|---|---|
+| Baseline before we launch | 477 MB | **1,507.8 MiB** |
+| App peak (browser + 2 contexts + app) | 899.9 MiB | **996.7 MiB** |
+| — of which Chromium | 721.4 MiB | 818.3 MiB |
+| — of which Playwright's Node driver | 142.1 MiB | 142.4 MiB |
+| Swap growth | 0.0 MiB | **0.0 MiB** |
+| Concurrent load of both pages | — | 1.78 s |
+
+Largest processes outside our tree: `k3s-server` 574.4, `containerd` 179.6, `kubectl` 135.7,
+`YDService` 73.4, `controller` 73.0, `metrics-server` 64.6, two `coredns` at ~59 each.
+
+**Corrected headroom, all terms now measured:**
+
+| Term | MiB | Status |
+|---|---|---|
+| MemTotal | 3,723.9 | measured |
+| − ZeaburOS + k3s + Tencent agents | −1,507.8 | **measured** (was estimated at 777–977) |
+| − app peak | −996.7 | **measured** (was 899.9 on bare host) |
+| **= remaining** | **1,219.4** | |
+
+At peak the box is **67% used**. Both pass conditions hold: it fits, and swap was untouched
+(0.0 MiB growth against 1,988 MiB available). The gate passes.
+
+The browser recycles at an app-tree RSS ceiling of 1,400 MiB, chosen before this number
+existed. It survives the check: 1,507.8 + 1,400 = 2,908 MiB, 78% of the box, so the ceiling
+can be reached without the recycle itself causing pressure.
+
+### 1.2 A standing correction: my estimates run low, consistently
+
+Three predictions in this report have now been tested against measurement, and **all three
+were low, all in the direction that flatters the system**:
+
+| Prediction | Predicted | Measured | Error |
+|---|---|---|---|
+| App peak on Linux ("usually below macOS") | 550–800 MiB | 899.9 MiB | +12% over the top of the range |
+| k3s + agent baseline | 300–500 MB | ~1,030 MB | **2–3× low** |
+| Container vs host RSS ("tens of MB") | tens of MB | +96.8 MiB (+11%) | ~2× low |
+
+Once is a miss; three times in the same direction is a bias worth naming. **Development-machine
+and back-of-envelope figures are floors, not estimates.** Any later capacity projection —
+the A9.7.3 steady-state observation, concurrency changes, a second browser — should be
+measured on the deployment host before it is relied on, not extrapolated from here.
 
 ## 2. M0.2 — Reachability — **PASS**
 
@@ -131,6 +184,19 @@ run, and the budget is dominated by browser work and model latency rather than b
 **A9.8 reconfirmed on the production IP.** SEC returned **403** to the undeclared User-Agent — and
 notably the 403 body arrives gzipped, so a naive error path that tries to read it as text gets
 mojibake rather than a diagnosis. The fetcher's error handling has to decompress before it reports.
+
+### 2.1 Re-confirmed after the OS reinstall
+
+The host was reimaged to ZeaburOS, so M0.2 was re-run from scratch on 2026-07-26T17:20:07Z.
+Raw result: `preflight/results/cloud-reachability-tencent-zeaburos.json`. **The public IP is
+unchanged (`43.166.128.37`) and the result is identical** — all ten targets behaved exactly
+as before, including the TLS control, books.toscrape's expected 404 and SEC's expected 403
+without a declared User-Agent. Latency is within noise of the first run (Wikipedia 0.052 s,
+books.toscrape 0.099 s, SEC 0.084 s).
+
+This re-run was not optional. The gate is a claim about how three sites treat **one specific
+address**; had the reinstall changed the IP, the earlier pass would have described a machine
+that no longer exists.
 
 ### Correction: the OS is 24.04, not 22.04
 
@@ -521,13 +587,13 @@ measurement job with a fixture to run against, so it belongs on the M1 checklist
 Two measurements are deliberately deferred, both to the point where they can be taken meaningfully
 rather than guessed:
 
-1. **A8.5 cold start — measured at M1**, in a pod, because the runtime is the one thing that
-   determines it. `deploy/m0-coldstart.yaml` is written and waiting.
-2. **Pod re-verification of RAM — at M1**, via `deploy/m0-ram-measure.yaml`. It turns the 300–500 MB
-   k3s term from an estimate into a measured number and confirms the host figure holds inside a
-   container. Note for that run: a container's default `/dev/shm` is 64 MB and Chromium crashes
-   without more — `measure_ram.py` passes `--disable-dev-shm-usage`, so production must pass the same
-   flag or mount a larger `/dev/shm`, or it passes every measurement and dies under real load.
+1. ~~**Pod re-verification of RAM.**~~ **Done** (§1.1). Every term in the headroom arithmetic is
+   now measured: 1,219.4 MiB spare, 67% of the box used at peak, swap untouched.
+2. **A8.5 cold start — still owed, measured on the first request after M1 deploys**, because the
+   runtime is the one thing that determines it. `deploy/m0-coldstart.yaml` is written and waiting.
+   Note for that run: a container's default `/dev/shm` is 64 MB and Chromium crashes without more —
+   the browser is launched with `--disable-dev-shm-usage`, so production must keep that flag or
+   mount a larger `/dev/shm`, or it passes every measurement and dies under real load.
 
 ### The numbers M1 inherits
 
@@ -538,8 +604,8 @@ rather than guessed:
 | Scored-run credential | paid key, unconditionally | A9.6 |
 | Cost per run | $0.0011–$0.0036 | §6 |
 | Cost per full eval round | ~$0.15 | §6 |
-| App memory peak | 899.9 MiB, no swap | §1 |
-| Headroom after k3s | ~1.7–1.9 GB | §1 |
+| App memory peak | 996.7 MiB in a pod, no swap | §1.1 |
+| Headroom, all terms measured | 1,219.4 MiB (67% of box used at peak) | §1.1 |
 | Page fetch latency from host | 0.05–0.098 s | §2 |
 | Largest artifact | ~1.92 M chars DOM | §1 |
 
