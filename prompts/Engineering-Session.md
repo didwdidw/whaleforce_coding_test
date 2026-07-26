@@ -243,3 +243,10 @@ M1 照走，不等這些
 我跑的 command 跟結果都放在 server_environment.txt 了
 你自己看一下
 looks good to me
+
+==========
+
+$docker version --format '{{.Server.Version}}' 2>/dev/null || echo "no docker daemon"
+=> no docker daemon
+
+我覺得不要裝 docker 了，理由跟你講的一樣

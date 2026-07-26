@@ -1,0 +1,48 @@
+# M0.1 — RAM and cold start measured inside k3s, the runtime that actually serves production.
+#
+# No image build: the measurement needs only `playwright`, which the official Playwright
+# image already ships. That removes the need for a second container runtime on a box that
+# already runs k3s.
+#
+# Deliberate choices, each of which changes the number:
+#
+#   hostPID: true      - so `ps` sees the host's processes and the k3s + Zeabur agent
+#                        baseline can be reported separately from the app's own footprint.
+#                        Without it the pod sees only itself and the baseline reads as zero.
+#   no resource limits - we are measuring the true peak. A memory limit would either cap
+#                        the number we came to measure or OOM-kill the pod mid-run.
+#   /dev/shm sizing    - the container default is 64 MB and Chromium dies without more.
+#                        measure_ram.py passes --disable-dev-shm-usage, which is the same
+#                        flag production must use. The emptyDir below is the alternative;
+#                        it is left commented so the two options stay visible together
+#                        rather than one being silently assumed.
+#   restartPolicy Never- one measurement, then the logs are the result.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: m0-ram-measure
+  labels:
+    app: task1-preflight
+spec:
+  restartPolicy: Never
+  hostPID: true
+  containers:
+    - name: measure
+      image: mcr.microsoft.com/playwright/python:v1.61.0-noble
+      workingDir: /work
+      command: ["python", "preflight/measure_ram.py", "--hold", "20"]
+      volumeMounts:
+        - name: preflight
+          mountPath: /work/preflight
+          readOnly: true
+        # - name: dshm
+        #   mountPath: /dev/shm
+  volumes:
+    - name: preflight
+      hostPath:
+        path: /home/ubuntu/preflight
+        type: Directory
+    # - name: dshm
+    #   emptyDir:
+    #     medium: Memory
+    #     sizeLimit: 512Mi

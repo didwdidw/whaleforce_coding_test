@@ -407,9 +407,13 @@ Three consequences for how we deploy, from the product owner's notes:
    fine; Step 2 of the runbook verifies rather than assumes.
 2. **Zeabur's language auto-detection will apply a stock Python image, which cannot produce a working
    Chromium.** Deployment must use a **custom Dockerfile based on the official Playwright image**
-   (`mcr.microsoft.com/playwright/python`), which ships the browser and its shared libraries. This
-   also means **M0.1's RAM figure must be measured inside that image**, not against a system Python,
-   or it will not describe what actually runs.
+   (`mcr.microsoft.com/playwright/python:v1.61.0-noble`), which ships the browser and its shared
+   libraries. Zeabur builds it at deploy time. **The host has no Docker daemon and will not get one** —
+   it already runs k3s, and a second container runtime is a decision rather than a step. M0.1
+   therefore measures inside **k3s pods against the base image directly** (`deploy/m0-*.yaml`), which
+   is closer to production than Docker would have been, since k3s is what actually serves the system.
+   A related trap: a container's default `/dev/shm` is 64 MB and Chromium crashes without more, so
+   production must pass `--disable-dev-shm-usage` or mount a larger `/dev/shm`.
 3. **k3s and the Zeabur agent occupy ~484 MB before our process starts.** That baseline is reported on
    its own line, separately from the app's footprint — `preflight/measure_ram.py` now records
    `orchestration_baseline` (system used memory before launch, plus the largest processes outside our
@@ -458,8 +462,8 @@ question was settled before anything was built on it.
 
 1. ~~**M0.2 reachability.**~~ **Done — all clear** (§2). No site refuses the Tencent IP.
 2. **M0.1 RAM + A8.5 cold start — the last item.** Procedure:
-   `docs/m0-runbook-ram.md`. Runs inside the Playwright-based deployment image (`Dockerfile`), because
-   a figure measured against a different runtime than production uses does not describe production.
+   `docs/m0-runbook-ram.md`. Runs as a **k3s pod** against the Playwright base image — no Docker, no
+   image build — because k3s is the runtime that serves production and the box has no Docker daemon.
    `preflight/measure_ram.py` separates the 477 MB k3s/agent baseline from the app's own footprint and
    now returns a **swap verdict** — the box has ~2 GB of swap, so a peak reached by swapping is a fail,
    not a pass.
