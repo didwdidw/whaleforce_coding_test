@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Run {{ run.id }}{% endblock %}
+{% block body %}
+
+<div class="panel">
+  <h2 style="margin-bottom:6px">{{ run.task }}</h2>
+  <p class="sub">
+    <span class="badge {% if run.tier.value == 'T-DECLARED' %}b-ok{% elif run.tier.value == 'T-REFUSED' %}b-bad{% else %}b-warn{% endif %}">{{ run.tier.value }}</span>
+    {% if run.terminal_status %}
+      <span class="badge {% if run.counts_as_success %}b-ok{% elif run.terminal_status.value in ('failed','blocked') %}b-bad{% else %}b-warn{% endif %}">{{ run.terminal_status.value }}</span>
+    {% else %}
+      <span class="badge b-dim" id="live-state">{{ run.state.value }}</span>
+    {% endif %}
+    {% if run.failure_class %}<code>{{ run.failure_class.value }}</code>{% endif %}
+    {% if not run.counts_as_success and run.terminal_status %}
+      <span class="badge b-dim">does not count as success</span>
+    {% endif %}
+  </p>
+
+  {% if run.tier.value == 'T-EXPERIMENTAL' %}
+  <p class="sub" style="border-left:3px solid var(--warn);padding-left:12px">
+    Experimental tier. This site is outside the promised capability surface, so this result
+    is best effort and is <strong>excluded from the reported success rate</strong>.
+    Abstaining is a correct outcome here.
+  </p>
+  {% endif %}
+
+  {% if run.explanation %}<p>{{ run.explanation }}</p>{% endif %}
+
+  {% if run.state.value != 'done' %}
+  <p class="sub" id="progress">Waiting…
+    {% if position is not none %}Queued at position {{ position }}.{% endif %}</p>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <h2>Claims</h2>
+  {% if run.claims %}
+    {% for c in run.claims %}
+      <div class="verified-def" style="margin-bottom:12px">
+        {% if c.verified %}
+          A result is <strong>verified</strong> when: this claim is consistent with the
+          source artifact preserved at <code>retrieved_at</code>, and it passes
+          deterministic entity, type, date and unit checks. It does <strong>not</strong>
+          mean the claim is true in the world.
+        {% else %}
+          <strong>Not verified.</strong> {{ c.note }}
+        {% endif %}
+      </div>
+      <pre>{{ c.candidate | tojson(indent=1) }}</pre>
+    {% endfor %}
+  {% else %}
+    <p class="sub">No claim was produced.</p>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <h2>Frozen postcondition</h2>
+  {% if run.postcondition_hash %}
+    <dl class="kv">
+      <dt>Hash</dt><dd><code>{{ run.postcondition_hash }}</code></dd>
+    </dl>
+    <pre>{{ run.postcondition | tojson(indent=1) }}</pre>
+  {% else %}
+    <p class="sub">No postcondition was frozen. The postcondition is constructed and hashed
+      at plan time, which arrives with the planner at M2/M3; until then there is nothing to
+      re-check against and no run can be marked verified.</p>
+  {% endif %}
+</div>
+
+<div class="panel">
+  <h2>Action trace</h2>
+  <p class="sub">
+    {{ run.trace | selectattr('is_retry') | list | length }} retries ·
+    {{ run.trace | selectattr('is_recovery') | list | length }} recoveries.
+    A retry repeats the same strategy family; a recovery is a cross-family transition
+    driven by a named diagnosed cause. Only the second counts as self-correction.
+  </p>
+  <ul class="trace">
+  {% for t in run.trace %}
+    <li class="{% if not t.ok %}bad{% elif t.is_recovery %}recovery{% endif %}">
+      <div><strong>{{ t.seq }}. {{ t.kind.value }}</strong> — {{ t.summary }}</div>
+      <div class="meta">
+        {% if t.finished_at %}{{ ((t.finished_at - t.started_at) * 1000) | round | int }} ms{% endif %}
+        {% if t.diagnosed_cause %} · diagnosed: <code>{{ t.diagnosed_cause.value }}</code>{% endif %}
+        {% if t.family_from %} · {{ t.family_from.value }} → {{ t.family_to.value }}
+          ({% if t.is_recovery %}recovery{% else %}retry{% endif %}){% endif %}
+        {% if t.artifact_id %} · <a href="/api/artifacts/{{ t.artifact_id }}">artifact</a>{% endif %}
+      </div>
+      {% if t.detail %}
+      <details><summary>detail</summary><pre>{{ t.detail | tojson(indent=1) }}</pre></details>
+      {% endif %}
+    </li>
+  {% else %}
+    <li class="meta">No steps recorded.</li>
+  {% endfor %}
+  </ul>
+</div>
+
+<div class="panel">
+  <h2>Evidence artifacts</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Kind</th><th>Source</th><th>Length</th><th>SHA-256</th>
+      <th>State</th><th></th></tr></thead>
+    <tbody>
+    {% for a in artifacts %}
+      <tr>
+        <td><code>{{ a.kind }}</code></td>
+        <td class="mono">{{ a.source_url or '—' }}</td>
+        <td>{{ '{:,}'.format(a.length) }}</td>
+        <td class="mono">{{ a.sha256[:16] }}…</td>
+        <td>{% if a.state == 'stored' %}<span class="badge b-ok">stored</span>
+            {% else %}<span class="badge b-warn">expired</span>{% endif %}</td>
+        <td>{% if a.state == 'stored' %}<a href="/api/artifacts/{{ a.id }}">open</a>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="meta">No artifacts.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="sub" style="margin:12px 0 0">Artifacts expire as a recorded state, never as a
+    deletion of the reference: an expired artifact keeps its hash and length, so an evidence
+    bundle is never a dangling pointer.</p>
+</div>
+
+<div class="panel">
+  <h2>Budget and provenance</h2>
+  <dl class="kv">
+    <dt>Wall clock</dt><dd>{{ run.budget.to_dict().elapsed_seconds }}s of
+      {{ run.budget.to_dict().elapsed_seconds and '' }}180s</dd>
+    <dt>Steps</dt><dd>{{ run.budget.steps }} of 25</dd>
+    <dt>Model calls</dt><dd>{{ run.budget.llm_calls_exploration }} exploration /
+      {{ run.budget.llm_calls_recovery }} recovery</dd>
+    <dt>Tokens</dt><dd>{{ run.budget.input_tokens }} in / {{ run.budget.output_tokens }} out</dd>
+    <dt>Cost</dt><dd>${{ '%.6f' % run.budget.usd }}</dd>
+    <dt>Credential tier</dt><dd>{{ run.credential_tier or '—' }}</dd>
+    <dt>Browser generation</dt><dd>{{ run.browser_generation or '—' }}</dd>
+    <dt>Run id</dt><dd class="mono">{{ run.id }}</dd>
+  </dl>
+</div>
+
+<div class="panel">
+  <h2>Locator memory</h2>
+  <p class="sub">Not yet active. Memory arrives at M5; it will show per run whether each
+    locator came from memory or was freshly derived, whether a healing write-back occurred,
+    and which entries are quarantined. A memory hit will still require full deterministic
+    verification — memory saves search effort, never proof.</p>
+</div>
+
+<p><a href="/api/runs/{{ run.id }}">JSON</a> · <a href="/">all runs</a></p>
+
+{% if run.state.value != 'done' %}
+<script>
+var es = new EventSource('/api/runs/{{ run.id }}/events');
+es.onmessage = function (e) {
+  var d = JSON.parse(e.data);
+  var p = document.getElementById('progress');
+  if (p) {
+    p.textContent = d.queue_position !== null && d.state === 'queued'
+      ? 'Queued at position ' + d.queue_position + ' — waiting for a browser context.'
+      : (d.last ? 'Step ' + d.steps + ': ' + d.last : 'Starting…');
+  }
+  if (d.state === 'done') { es.close(); window.location.reload(); }
+};
+</script>
+{% endif %}
+{% endblock %}

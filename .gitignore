@@ -13,3 +13,7 @@ task_description/
 .venv/
 __pycache__/
 *.pyc
+
+# Runtime data
+/tmp/
+*.sqlite3

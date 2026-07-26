@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Support matrix and limitations{% endblock %}
+{% block body %}
+
+<div class="panel">
+  <h2>What is promised, and what is not</h2>
+  <p class="sub">The unit of promise is a <strong>site × operation</strong> record, not a
+    website. An operation that has not been evaluated inherits nothing from another
+    operation on the same site.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>ID</th><th>Site</th><th>Operation</th><th>Status in this build</th></tr></thead>
+    <tbody>
+      <tr><td>OP-4</td><td>en.wikipedia.org</td>
+          <td>Sort a sortable table by a named column, read a cell from the top row</td>
+          <td><span class="badge b-warn">not yet implemented (M4)</span></td></tr>
+      <tr><td>OP-5</td><td>en.wikipedia.org</td>
+          <td>Expand a collapsed box and extract a value not visible beforehand</td>
+          <td><span class="badge b-warn">not yet implemented (M4)</span></td></tr>
+      <tr><td>OP-6</td><td>books.toscrape.com</td>
+          <td>Category navigation and pagination, list-level facts</td>
+          <td><span class="badge b-warn">not yet implemented (M4)</span></td></tr>
+      <tr><td>OP-7</td><td>books.toscrape.com</td>
+          <td>Open a product page and extract a labelled field</td>
+          <td><span class="badge b-warn">not yet implemented (M4)</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="sub" style="margin-top:14px">
+    <strong>The fixture site is not on this list on purpose.</strong> It is our own
+    evaluation environment — built by us, for mutation and safety testing — and it is not a
+    supported website. Promising operations on a site we wrote ourselves would be setting
+    our own exam. The fixture operations exercised in this build (GS-1 POST-only search,
+    GS-2 client-side pagination, GS-3 overlay dismissal) are gate evidence and appear in no
+    success-rate figure.
+  </p>
+  <p class="sub">
+    Breadth is handled by the experimental tier rather than by counting declared sites: any
+    public, policy-clean, read-only site may be attempted, and where a result cannot be
+    verified the system abstains and says where it stopped. That is a chosen trade-off —
+    depth on locator memory and the safety suite over breadth of declared sites.
+  </p>
+</div>
+
+<div class="panel">
+  <h2>Known limitations, concretely</h2>
+  <ul style="font-size:13.5px;padding-left:20px;margin:0">
+    <li><strong>This build is M1.</strong> There is no model in the loop and no verifier,
+      so every run that produces a value ends <code>unverified</code>. Nothing here should
+      be read as a correctness claim.</li>
+    <li><strong><code>verified</code> will not mean "true".</strong> It will mean the claim
+      is consistent with a preserved artifact and passes deterministic type, unit, date and
+      entity checks. A value that is correct in form but taken from the wrong row, entity or
+      period can still pass; label→value structural binding narrows this without closing it.</li>
+    <li><strong>Necessary UI actions are declared, not proven.</strong> The harness verifies
+      that a case declared an action as required and the trace shows it happened. It does not
+      prove the action was impossible to bypass. Only the fixture's GS-1/GS-2/GS-3 are
+      shortcut-proof by construction.</li>
+    <li><strong>Injection is mitigated structurally, not prevented.</strong> Goal, postcondition
+      and policy live outside model-mutable state, the executor accepts a fixed action
+      allow-list, and navigation is checked against an origin policy. Page content still
+      necessarily influences the next action.</li>
+    <li><strong>DNS rebinding is not solved.</strong> Addresses are checked at resolve time
+      and the connection is not pinned to them.</li>
+  </ul>
+</div>
+
+<div class="panel">
+  <h2>Site policy</h2>
+  <p class="sub">
+    <code>books.toscrape.com</code> was chosen because its automation policy is unambiguous —
+    it is a public sandbox built for automation practice and serves no <code>robots.txt</code>
+    at all. arXiv was dropped because its robots policy forbids the operations we needed:
+    <code>Crawl-delay: 15</code>, <code>Disallow: /search</code>, <code>/find</code>,
+    <code>/form</code>, <code>/api</code>, and a stated policy that indiscriminate automated
+    downloads are not permitted. Neither choice is a research narrative.
+  </p>
+  <p class="sub">
+    Per-origin pacing is <strong>our own voluntary limit</strong>, not compliance with a
+    robots directive. Wikipedia's <code>Crawl-delay: 5</code> applies to a named bot, not to
+    <code>User-agent: *</code>, so no crawl-delay is imposed on us there. SEC EDGAR is
+    self-limited to 1 request/second against their published cap of 10, with a declared
+    contact User-Agent — which their server requires, not merely requests.
+  </p>
+  <pre>{{ robots | tojson(indent=1) }}</pre>
+</div>
+
+<div class="panel">
+  <h2>Egress policy</h2>
+  <p class="sub">Deny by default. The fixture is reached over its own public hostname
+    precisely so no allow-list hole is needed — a localhost carve-out would make the
+    claim below untrue.</p>
+  <pre>{{ egress | tojson(indent=1) }}</pre>
+</div>
+
+<div class="panel">
+  <h2>Budgets in force</h2>
+  <dl class="kv">
+    <dt>Wall clock</dt><dd>{{ budgets.wall_clock_seconds }}s</dd>
+    <dt>Steps</dt><dd>{{ budgets.max_steps }}</dd>
+    <dt>Model calls</dt><dd>{{ budgets.max_llm_calls }}
+      ({{ budgets.exploration_calls }} exploration + {{ budgets.recovery_calls }} reserved
+      for recovery — exploration cannot consume the reserve)</dd>
+    <dt>Input tokens</dt><dd>{{ budgets.max_input_tokens_per_call }}/call,
+      {{ budgets.max_input_tokens_per_run }}/run</dd>
+    <dt>Output tokens</dt><dd>{{ budgets.max_output_tokens_per_call }}/call,
+      {{ budgets.max_output_tokens_per_run }}/run</dd>
+  </dl>
+  <p class="sub" style="margin-top:12px">Exceeding any budget is fail-closed. Under budget
+    pressure the system does not downgrade to a partial or unverified answer and present it
+    as a result.</p>
+</div>
+
+<div class="panel">
+  <h2>Artifact storage</h2>
+  <pre>{{ storage | tojson(indent=1) }}</pre>
+</div>
+{% endblock %}

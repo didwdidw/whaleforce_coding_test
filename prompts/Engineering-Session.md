@@ -310,3 +310,16 @@ readable — peak 899.9 MiB, swap verdict PASS, no load errors.]*
 "platform_meminfo": {MemTotal 3813268 kB, MemAvailable 3237804 kB, SwapTotal 2035708 kB}
 "artifact_dom_chars": {heavy 1921689, light 52426}, "load_errors": [], "samples": 61
 ```
+
+==========
+
+M0 收了，往 M1
+
+899.9 那個 miss 你自己抓出來就夠了，不用再處理。本機數字是地板不是估計值這條記著就好
+一件事帶進 M1：A9.7.3 的 steady-state 要對著兩週去設計，不是跑幾小時看起來還好就算過
+
+headroom 1.7 GB ÷ 336 小時 = 每小時漏 5 MB 就吃光。5 MB/h 在三小時內只有 15 MB，會淹沒在噪音裡，所以觀察窗口和量測方法要能分辨這個量級
+實務上不要把漏水追到零，追不完。browser supervisor 本來就要寫，順手把定期回收做進去: 每 N 個 run 或每 N 小時重啟一次。兩週的要求就從「證明沒有漏」變成「漏了也沒關係」
+其他照你說的走
+
+go ahead now

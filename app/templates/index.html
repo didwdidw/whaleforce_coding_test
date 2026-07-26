@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div class="milestone">{{ milestone }}</div>
+
+<div class="panel">
+  <h2>Submit a task</h2>
+  <p class="sub">Tier is decided before execution starts and is shown on the result.
+    Anything outside the declared surface is attempted as <code>T-EXPERIMENTAL</code> or
+    refused as <code>T-REFUSED</code> with an explanation — never answered by guessing.</p>
+  <form class="submit" method="post" action="/api/runs" id="submit-form">
+    <input type="text" name="task" id="task" required
+           placeholder="e.g. Search the fixture catalogue for lantern">
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+      <button type="submit">Run</button>
+      <span class="meta" id="submit-note" style="font-size:12.5px;color:var(--dim)"></span>
+    </div>
+  </form>
+  <ul class="chips">
+    {% for t in demo_tasks %}
+    <li><button type="button" class="ghost" onclick="fill(this)">{{ t }}</button></li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="panel">
+  <h2>Capacity right now</h2>
+  <div class="scroll">
+    <table>
+      <tr>
+        <th>Running</th><td>{{ queue.running }} / {{ queue.concurrency }}</td>
+        <th>Queued</th><td>{{ queue.queued }} / {{ queue.depth }}</td>
+        <th>Refused (queue full)</th><td>{{ queue.refused_queue_full }}</td>
+      </tr>
+      <tr>
+        <th>Browser generation</th><td>{{ browser.generation }}</td>
+        <th>Runs this generation</th><td>{{ browser.runs_served }}</td>
+        <th>Restarts</th><td>{{ browser.restart_count }}</td>
+      </tr>
+    </table>
+  </div>
+  <p class="sub" style="margin:12px 0 0">Concurrency is two contexts inside a single
+    browser process. When both slots and the queue of {{ queue.depth }} are full the API
+    answers <code>HTTP 429</code> with <code>Retry-After</code> — it does not queue
+    without bound. The browser is recycled every
+    {{ browser.recycle_policy.after_runs }} runs or
+    {{ (browser.recycle_policy.after_seconds / 3600) | round(1) }} hours so a slow leak
+    cannot accumulate across a two-week deployment.</p>
+</div>
+
+<div class="panel">
+  <h2>Runs</h2>
+  <p class="sub">The first few are pre-executed at startup, including a refusal, so there
+    is something inspectable before you wait for anything.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr>
+      <th>Task</th><th>Tier</th><th>Outcome</th><th>Counts as success</th>
+      <th>Steps</th><th>Duration</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for r in runs %}
+      <tr>
+        <td>{{ r.task[:74] }}{% if r.task|length > 74 %}…{% endif %}
+          {% if r.pre_executed %}<span class="badge b-dim">pre-executed</span>{% endif %}</td>
+        <td><span class="badge {% if r.tier.value == 'T-DECLARED' %}b-ok{% elif r.tier.value == 'T-REFUSED' %}b-bad{% else %}b-warn{% endif %}">{{ r.tier.value }}</span></td>
+        <td>
+          {% if r.terminal_status %}
+            <span class="badge {% if r.counts_as_success %}b-ok{% elif r.terminal_status.value in ('failed','blocked') %}b-bad{% else %}b-warn{% endif %}">{{ r.terminal_status.value }}</span>
+            {% if r.failure_class %}<br><code>{{ r.failure_class.value }}</code>{% endif %}
+          {% else %}
+            <span class="badge b-dim">{{ r.state.value }}</span>
+          {% endif %}
+        </td>
+        <td>{% if r.counts_as_success %}<span class="badge b-ok">yes</span>
+            {% else %}<span class="badge b-dim">no</span>{% endif %}</td>
+        <td>{{ r.budget.steps }}</td>
+        <td>{% if r.finished_at and r.started_at %}{{ ((r.finished_at - r.started_at) * 1) | round(1) }}s{% else %}—{% endif %}</td>
+        <td><a href="/runs/{{ r.id }}">inspect</a></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" style="color:var(--dim)">Pre-executed runs are still starting.
+        The browser takes a few seconds to launch on a cold container.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<script>
+function fill(btn){
+  document.getElementById('task').value = btn.textContent.trim();
+}
+document.getElementById('submit-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var note = document.getElementById('submit-note');
+  note.textContent = 'submitting…';
+  var body = new URLSearchParams({task: document.getElementById('task').value});
+  var res = await fetch('/api/runs', {method: 'POST', body: body});
+  var data = await res.json();
+  if (res.status === 429) {
+    note.textContent = data.explanation + ' (HTTP 429'
+      + (res.headers.get('Retry-After') ? ', Retry-After ' + res.headers.get('Retry-After') + 's' : '')
+      + ')';
+    return;
+  }
+  window.location = data.detail_url;
+});
+</script>
+{% endblock %}
