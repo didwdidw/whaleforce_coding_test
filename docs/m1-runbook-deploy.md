@@ -13,6 +13,36 @@ Two hostnames means no exemption exists to be argued about. This is now demonstr
 than asserted: running the app under production config against a `127.0.0.1` fixture returns
 `blocked / policy_refused`, which is the correct and useful failure.
 
+## If Zeabur says the Dockerfile is required
+
+> `INVALID_ARGUMENT — Dockerfile is required for arbitrary Git sources. Auto-detection is
+> not supported yet.`
+
+This is Zeabur telling you the repo was added as a **raw Git URL** rather than through the
+GitHub integration. In that mode `zbpack` does not inspect the repo, so it will not find the
+root `Dockerfile` by itself.
+
+**Preferred fix — connect the repo through GitHub instead.** In the service's source
+settings choose GitHub and pick `didwdidw/whaleforce_coding_test`, authorising the Zeabur
+GitHub App for the private repo. That removes the limitation entirely and gives auto-deploy
+on push, which you want anyway.
+
+**If you would rather keep the raw Git URL**, `zbpack.json` is now committed at the repo
+root and declares the path explicitly:
+
+```json
+{ "dockerfile": { "path": "Dockerfile" } }
+```
+
+Redeploy and it should build. If it still does not, set `ZBPACK_DOCKERFILE_PATH=Dockerfile`
+as an environment variable on each service — same instruction, delivered through the
+dashboard instead of the repo.
+
+Both services share this one Dockerfile; they differ only by `APP_ROLE`. Note that Zeabur
+also matches `<service-name>.Dockerfile` automatically, so **do not name your services
+`app` or `fixture` and then add files with those names** unless you intend to split the
+build in two.
+
 ## Pre-deploy validation — already run, passing
 
 `deploy/m1-build-check.yaml` runs every step the Dockerfile performs after `FROM`, inside a
@@ -55,6 +85,7 @@ ssh wf-prod 'sudo k3s kubectl logs -f m1-build-check'
 | Build | Dockerfile (root) — **do not let Zeabur auto-detect Python**, a stock image has no Chromium |
 | `APP_ROLE` | `fixture` |
 | `APP_ENV` | `production` |
+| `GIT_SHA` (build arg, optional) | the deployed commit — see below |
 | Domain | Generate Domain → note it, e.g. `wf-fixture.zeabur.app` |
 
 The fixture serves no browser itself; it is a plain FastAPI app. Deploy it **first** — the
@@ -86,6 +117,13 @@ shortcut-proof. If it returns 200, the wrong thing is deployed.
 
 Optionally add a volume mounted at `/data` so runs and artifacts survive a redeploy.
 Without it the store starts empty on each release — acceptable, but it should be a decision.
+
+**Build provenance.** `.dockerignore` excludes `.git`, so the commit is baked in as the
+`GIT_SHA` build argument. If Zeabur exposes the commit as `ZEABUR_GIT_COMMIT_SHA` at
+runtime the app picks that up automatically; otherwise pass `--build-arg GIT_SHA=...` or set
+`GIT_SHA` as a service environment variable. `/healthz` reports what it resolved. A run that
+reports `unknown` is not reportable under S-10.7 — the field is deliberately honest rather
+than guessed, so check it after the first deploy.
 
 **`ALLOW_PRIVATE_EGRESS` cannot be set here.** The app refuses to start if it is enabled
 while `APP_ENV` is anything other than a development value, and prints why. An unset or

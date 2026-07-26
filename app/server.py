@@ -12,6 +12,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -42,6 +43,17 @@ DEMO_TASKS = [
 
 
 def git_sha() -> str:
+    """Build provenance. Every first run of a held-out split records this (S-10.7).
+
+    The build context has no `.git`, so the commit is baked in as an environment variable
+    at image build time. Falling back to `git rev-parse` covers running from a checkout;
+    "unknown" is reported honestly rather than guessed, and a score carrying it is not
+    reportable.
+    """
+    for var in ("GIT_SHA", "ZEABUR_GIT_COMMIT_SHA", "SOURCE_COMMIT"):
+        value = os.environ.get(var, "").strip()
+        if value and value != "unknown":
+            return value[:12]
     try:
         return subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True,
                               text=True, timeout=5, check=True).stdout.strip()

@@ -359,3 +359,10 @@ Dockerfile 現在的 CMD 還是 M0 那個佔位的，部署前記得換掉
 重灌好了，IP 沒變，ssh key也幫你弄好了
 先跑 reachability，把進度恢復到剛剛的樣子
 然後繼續自己做
+
+==========
+
+Error: Invalid input
+Code: INVALID_ARGUMENT
+Description: Dockerfile is required for arbitrary Git sources. Auto-detection is not supported yet.
+Trace ID: 07d5e05b1e6d55d4c1e53f593118a281

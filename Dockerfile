@@ -51,6 +51,12 @@ RUN mkdir -p /data
 # APP_ROLE selects which service this container runs: `app` or `fixture`. APP_ENV defaults
 # to production, so ALLOW_PRIVATE_EGRESS cannot silently disable the SSRF guard here — the
 # app refuses to start in that combination.
+# The build context excludes .git, so provenance is baked in here instead. Pass it with
+# --build-arg GIT_SHA=$(git rev-parse --short HEAD); a run reporting "unknown" is not
+# reportable under S-10.7 and should be visible as such rather than quietly wrong.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
+
 ENV APP_ROLE=app APP_ENV=production PORT=8080
 EXPOSE 8080
 

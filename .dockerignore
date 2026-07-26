@@ -1,0 +1,15 @@
+# Never let credentials into the build context, whatever .gitignore says.
+api_keys/
+*.key
+.env
+.env.*
+
+.git/
+.venv/
+__pycache__/
+*.pyc
+task_description/
+preflight/results/
+prompts/
+docs/
+*.sqlite3
