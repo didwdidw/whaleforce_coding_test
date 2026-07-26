@@ -166,3 +166,52 @@ def test_guard_state_is_recorded_for_audit(monkeypatch):
     guard = Settings().egress_guard_state()
     assert guard["ssrf_guard_enabled"] is True
     assert guard["app_env"] == "production"
+
+
+# --- executor routing -------------------------------------------------------------
+#
+# Both defects below shipped to the deployed system and were caught only by reading the
+# candidate each run produced. Neither raised an error: one operation answered a different
+# operation's question, and the other searched for a sentence fragment and reported "0
+# results". A wrong answer that looks like an answer is the failure this product exists to
+# prevent, so the routing is pinned here.
+
+@pytest.mark.parametrize("task,operation", [
+    ("Search the fixture catalogue for lantern", "GS-1"),
+    ("Find 'Morse Lamp' in the catalogue", "GS-1"),
+    ("Browse the fixture catalogue and page forward to page 3", "GS-2"),
+    # "gated page" contains "page"; a bare "page" marker routed this to the paginator,
+    # which returned a pager reading for a task that asked for a reference code.
+    ("Dismiss the overlay on the gated page and read the reference code", "GS-3"),
+    ("Dismiss the modal then reveal the code", "GS-3"),
+    ("Read the customer notes page", "GS-injection"),
+])
+def test_task_routes_to_the_operation_it_names(task, operation):
+    from app.executor import Executor
+
+    plan = Executor._select_plan(Executor.__new__(Executor), task)
+    assert plan is not None, task
+    assert plan.operation == operation, f"{task!r} routed to {plan.operation}"
+
+
+def test_unrecognised_task_routes_nowhere_rather_than_guessing():
+    from app.executor import Executor
+
+    assert Executor._select_plan(Executor.__new__(Executor), "What is the capital of France?") is None
+
+
+@pytest.mark.parametrize("task,term", [
+    # The greedy character class returned "the fixture catalogue for lant" here.
+    ("search the fixture catalogue for lantern", "lantern"),
+    ("find 'morse lamp' in the catalogue", "morse lamp"),
+    ('search for "brass compass"', "brass compass"),
+    ("search for compass", "compass"),
+    ("look for barometer", "barometer"),
+    # Names no term: guessing one returns a result set nobody asked about.
+    ("search the catalogue", None),
+    ("search", None),
+])
+def test_search_term_is_extracted_or_refused(task, term):
+    from app.executor import Executor
+
+    assert Executor._search_term(task) == term

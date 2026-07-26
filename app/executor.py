@@ -45,6 +45,13 @@ OUT_OF_SCOPE = (
 )
 
 
+# Words that are never a search term on their own.
+STOPWORDS = frozenset({
+    "the", "a", "an", "for", "it", "this", "that", "all", "any", "some", "our", "my",
+    "catalogue", "catalog", "fixture", "products", "product", "items", "item", "page",
+})
+
+
 @dataclass
 class Plan:
     """A scripted sequence. At M3 the planner produces these from the model's candidates."""
@@ -281,25 +288,68 @@ class Executor:
 
     # ---- plans -----------------------------------------------------------------
 
+    # Routed most specific first, and every marker is distinctive to one operation. A bare
+    # "page" is not a marker: "the gated page" would otherwise route an overlay task to the
+    # paginator, which then returns a perfectly plausible pager reading for a task that
+    # asked for something else. A mis-route that still produces an answer is worse than one
+    # that fails, so the markers are narrow and the order is fixed.
+    ROUTES: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("notes", ("injection", "customer note", "notes page")),
+        ("overlay", ("overlay", "dismiss", "modal", "gated", "reference code")),
+        ("paginate", ("paginate", "pagination", "next page", "page forward",
+                      "page through", "browse", "page 2", "page 3", "page 4")),
+        ("search", ("search", "find", "look for", "matching")),
+    )
+
     def _select_plan(self, task: str) -> Plan | None:
         low = task.lower()
-        if any(w in low for w in ("search", "find", "look for", "matching")):
+        for name, markers in self.ROUTES:
+            if not any(m in low for m in markers):
+                continue
+            if name == "notes":
+                return self._plan_notes()
+            if name == "overlay":
+                return self._plan_overlay()
+            if name == "paginate":
+                return self._plan_paginate(low)
             return self._plan_search(low)
-        if any(w in low for w in ("page", "paginate", "next page", "browse")):
-            return self._plan_paginate(low)
-        if any(w in low for w in ("overlay", "dismiss", "modal", "reference code", "gated")):
-            return self._plan_overlay()
-        if any(w in low for w in ("note", "injection", "customer notes")):
-            return self._plan_notes()
         return None
 
+    @staticmethod
+    def _search_term(low: str) -> str | None:
+        """The term to search for, or None if the task does not name one.
+
+        A greedy character class swallows the whole sentence: "search the fixture catalogue
+        for lantern" yielded "the fixture catalogue for lant", which returns zero results
+        and reads like a real answer. Quoted text wins; otherwise the words after the last
+        "for"; and a term is never invented.
+        """
+        quoted = re.search(r"['\"‘“]([^'\"’”]{2,40})['\"’”]", low)
+        if quoted:
+            return quoted.group(1).strip()
+        after_for = re.search(r"\bfor\s+([a-z0-9][a-z0-9 -]{1,30})$", low.rstrip(" ."))
+        if after_for:
+            return after_for.group(1).strip()
+        bare = re.search(r"\b(?:search|find|look for)\s+(?:for\s+)?"
+                         r"([a-z0-9][a-z0-9-]{1,30})\b", low)
+        if not bare:
+            return None
+        term = bare.group(1).strip()
+        # "search the catalogue" names no term; "the" is not one, and searching for it
+        # would return a result set the user never asked about.
+        return None if term in STOPWORDS else term
+
     def _plan_search(self, low: str) -> Plan:
-        term = "lantern"
-        m = re.search(r"(?:search|find|look for)\s+(?:for\s+)?['\"]?([a-z0-9 -]{3,30})", low)
-        if m:
-            term = m.group(1).strip().split(" in ")[0].strip()
+        term = self._search_term(low)
 
         async def open_form(ctx: ExecutionContext) -> None:
+            if term is None:
+                self._terminate(
+                    ctx.run, TerminalStatus.UNSUPPORTED, FailureClass.POLICY_REFUSED,
+                    "The task asks for a search but does not name a term to search for. "
+                    "Guessing one would produce a result set nobody asked about, so the "
+                    "run stopped before browsing.")
+                return
             await self._navigate(ctx, f"{settings.fixture_base_url}/")
 
         async def fill_and_submit(ctx: ExecutionContext) -> None:
@@ -325,7 +375,8 @@ class Executor:
             ctx.candidate = {"counter_text": counter, "skus": skus, "term": term}
             self._finish_step(ctx.run, entry, counter_text=counter, skus=skus)
 
-        return Plan("GS-1", f"Fixture catalogue search for '{term}' (POST-only form)",
+        return Plan("GS-1", f"Fixture catalogue search for '{term or "(no term named)"}' "
+                            f"(POST-only form)",
                     ("fill search field", "submit form by POST"),
                     (open_form, fill_and_submit, read_results))
 

@@ -366,3 +366,32 @@ Error: Invalid input
 Code: INVALID_ARGUMENT
 Description: Dockerfile is required for arbitrary Git sources. Auto-detection is not supported yet.
 Trace ID: 07d5e05b1e6d55d4c1e53f593118a281
+
+==========
+
+我已經選定了綁定git儲存庫
+重新部署跳了這個 error
+
+Error: Invalid input
+Code: INVALID_ARGUMENT
+Description: gitURL is required for arbitrary git service
+Trace ID: 8edee5c2fb100dadc05b09bfcf0eb85d
+
+==========
+
+As you suggested:
+1. wf-fixture.zeabur.app
+2. wf-agent.zeabur.app
+Now go ahead
+
+==========
+
+my bad 我現在處理
+fixture 的 GIT_SHA 現在應該要設什麼value
+
+==========
+
+我改完後重啟目前版本了
+should be working now
+還是一定要重新部署？
+try again
