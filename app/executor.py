@@ -147,16 +147,27 @@ class Executor:
                 f"No page was requested and no network activity occurred.")
             return
 
-        plan = self._select_plan(run.task)
+        operation, candidates, hits = self.route(run.task)
+        plan = self._select_plan(run.task) if operation else None
         if plan is None:
-            entry = self._step(run, StepKind.NOTE, "No plan matched this task")
+            ambiguous = len(candidates) > 1
+            entry = self._step(
+                run, StepKind.NOTE,
+                f"Routing matched {len(candidates)} operations" if ambiguous
+                else "No operation matched this task",
+                candidates=candidates, markers=hits)
             self._finish_step(run, entry, ok=False)
             self._terminate(
                 run, TerminalStatus.UNSUPPORTED, FailureClass.POLICY_REFUSED,
-                "This build is the M1 walking skeleton: it runs scripted operations against "
-                "the fixture with no model in the loop, so it cannot plan for an arbitrary "
-                "task. It stopped before browsing rather than guessing. Recognised inputs "
-                "are listed on the submit form.")
+                (f"This task matches more than one operation ({', '.join(candidates)}), so "
+                 f"which one was asked for is ambiguous. Choosing one would produce an "
+                 f"answer to a question that may not have been asked, so the run stopped "
+                 f"before browsing. Rephrase to name a single operation."
+                 if ambiguous else
+                 "This build is the M1 walking skeleton: it runs scripted operations against "
+                 "the fixture with no model in the loop, so it cannot plan for an arbitrary "
+                 "task. It stopped before browsing rather than guessing. Recognised inputs "
+                 "are listed on the submit form."))
             return
 
         try:
@@ -244,21 +255,22 @@ class Executor:
         run = ctx.run
         entry = self._step(run, StepKind.POLICY_CHECK, f"Policy check for {url}")
         decision = egress.check_url(url)
-        robots_ok, robots_rule = await self._robots.allows(url, settings.user_agent)
-        self._finish_step(run, entry, ok=decision.allowed and robots_ok,
+        robots = self._robots.decide(url, settings.user_agent)
+        self._finish_step(run, entry, ok=decision.allowed and robots.allowed,
                           egress=decision.to_dict(),
-                          robots={"allowed": robots_ok, "rule": robots_rule})
+                          robots=robots.to_dict())
 
         if not decision.allowed:
             self._terminate(run, TerminalStatus.BLOCKED, FailureClass.POLICY_REFUSED,
                             f"Navigation refused by the egress policy: {decision.reason}. "
                             f"Only public https destinations are reachable.")
             return False
-        if not robots_ok:
+        if not robots.allowed:
             self._terminate(run, TerminalStatus.BLOCKED, FailureClass.ROBOTS_DISALLOWED,
                             f"{urlsplit(url).hostname}/robots.txt disallows this path. "
-                            f"The matching rule is `{robots_rule}`. robots.txt is treated "
-                            f"as binding, not advisory.")
+                            f"Matched rule: `{robots.rule}` "
+                            f"(group `User-agent: {robots.group_user_agent or '?'}`). "
+                            f"robots.txt is treated as binding, not advisory.")
             return False
 
         nav = self._step(run, StepKind.NAVIGATE, f"Navigate to {url}", url=url)
@@ -301,19 +313,34 @@ class Executor:
         ("search", ("search", "find", "look for", "matching")),
     )
 
-    def _select_plan(self, task: str) -> Plan | None:
+    def route(self, task: str) -> tuple[str | None, list[str], dict[str, list[str]]]:
+        """Which operation a task names: (operation, all matches, the markers that hit).
+
+        Returns every operation whose markers matched, not the first. Picking the first is
+        guessing, and a guess that still produces an answer is the failure this system
+        exists to prevent — the routing that sent "the gated page" to the paginator was not
+        a weak marker, it was the act of choosing under ambiguity.
+        """
         low = task.lower()
+        hits: dict[str, list[str]] = {}
         for name, markers in self.ROUTES:
-            if not any(m in low for m in markers):
-                continue
-            if name == "notes":
-                return self._plan_notes()
-            if name == "overlay":
-                return self._plan_overlay()
-            if name == "paginate":
-                return self._plan_paginate(low)
-            return self._plan_search(low)
-        return None
+            matched = [m for m in markers if m in low]
+            if matched:
+                hits[name] = matched
+        return (next(iter(hits)) if len(hits) == 1 else None), list(hits), hits
+
+    def _select_plan(self, task: str) -> Plan | None:
+        name, _, _ = self.route(task)
+        if name is None:
+            return None
+        low = task.lower()
+        if name == "notes":
+            return self._plan_notes()
+        if name == "overlay":
+            return self._plan_overlay()
+        if name == "paginate":
+            return self._plan_paginate(low)
+        return self._plan_search(low)
 
     @staticmethod
     def _search_term(low: str) -> str | None:

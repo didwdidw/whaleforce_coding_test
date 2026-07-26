@@ -37,6 +37,11 @@ def _ssl_context() -> ssl.SSLContext:
         return ssl.create_default_context()
 
 
+def _looks_like_markup(text: str) -> bool:
+    head = text.lstrip()[:200].lower()
+    return head.startswith("<") or "<html" in head or "<!doctype" in head
+
+
 def _decode(raw: bytes, encoding: str | None) -> bytes:
     if encoding == "gzip":
         return gzip.decompress(raw)
@@ -93,10 +98,11 @@ class RobotsRules:
         if agents or rules:
             self.groups.append((agents, rules))
 
-    def _rules_for(self, user_agent: str) -> list[tuple[bool, str]]:
-        """Most specific matching group, falling back to `*` (RFC 9309 §2.2.1)."""
+    def _rules_for(self, user_agent: str) -> tuple[list[tuple[bool, str]], str | None]:
+        """Most specific matching group and its user-agent, falling back to `*`."""
         ua = user_agent.lower()
         best: list[tuple[bool, str]] | None = None
+        best_agent: str | None = None
         best_len = -1
         star: list[tuple[bool, str]] | None = None
         for agents, rules in self.groups:
@@ -104,10 +110,10 @@ class RobotsRules:
                 if agent == "*":
                     star = rules if star is None else star + rules
                 elif agent and agent in ua and len(agent) > best_len:
-                    best, best_len = rules, len(agent)
+                    best, best_agent, best_len = rules, agent, len(agent)
         if best is not None:
-            return best
-        return star or []
+            return best, best_agent
+        return (star or []), ("*" if star is not None else None)
 
     @staticmethod
     def _to_regex(pattern: str) -> re.Pattern:
@@ -117,20 +123,50 @@ class RobotsRules:
             out.append(".*" if ch == "*" else re.escape(ch))
         return re.compile("^" + "".join(out) + ("$" if anchored else ""))
 
-    def match(self, user_agent: str, path: str) -> tuple[bool, str | None]:
-        """(allowed, the rule that decided it). Longest match wins; Allow wins ties."""
+    def match(self, user_agent: str, path: str) -> "RobotsDecision":
+        """Longest match wins; Allow wins ties. The deciding rule is always reported."""
+        rules, group_agent = self._rules_for(user_agent)
         decision: tuple[bool, str] | None = None
         best_len = -1
-        for allow, pattern in self._rules_for(user_agent):
+        for allow, pattern in rules:
             if not self._to_regex(pattern).match(path):
                 continue
             weight = len(pattern.rstrip("$"))
             if weight > best_len or (weight == best_len and allow):
                 decision, best_len = (allow, pattern), weight
         if decision is None:
-            return True, None
+            # Not an absence of evidence to paper over: "no rule matched" is itself the
+            # citable reason this path is allowed (A10.4).
+            return RobotsDecision(True, None, None, group_agent, "no rule matched")
         allow, pattern = decision
-        return allow, f"{'Allow' if allow else 'Disallow'}: {pattern}"
+        return RobotsDecision(allow, "Allow" if allow else "Disallow", pattern, group_agent,
+                              f"{'Allow' if allow else 'Disallow'}: {pattern}")
+
+
+@dataclass(frozen=True)
+class RobotsDecision:
+    """One robots outcome, always citable (A10.4).
+
+    `allowed` alone is not enough for an audit: a permissive parser and a correct one both
+    return True, and only the cited rule distinguishes them.
+    """
+
+    allowed: bool
+    directive: str | None          # "Allow", "Disallow", or None when no rule matched
+    pattern: str | None
+    group_user_agent: str | None   # which group decided, e.g. "*"
+    rule: str                      # human-readable, e.g. "Disallow: /cgi-bin"
+    source: str = "matched"        # matched | no_robots_txt | unfetchable | unparseable
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "allowed": self.allowed,
+            "directive": self.directive,
+            "pattern": self.pattern,
+            "group_user_agent": self.group_user_agent,
+            "rule": self.rule,
+            "source": self.source,
+        }
 
 
 @dataclass
@@ -159,8 +195,15 @@ class RobotsCache:
             with urllib.request.urlopen(req, timeout=15, context=_ssl_context()) as resp:
                 body = _decode(resp.read(), resp.headers.get("Content-Encoding"))
                 text = body.decode("utf-8", "replace")
-                return RobotsEntry(RobotsRules(text), text.splitlines(), time.time(),
-                                   resp.status)
+                rules = RobotsRules(text)
+                if not rules.groups and _looks_like_markup(text):
+                    # A captive portal or error page served with 200 parses to zero groups,
+                    # which would read as "nothing is disallowed". That is under-blocking
+                    # from a document that is not a policy at all (A10.3).
+                    return RobotsEntry(None, text.splitlines(), time.time(), resp.status,
+                                       "robots.txt returned HTTP 200 but the body is not a "
+                                       "robots.txt (markup, no directives)")
+                return RobotsEntry(rules, text.splitlines(), time.time(), resp.status)
         except urllib.error.HTTPError as exc:
             # 404 means no robots.txt, which permits everything (books.toscrape).
             note = ("no robots.txt (404): nothing is disallowed" if exc.code == 404
@@ -179,23 +222,38 @@ class RobotsCache:
         self._entries[origin] = entry
         return entry
 
-    async def allows(self, url: str, user_agent: str) -> tuple[bool, str | None]:
-        """Return (allowed, matching rule). The rule is what the user is shown."""
+    def decide(self, url: str, user_agent: str) -> RobotsDecision:
+        """The robots outcome for one URL, with the rule that produced it (A10.3, A10.4).
+
+        The boundary matters: **404 is a valid answer meaning "no restrictions"**, not a
+        failure to fetch. `books.toscrape.com` serves no robots.txt, and treating that as
+        unfetchable would lock out the whole site and take OP-6 and OP-7 with it. A network
+        error, timeout, 5xx or unparseable body is a different thing entirely — the policy
+        exists and we could not read it — and that fails closed.
+        """
         parts = urlsplit(url)
         origin = f"{parts.scheme}://{parts.netloc}"
         entry = self._entry(origin)
+
         if entry.rules is None:
-            # A 404 means the origin publishes no robots.txt, which disallows nothing.
-            # Anything else — a network failure, a 5xx, a TLS error — is *not* permission.
-            # Treating an unreadable robots.txt as "allowed" would let a transient failure
-            # silently switch the policy off, which is the opposite of binding (S-2.3).
             if entry.status == 404:
-                return True, None
-            return False, (entry.note
-                           or "robots.txt could not be read; access is refused rather "
-                              "than assumed")
+                return RobotsDecision(
+                    True, None, None, None,
+                    "no robots.txt published (HTTP 404): the origin declares no restrictions",
+                    source="no_robots_txt")
+            return RobotsDecision(
+                False, None, None, None,
+                entry.note or "robots.txt could not be read; access is refused rather "
+                              "than assumed",
+                source="unparseable" if entry.status == 200 else "unfetchable")
+
         path = (parts.path or "/") + (f"?{parts.query}" if parts.query else "")
         return entry.rules.match(user_agent, path)
+
+    async def allows(self, url: str, user_agent: str) -> tuple[bool, str | None]:
+        """Backwards-compatible pair. Prefer `decide()`; the trace needs the full record."""
+        d = self.decide(url, user_agent)
+        return d.allowed, (None if d.source == "matched" and d.directive is None else d.rule)
 
     def describe(self) -> dict[str, Any]:
         return {

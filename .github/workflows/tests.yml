@@ -1,0 +1,59 @@
+# A-27 requires the robots matching semantics to run in CI rather than by hand.
+#
+# The defect these guard against under-blocks silently: no error, no anomaly, a clean
+# trace. A suite that only runs when someone remembers to run it is the same category of
+# risk as the parser it replaced.
+name: tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"   # matches the deployment image
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+
+      - name: robots.txt matching semantics (A10.6)
+        run: python -m pytest tests/test_robots_semantics.py -v
+
+      - name: Egress guard, configuration fail-safes, routing
+        run: python -m pytest tests/test_policy.py -v
+
+      - name: Full suite
+        run: python -m pytest tests/ -q
+
+      # A10.2 bans urllib.robotparser. The suite asserts this, but a failure here should
+      # name itself rather than appear as one assertion among sixty.
+      - name: Confirm urllib.robotparser is not imported (A10.2)
+        run: python -m pytest tests/test_robots_semantics.py::test_urllib_robotparser_is_not_imported_anywhere -v
+
+      # The vendored fixture is the live body that exposed the defect. If it stops
+      # containing the shape being tested, the tests still pass while testing nothing —
+      # so the shape itself is asserted.
+      - name: Confirm the SEC fixture still carries the blank-line group (A10.6)
+        run: |
+          python - <<'PY'
+          lines = open('tests/fixtures/sec.gov-robots.txt', encoding='utf-8').read().splitlines()
+          ua = next(i for i, l in enumerate(lines) if l.strip() == 'User-agent: *')
+          blank = next(i for i, l in enumerate(lines) if not l.strip() and i > ua)
+          cgi = next(i for i, l in enumerate(lines) if l.strip() == 'Disallow: /cgi-bin')
+          arch = next(i for i, l in enumerate(lines) if l.strip() == 'Allow: /Archives/edgar/data')
+          assert cgi > blank and arch > blank, (
+              "the fixture no longer places these rules after a blank line inside the "
+              "User-agent: * group, so it no longer exercises A10.1.4")
+          print(f"ok: User-agent:* at {ua+1}, blank at {blank+1}, "
+                f"Disallow:/cgi-bin at {cgi+1}, Allow:/Archives/edgar/data at {arch+1}")
+          PY

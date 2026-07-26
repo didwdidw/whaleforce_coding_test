@@ -395,3 +395,23 @@ fixture 的 GIT_SHA 現在應該要設什麼value
 should be working now
 還是一定要重新部署？
 try again
+
+==========
+
+重新部署好了，去跑你的部署後檢查
+
+另外講一下前面的其他問題
+Amendment 10 進去了，commit 69c7a2b，去讀。六條語意你已經做完了，新的是這幾條：
+A10.3 的界線先確認，這條最急。404 算有效答案，代表無限制，不算取不到。books.toscrape 就是 404，你的 fail closed 如果把 404 當失敗，整站會被鎖掉，OP-6 和 OP-7 直接沒了
+A10.4 每個 robots 決定都要在 trace 記下命中的規則：directive、pattern、群組的 user-agent。沒命中就明確記「無規則命中」。放行也要記，不是只記拒絕。當時的問題就是「放行了但沒有任何東西可以檢查它為什麼放行」
+A10.5 適用範圍是所有 origin，含 Task 2 seam 的 server-side fetcher，不只 browser navigation。出事的那一半就在那裡，browser tier 根本不會去 SEC
+A10.6 單元測試要把 live www.sec.gov/robots.txt 的內容本身當成其中一個 fixture
+A10.2 明文禁用 urllib.robotparser，確認沒有路徑會回到它
+驗收多了 A-26 到 A-28。A-27 要求 robots 語意測試跑在 CI 不是手動，repo 已經在 GitHub 上了，開個 workflow
+
+
+而你剛剛提到兩個缺陷，我追問兩件事：
+1. 搜出 0 results 那次 run 最後終止在什麼 status？你說它「當成答案回報」，如果是 no_result_verified、或任何被算成功的狀態，那就是一次 false verified claim，而那是 hard gate 要求為 0 的東西。Amendment 3 講的就是這個，「我找了但沒找到」永遠是 unverified。現在處理最便宜，等 M2 verifier 寫完再問就是重複工作
+2. 搜尋詞你做得好，沒指定就 abstain，不編一個。同一條原則要往上一層套到路由：marker 沒有信心命中、或多個操作同時命中的時候，要 unsupported，不是挑第一個。「gated page」那次不是 marker 寫得不夠好，是「猜」這個行為本身錯了
+
+你自己那句「我只驗了結構沒驗內容，是檢查方法有漏不只是程式有 bug」比那兩個 bug 都重要。Good job。那正好是 M2 verifier 存在的理由，寫進報告
