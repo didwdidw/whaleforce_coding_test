@@ -120,3 +120,57 @@ H4: Scope
 這輪除了照 CLAUDE.md 把這則 prompt log 進去以外不要改任何檔案，不急著 freeze，更不要寫 code (Again, you are a PM, not an engineer)。看看是否有哪幾條彼此衝突、或還有什麼問題，確認一下。還需要我決定或是討論的也一並提出。
 
 ==========
+
+請你不要每一次回覆都帶一次 commit
+依照正常專案開發習慣，做完一個小功能、決定一件事情、進度到一個段落後再 commit
+不要無謂的做一堆 commit
+Record this in your memory
+
+------------------------------------
+
+Good job in verification. I didn't except the problem of arXiv. 這種前提要先查清楚才不會做白工
+Now answering your questions:
+
+D1: 照你的方向切，但 must-have 我要加東西。"across different sites" 是題目原文的硬要求，只留 Wikipedia + fixture 會直接踩線。所以 must-have 至少要有兩個真實公開站，能到三個更好
+- must-have：fixture、Wikipedia 條目頁互動、一個政策乾淨的第三方站、EDGAR seam（走 server-side，不算進 browser coverage）、evidence + deterministic verifier、status 分類、跨 family recovery、locator memory、eval harness、部署
+- stretch：EDGAR FTS 的 UI 案例、compare / download 這兩種 task type、再多加站
+- EDGAR FTS 這些 must-have 都 pass 了再補，它是加分不是 foundation
+
+D2: (a) + (c)，arXiv 直接拿掉。替代站用你提的 toscrape，理由是它存在的目的本來就是給自動化練習，政策最乾淨，而且有分類篩選跟分頁剛好補我們缺的 task type。
+Note: README 請老實寫選它就是因為政策乾淨，不要刻意包裝成研究情境
+
+D3: 統計論點我接受，但我不想用「多寫案例」來解。改成用承諾數反推：先把對外承諾的 site × operation 壓到你有把握的幾條，每一條在 dev 跟 test 各至少一個案例，案例數就自然長出來。承諾少一點沒關係，但每條承諾都要有證據。以你的 15 / 8 / 8 當上限抓，做不完就砍承諾，不准砍 test。承諾的品質必須當成第一優先。
+
+D4: 我同意升 must-have。但要有防呆：locator 寫回去之前必須有驗證過的 evidence，連續失敗要能降級或隔離，而且這個 memory 只能改「怎麼找到元素」，不可以影響任務目標或安全政策。被污染的 memory 遠比沒有 memory 更糟
+
+D5: 接受冷啟動，不要為這個花錢。但 UI 要講清楚現在在等什麼，另外首頁放幾個已經跑完的 run 可以直接點進去看，不要讓 grader 第一眼只看到轉圈，使用者體驗很差
+
+D6: 走 stable flash + a11y tree / DOM。preview model 不用，理由跟你一樣，而且座標式操作沒辦法做確定性驗證，跟我們整個 verifier 的設計是反方向。座標策略放在 recovery 的 F4 當最後手段就好，找不到可靠元素就放棄，不要亂點
+
+D7: 可以，但 primary document 跟 complete submission text 這兩份一定要真的抓下來並 hash，那是 Task 2 真正會吃的東西。其他 exhibits / XBRL / 圖檔只留 inventory metadata。如果 complete submission 超過你設的 cap，要明確標成沒抓到，嚴禁靜默截斷（靜默截斷正好就是我們在防的那種 silent failure）
+
+其他你提的修正我都同意，特別是這幾條：
+- H1 的定義加上純 client-side 的狀態改變。而且「必要」只能講成「case 宣告 + harness 驗證它確實發生」，README 就照這樣寫，不要寫成不可繞過
+- 抄捷徑的反例 dev 也放一份
+- H2 拆成 terminal_status + failure_class 兩個維度
+- verified-wrong = 0 改成「在這幾份 eval 上、以第一次執行計算」，不是系統級保證。你講的「值對但取到隔壁欄 / 另一年度」那個缺口寫進 known limitation，label→value 的結構綁定要做
+- exploration budget 跟 recovery reserve 分開算
+- postcondition 在 plan 階段就 hash 凍結
+- 每次 first run 記 git SHA + pinned model ID + eval set SHA
+- validation 走你的 (a)。engineering 只拿得到總分跟 failure_class 分布，拿不到案例內容
+- fixture 用獨立的公開 hostname，不要在 SSRF guard 上開例外洞
+- fixture 加一頁 injection 測試
+- SEC 自我限速 ≤1 rps
+- secret 從架構上就不進 model context，regex gate 只當第二道
+
+C3 你提醒得好。demo 跟 eval 用不同的 key，demo 端加 per-session run 上限，配額用完就顯示成一個設計過的狀態，不要讓它看起來像壞掉
+
+
+
+接下來可以開始寫 frozen spec。另外有幾件事注意一下：
+- dev set 進 repo。validation 跟 test 的案例內容不要進 repo，產出後直接貼給我，我自己存，repo 只留數量跟 hash
+- seam 的介面另外寫一份短文件。我之後做 Task 2 會直接吃它，所以要能單獨看懂，不需要先讀完整份 spec
+- 寫完之後自己再挑一輪，哪裡最可能被 acceptance reviewer 打就直接寫進文件當 known risk，不用另外再開一輪
+- engineering session 跟 acceptance session 各自的驗收清單照你說的附上
+
+==========

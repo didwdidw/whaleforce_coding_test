@@ -28,6 +28,11 @@ purpose: the repo is public and the problem statement must not be published.
 Only **Task 1 — Generalized Browser Automation Agent** is in scope right now. Do not start work on
 Task 2 (SEC 10-K extraction) unless explicitly asked.
 
+`docs/task1-spec.md` is the **frozen spec** and is binding: build in its milestone order, and change
+it only by appending numbered amendments — never by editing the frozen text. `docs/task2-seam.md` is
+the standalone downstream contract. `docs/task1-discovery.md` is the reasoning trail and is
+intentionally never updated.
+
 ## Constraints that shape the repo
 
 Graded directly, from the spec's Common Requirements:
