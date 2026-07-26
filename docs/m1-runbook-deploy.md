@@ -13,6 +13,38 @@ Two hostnames means no exemption exists to be argued about. This is now demonstr
 than asserted: running the app under production config against a `127.0.0.1` fixture returns
 `blocked / policy_refused`, which is the correct and useful failure.
 
+## Pre-deploy validation — already run, passing
+
+`deploy/m1-build-check.yaml` runs every step the Dockerfile performs after `FROM`, inside a
+k3s pod on the production host, so a build mistake is found here rather than in a remote
+Zeabur build log. Result on the current commit: **ALL CHECKS PASSED**.
+
+| Step | Result |
+|---|---|
+| `pip install -r requirements.txt` | ok |
+| Chromium launch check | ok — 149.0.7827.55 |
+| `import app.server, fixture.server` | ok |
+| Test suite | 32 passed |
+| Startup refuses `ALLOW_PRIVATE_EGRESS` in production | ok |
+| `entrypoint.sh` with `APP_ROLE=app` serves `/healthz` | ok — guard on, browser generation 1 |
+| `entrypoint.sh` with `APP_ROLE=fixture` | ok — `/healthz` 200, `GET /search` **405** |
+
+It caught one defect that would otherwise have shipped: `requirements.txt` was missing
+`fastapi`, `uvicorn`, `jinja2` and `python-multipart` — installed into the development venv
+and never pinned. The image would have **built successfully** and then crashed on start with
+`ModuleNotFoundError`. Now pinned.
+
+To re-run after a change:
+
+```bash
+rsync -aq --exclude='.git/' --exclude='.venv/' --exclude='api_keys/' \
+  --exclude='preflight/results/' --exclude='task_description/' ./ wf-prod:~/build-check/
+rsync -aq deploy/ wf-prod:~/deploy/
+ssh wf-prod 'sudo k3s kubectl delete pod m1-build-check --ignore-not-found; \
+  sudo k3s kubectl apply -f ~/deploy/m1-build-check.yaml'
+ssh wf-prod 'sudo k3s kubectl logs -f m1-build-check'
+```
+
 ---
 
 ## Service 1 — `fixture`

@@ -1,5 +1,13 @@
 # Pinned. The Playwright version must match the Dockerfile's base image tag.
 playwright==1.61.0
+
+# Web surface
+fastapi==0.140.0
+uvicorn==0.51.0
+jinja2==3.1.6
+python-multipart==0.0.32
+
+# Provider adapter and parsing
 google-genai==2.14.0
 httpx==0.28.1
 lxml==6.1.1

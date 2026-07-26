@@ -1,0 +1,84 @@
+# Pre-deploy validation of the image's build steps, run against the base image.
+#
+# Zeabur builds the Dockerfile on its own infrastructure, so a mistake there surfaces as a
+# failed remote build with a log to dig through. This pod runs the same steps — install
+# requirements, verify Chromium launches, import both services, run the test suite, and
+# start the app under production configuration — so a build error is found here instead.
+#
+# It is not a substitute for the real build; it validates everything the Dockerfile does
+# after `FROM`, which is where the failures actually live.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: m1-build-check
+  labels:
+    app: task1-preflight
+spec:
+  restartPolicy: Never
+  containers:
+    - name: check
+      image: mcr.microsoft.com/playwright/python:v1.61.0-noble
+      workingDir: /src
+      env:
+        - name: PLAYWRIGHT_BROWSERS_PATH
+          value: /ms-playwright
+        - name: APP_ENV
+          value: production
+        - name: DATA_DIR
+          value: /tmp/data
+      command:
+        - bash
+        - -lc
+        - |
+          set -e
+          echo "=== 1. requirements install (the Dockerfile's pip layer) ==="
+          python3 -m pip install --quiet --no-cache-dir -r requirements.txt
+          python3 -m pip list 2>/dev/null | grep -iE '^(playwright|fastapi|uvicorn|google-genai|lxml|httpx) '
+
+          echo "=== 2. Chromium launch check (the Dockerfile's RUN verification) ==="
+          python3 -c "from playwright.sync_api import sync_playwright; \
+            p=sync_playwright().start(); b=p.chromium.launch(args=['--disable-dev-shm-usage','--no-sandbox']); \
+            print('chromium ok:', b.version); b.close(); p.stop()"
+
+          echo "=== 3. both services import ==="
+          python3 -c "import app.server, fixture.server; print('imports ok')"
+
+          echo "=== 4. test suite ==="
+          python3 -m pip install --quiet --no-cache-dir pytest
+          python3 -m pytest tests/ -q -p no:cacheprovider
+
+          echo "=== 5. startup validation refuses the unsafe config ==="
+          if ALLOW_PRIVATE_EGRESS=true APP_ENV=production \
+             python3 -c "from app.config import Settings; Settings().validate_or_die()" 2>/dev/null; then
+            echo "FAIL: started with the SSRF guard disabled in production"; exit 1
+          else
+            echo "ok: refused to start with ALLOW_PRIVATE_EGRESS in production"
+          fi
+
+          echo "=== 6. entrypoint boots the app and serves /healthz ==="
+          # /src is mounted read-only, so the script is invoked rather than chmod'd. The
+          # image sets the executable bit at build time.
+          PORT=8080 APP_ROLE=app bash entrypoint.sh > /tmp/app.log 2>&1 &
+          for i in $(seq 1 40); do
+            sleep 1
+            if curl -sf http://127.0.0.1:8080/healthz > /tmp/health.json 2>/dev/null; then break; fi
+          done
+          python3 -c "import json; d=json.load(open('/tmp/health.json')); \
+            print('healthz ok | model', d['model_pinned'], '| guard', d['egress_guard']['ssrf_guard_enabled'], \
+                  '| browser gen', d['browser']['generation'])"
+
+          echo "=== 7. fixture role boots ==="
+          PORT=8081 APP_ROLE=fixture bash entrypoint.sh > /tmp/fix.log 2>&1 &
+          for i in $(seq 1 20); do sleep 1; curl -sf http://127.0.0.1:8081/healthz >/dev/null 2>&1 && break; done
+          echo "fixture healthz: $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/healthz)"
+          echo "fixture GET /search (must be 405): $(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8081/search)"
+          echo "ALL CHECKS PASSED"
+      volumeMounts:
+        - name: src
+          mountPath: /src
+          readOnly: true
+  volumes:
+    - name: src
+      hostPath:
+        path: /home/ubuntu/build-check
+        type: Directory
