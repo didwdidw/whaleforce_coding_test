@@ -32,13 +32,16 @@ jobs:
       - name: Egress guard, configuration fail-safes, routing
         run: python -m pytest tests/test_policy.py -v
 
-      - name: Full suite
-        run: python -m pytest tests/ -q
+      - name: Full suite, excluding the ones that need a browser
+        run: python -m pytest tests/ -q -m "not integration"
 
       # A10.2 bans urllib.robotparser. The suite asserts this, but a failure here should
       # name itself rather than appear as one assertion among sixty.
       - name: Confirm urllib.robotparser is not imported (A10.2)
         run: python -m pytest tests/test_robots_semantics.py::test_urllib_robotparser_is_not_imported_anywhere -v
+
+      # The M2 gate is that every declared terminal status has actually been produced by
+      # running the product. That needs a browser and a fixture, so it runs in its own job.
 
       # The vendored fixture is the live body that exposed the defect. If it stops
       # containing the shape being tested, the tests still pass while testing nothing —
@@ -57,3 +60,27 @@ jobs:
           print(f"ok: User-agent:* at {ua+1}, blank at {blank+1}, "
                 f"Disallow:/cgi-bin at {cgi+1}, Allow:/Archives/edgar/data at {arch+1}")
           PY
+
+  integration:
+    # The M2 gate: every declared terminal status reached by actually running the product,
+    # against a real browser and a real fixture. Kept separate so a browser install never
+    # blocks the fast policy checks above.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+          python -m playwright install --with-deps chromium
+
+      - name: Verifier replay of the two M1 defects
+        run: python -m pytest tests/test_verifier_replay.py -v
+
+      - name: M2 gate — every status due by M2 produced by a run
+        run: python -m pytest tests/test_m2_integration.py -v

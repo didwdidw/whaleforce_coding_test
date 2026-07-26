@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Status coverage{% endblock %}
+{% block body %}
+
+<div class="panel">
+  <h2>Which outcomes this deployment has actually produced</h2>
+  <p class="sub">
+    Both sets are closed by the spec, and every value is declared with the milestone at which
+    it becomes producible. A value that is due and has never been produced is not a gap in
+    testing — it is an <strong>unreachable code path</strong>, and an unreachable path is
+    indistinguishable from a working one until the day it is needed.
+  </p>
+  <p class="sub">
+    This page exists because of a specific mistake. At M1 the hard gate "no run is ever both
+    wrong and marked verified" appeared to pass. It had not passed: the executor contained no
+    code path that could reach a success status at all. The gate was unreachable, not
+    satisfied.
+  </p>
+  <p>
+    Current milestone <code>{{ report.milestone }}</code> —
+    {% if report.gate_passes %}
+      <span class="badge b-ok">every value due by now has been produced on this deployment</span>
+    {% else %}
+      <span class="badge b-warn">not yet produced here: {{ report.overdue | join(', ') }}</span>
+    {% endif %}
+  </p>
+  <p class="sub">
+    This counts <strong>this deployment since its last restart</strong>, so the list above
+    starts long and shortens as outcomes occur. Some of it can be provoked from the outside —
+    ask for the ground-truth answer key and you will get <code>robots_disallowed</code>;
+    submit faster than the queue drains and you will get <code>queue_full</code>. The rest
+    cannot be triggered by a well-formed request, which is the point of them, so the
+    milestone gate itself is asserted in the regression suite
+    (<code>test_every_status_due_by_m2_is_reached_by_running_the_product</code>) where every
+    path is driven in one store. Storage here is ephemeral, so a redeploy resets this table
+    while the suite's assertion is unaffected.
+  </p>
+</div>
+
+{% macro table(rows, heading) %}
+<div class="panel">
+  <h2>{{ heading }}</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Value</th><th>Due at</th><th>Produced</th><th>Observed from</th>
+      <th>First run</th><th>Times</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td><code>{{ r.value }}</code></td>
+        <td>{{ r.due_at }}</td>
+        <td>
+          {% if r.observed %}<span class="badge b-ok">yes</span>
+          {% elif r.due_now %}<span class="badge b-bad">overdue</span>
+          {% else %}<span class="badge b-dim">not due yet</span>{% endif %}
+        </td>
+        <td>
+          {% if r.origin == 'run' %}a run of the product
+          {% elif r.origin == 'test' %}<span class="badge b-warn">regression suite</span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="mono">
+          {% if r.first_run_id and r.first_run_id.startswith('run_') %}
+            <a href="/runs/{{ r.first_run_id }}">{{ r.first_run_id }}</a>
+          {% else %}{{ r.first_run_id or '—' }}{% endif %}
+        </td>
+        <td>{{ r.count or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endmacro %}
+
+{{ table(report.terminal_status, "terminal_status") }}
+{{ table(report.failure_class, "failure_class") }}
+
+<div class="panel">
+  <h2>How to read "observed from"</h2>
+  <p class="sub">
+    <strong>A run of the product</strong> means a task was submitted here and ended that way.
+    <strong>Regression suite</strong> means the path was exercised by a test rather than by a
+    live run — used for the failures that cannot be provoked from the outside, such as a page
+    whose <code>robots.txt</code> is fetchable but which then fails to load. It is labelled
+    rather than blended in, because "a test can reach it" and "the product has done it" are
+    different claims.
+  </p>
+  <p class="sub">
+    This ledger is written as a side effect of terminating a run, so it cannot drift from
+    what the product actually did.
+  </p>
+</div>
+
+<p><a href="/api/coverage">JSON</a></p>
+{% endblock %}

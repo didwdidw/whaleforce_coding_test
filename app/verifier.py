@@ -1,0 +1,565 @@
+"""Deterministic verification (§4.3) — the only code permitted to set a success status.
+
+Three properties matter more than the details:
+
+**It re-extracts, it does not re-read.** The verifier parses the stored artifact with lxml
+and resolves the anchors the plan froze, independently of whatever the executor's live DOM
+query returned. Then it compares. A verifier that reads the executor's own value back is a
+formality; this one has caught the executor being wrong (see the replay suite).
+
+**It runs on the full artifact** (A7.4), never on the reduced view a model was shown.
+Verifying against the trimmed page would make verification circular.
+
+**It binds values to labels structurally** (S-4.9). Checking that a value *looks like* a
+product code is not verification — every wrong answer on a well-formed page also looks like
+a product code. The value must be reachable from its label by a declared relation.
+
+The two defects that shipped from M1 are the reference cases: both runs had the right step
+count, the right artifact count and a clean terminal status, and both answered a different
+question than the one asked. Nothing structural distinguishes them from a correct run. Only
+re-extraction against a frozen question does.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from typing import Any
+from urllib.parse import urlsplit
+
+from lxml import html as lxml_html
+
+from app.evidence import EvidenceBundle
+from app.models import FailureClass, Run, StepKind, TerminalStatus
+from app.postcondition import AbsenceMode, ClaimSpec, Postcondition, Relation, matches_frozen
+from app.store import Store
+
+WS = re.compile(r"\s+")
+COUNTER = re.compile(r"^\s*(?P<count>\d+)\s+results?\s+for\s+[\"“](?P<term>.*?)[\"”]",
+                     re.IGNORECASE)
+PAGER = re.compile(r"page\s+(?P<page>\d+)\s+of\s+(?P<total>\d+)"
+                   r"(?:\s*[·•]\s*(?P<items>\d+)\s+products?)?", re.IGNORECASE)
+MONEY = re.compile(r"[£$€]\s*([0-9]+(?:\.[0-9]+)?)")
+
+
+class AnchorNotFound(Exception):
+    """The declared label or container did not resolve in the stored artifact."""
+
+
+class AnchorAmbiguous(Exception):
+    """The label resolved to several places that disagree. Picking one would be a guess."""
+
+
+def norm(text: str) -> str:
+    return WS.sub(" ", (text or "")).strip()
+
+
+@dataclass
+class Check:
+    name: str
+    ok: bool
+    detail: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"name": self.name, "ok": self.ok, "detail": self.detail}
+
+
+@dataclass
+class ClaimResult:
+    name: str
+    ok: bool
+    failure_class: FailureClass | None = None
+    reason: str = ""
+    evidence: EvidenceBundle | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "ok": self.ok,
+            "failure_class": self.failure_class.value if self.failure_class else None,
+            "reason": self.reason,
+            "evidence": self.evidence.to_dict() if self.evidence else None,
+        }
+
+
+@dataclass
+class Verdict:
+    status: TerminalStatus
+    failure_class: FailureClass | None
+    explanation: str
+    checks: list[Check] = field(default_factory=list)
+    claims: list[ClaimResult] = field(default_factory=list)
+
+    @property
+    def counts_as_success(self) -> bool:
+        from app.models import counts_as_success
+        return counts_as_success(self.status)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "status": self.status.value,
+            "failure_class": self.failure_class.value if self.failure_class else None,
+            "explanation": self.explanation,
+            "counts_as_success": self.counts_as_success,
+            "checks": [c.to_dict() for c in self.checks],
+            "claims": [c.to_dict() for c in self.claims],
+        }
+
+
+class Verifier:
+    def __init__(self, store: Store) -> None:
+        self._store = store
+
+    # ---- entry point -----------------------------------------------------------
+
+    def verify(self, run: Run, *, artifact_id: str | None,
+               candidate: dict[str, Any]) -> Verdict:
+        checks: list[Check] = []
+
+        if not matches_frozen(run.postcondition, run.postcondition_hash):
+            checks.append(Check("postcondition_frozen", False,
+                                {"recorded_hash": run.postcondition_hash}))
+            return Verdict(
+                TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
+                "The postcondition verification ran against is not the one frozen at plan "
+                "time — its hash does not match what the trace recorded. Divergence is "
+                "itself a failure: it means the bar could have moved during the run.",
+                checks)
+        pc = _rehydrate(run.postcondition or {})
+        checks.append(Check("postcondition_frozen", True,
+                            {"hash": run.postcondition_hash, "operation": pc.operation}))
+
+        ref = self._store.get_artifact_ref(artifact_id) if artifact_id else None
+        if ref is None or ref.state != "stored":
+            checks.append(Check("artifact_available", False,
+                                {"artifact_id": artifact_id,
+                                 "state": ref.state if ref else "missing"}))
+            return Verdict(
+                TerminalStatus.FAILED, FailureClass.INTERNAL_ERROR,
+                "The artifact this claim would be verified against is not readable, so no "
+                "claim can be confirmed. Reporting an unverified answer instead would be "
+                "the silent failure this system exists to avoid.", checks)
+        raw = self._store.read_artifact(ref.id)
+        if raw is None:
+            checks.append(Check("artifact_available", False, {"artifact_id": ref.id}))
+            return Verdict(TerminalStatus.FAILED, FailureClass.INTERNAL_ERROR,
+                           "The artifact record exists but its bytes could not be read.",
+                           checks)
+        checks.append(Check("artifact_available", True, ref.to_dict()))
+
+        # A run that navigated somewhere else answers a different question, however clean
+        # its trace looks. This check is what catches a mis-routed plan.
+        if not _same_page(ref.source_url, pc.target_url):
+            checks.append(Check("artifact_source_matches_plan", False,
+                                {"artifact_source_url": ref.source_url,
+                                 "plan_target_url": pc.target_url}))
+            return Verdict(
+                TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
+                f"The evidence was captured on {ref.source_url}, but the plan targeted "
+                f"{pc.target_url}. Whatever the page said, it is not an answer to the task "
+                f"that was frozen at plan time.", checks)
+        checks.append(Check("artifact_source_matches_plan", True,
+                            {"source_url": ref.source_url}))
+
+        missing = _missing_actions(run, pc)
+        if missing:
+            checks.append(Check("required_actions_present", False, {"missing": missing}))
+            return Verdict(
+                TerminalStatus.FAILED, FailureClass.REQUIRED_ACTION_SKIPPED,
+                f"The plan declared {len(pc.required_actions)} required action(s) and the "
+                f"trace does not show {', '.join(missing)}. A right answer reached without "
+                f"the declared action is scored as a failure (S-4.4), because the capability "
+                f"being claimed is the interaction, not the value.", checks)
+        checks.append(Check("required_actions_present", True,
+                            {"actions": [a.to_dict() for a in pc.required_actions]}))
+
+        tree = lxml_html.fromstring(raw.decode("utf-8", "replace"))
+        segment = [t.seq for t in run.trace if t.kind in (StepKind.CLICK, StepKind.FILL,
+                                                          StepKind.EXTRACT, StepKind.SNAPSHOT)]
+
+        results: list[ClaimResult] = []
+        by_relation: dict[Relation, Any] = {}
+        for spec in pc.claims:
+            result, value = self._verify_claim(spec, tree, ref, candidate, segment, pc)
+            results.append(result)
+            if result.ok:
+                by_relation[spec.relation] = value
+
+        return self._decide(pc, results, by_relation, checks)
+
+    # ---- one claim -------------------------------------------------------------
+
+    def _verify_claim(self, spec: ClaimSpec, tree, ref, candidate: dict[str, Any],
+                      segment: list[int], pc: Postcondition
+                      ) -> tuple[ClaimResult, Any]:
+        try:
+            value, span, anchor = self._extract(spec, tree)
+        except AnchorNotFound as exc:
+            if spec.relation is Relation.ELEMENT_ABSENT:
+                # The anchor resolving is the failure here: the element that had to be gone
+                # is still in the artifact, so the state transition never happened.
+                return ClaimResult(spec.name, False, FailureClass.POSTCONDITION_UNMET,
+                                   str(exc)), None
+            return ClaimResult(spec.name, False, FailureClass.LOCATOR_NOT_FOUND,
+                               f"{exc}. The value may well be on the page, but it could not "
+                               f"be reached from its declared label, so it is not bound to "
+                               f"anything and cannot be confirmed."), None
+        except AnchorAmbiguous as exc:
+            return ClaimResult(spec.name, False, FailureClass.VERIFICATION_MISMATCH,
+                               f"{exc}"), None
+
+        bundle = EvidenceBundle(
+            claim=spec.name, artifact_id=ref.id, source_url=ref.source_url,
+            retrieved_at=ref.retrieved_at, artifact_sha256=ref.sha256,
+            structural_anchor=anchor, label_anchor=spec.label, extracted_span=span,
+            normalised_value=value, trace_segment=segment, artifact_state=ref.state)
+
+        mine = _coerce(value, spec.value_type)
+        bundle.normalised_value = mine
+
+        # Did the page answer the question that was frozen, or a neighbouring one? This is
+        # the check the M1 search defect needed and did not have: a mangled term produces a
+        # real results page with a real count, and every structural property of the run is
+        # correct. Only the page's own echo of the query, compared against the frozen input,
+        # separates "no matches" from "we asked something else".
+        drift = _frozen_input_drift(spec, value, pc)
+        if drift:
+            return ClaimResult(spec.name, False, FailureClass.VERIFICATION_MISMATCH,
+                               drift, bundle), None
+
+        if spec.name not in candidate:
+            return ClaimResult(
+                spec.name, False, FailureClass.VERIFICATION_MISMATCH,
+                "The run produced no candidate for this claim, so there is nothing to "
+                "compare the re-extracted value against. Verification compares two "
+                "independent readings; one reading is not a verification.", bundle), None
+
+        theirs = _coerce(candidate[spec.name], spec.value_type)
+        if theirs != mine:
+            return ClaimResult(
+                spec.name, False, FailureClass.VERIFICATION_MISMATCH,
+                f"Re-extraction from the stored artifact gives {mine!r}; the run reported "
+                f"{theirs!r}.", bundle), None
+        return ClaimResult(spec.name, True, None, "", bundle), value
+
+    def _extract(self, spec: ClaimSpec, tree) -> tuple[Any, str, str]:
+        if spec.relation is Relation.TABLE_ROW_CELL:
+            return _table_row_cell(tree, spec)
+        if spec.relation is Relation.COUNTER_ECHO:
+            return _counter_echo(tree, spec)
+        if spec.relation is Relation.EMPTY_STATE:
+            return _empty_state(tree, spec)
+        if spec.relation is Relation.PAGER_POSITION:
+            return _pager_position(tree, spec)
+        if spec.relation is Relation.LIST_ENUMERATION:
+            return _list_enumeration(tree, spec)
+        if spec.relation is Relation.ELEMENT_ABSENT:
+            return _element_absent(tree, spec)
+        raise AnchorNotFound(f"No extractor for relation {spec.relation}")
+
+    # ---- status decision -------------------------------------------------------
+
+    def _decide(self, pc: Postcondition, results: list[ClaimResult],
+                extracted: dict[Relation, Any], checks: list[Check]) -> Verdict:
+        if not pc.claims:
+            # A run with nothing to check is not a run that checked out. Without this, a
+            # plan that declares no claims reports success for having done nothing wrong.
+            return Verdict(
+                TerminalStatus.UNVERIFIED, FailureClass.POSTCONDITION_UNMET,
+                "The frozen postcondition declares no claims, so there is nothing that "
+                "could be verified. Absence of a failure is not a success.", checks, results)
+
+        hard = [r for r in results if not r.ok and r.failure_class in
+                (FailureClass.VERIFICATION_MISMATCH, FailureClass.POSTCONDITION_UNMET)]
+        if hard:
+            return Verdict(TerminalStatus.FAILED, hard[0].failure_class,
+                           "; ".join(f"{r.name}: {r.reason}" for r in hard),
+                           checks, results)
+
+        absence = self._absence(pc, extracted, checks)
+        if absence is not None:
+            return Verdict(absence[0], absence[1], absence[2], checks, results)
+
+        required = [r for r in results if not _optional(pc, r.name)]
+        verified = [r for r in required if r.ok]
+        if not required or len(verified) == len(required):
+            return Verdict(
+                TerminalStatus.SUCCEEDED_VERIFIED, None,
+                f"Every required claim was re-extracted from the stored artifact through its "
+                f"declared label anchor and matched the run's value. Verified means "
+                f"consistent with the artifact preserved at capture time — not true in the "
+                f"world.", checks, results)
+        if verified:
+            failed = [r.name for r in required if not r.ok]
+            return Verdict(
+                TerminalStatus.PARTIAL, FailureClass.LOCATOR_NOT_FOUND,
+                f"{len(verified)} of {len(required)} required claims verified; "
+                f"{', '.join(failed)} could not be bound to a label in the stored artifact. "
+                f"Partial is not a success state and is never counted as one.",
+                checks, results)
+        return Verdict(
+            TerminalStatus.UNVERIFIED, FailureClass.LOCATOR_NOT_FOUND,
+            "A candidate answer exists but nothing in the stored artifact confirmed it. "
+            "`unverified` is not a success state.", checks, results)
+
+    def _absence(self, pc: Postcondition, extracted: dict[Relation, Any],
+                 checks: list[Check]) -> tuple[TerminalStatus, FailureClass | None, str] | None:
+        """Absence is only ever concluded from a positive proof (Amendment 3)."""
+        counter = extracted.get(Relation.COUNTER_ECHO)
+        enumerated = extracted.get(Relation.LIST_ENUMERATION)
+        empty_seen = extracted.get(Relation.EMPTY_STATE) is True
+
+        is_empty_result = isinstance(counter, dict) and counter.get("count") == 0
+        predicate = pc.inputs.get("predicate")
+
+        if is_empty_result:
+            if pc.absence is AbsenceMode.A_EMPTY_STATE and empty_seen:
+                checks.append(Check("absence_mode_a", True,
+                                    {"empty_state_element": True,
+                                     "echoed_term": counter.get("term")}))
+                return (TerminalStatus.NO_RESULT_VERIFIED, None,
+                        f"Nothing matched, and that is proven rather than assumed: the page "
+                        f"states it in a located empty-state element, and the counter echoes "
+                        f"the term {counter.get('term')!r} that was frozen at plan time.")
+            checks.append(Check("absence_mode_a", False,
+                                {"empty_state_element": empty_seen,
+                                 "declared_mode": pc.absence.value}))
+            return (TerminalStatus.UNVERIFIED, FailureClass.POSTCONDITION_UNMET,
+                    "The result set is empty but no empty-state element was located, so "
+                    "absence is not proven. \"I looked and did not find it\" is never "
+                    "no_result_verified (A3.2).")
+
+        if predicate and isinstance(enumerated, list):
+            coverage = extracted.get(Relation.PAGER_POSITION)
+            if not isinstance(coverage, dict) or not pc.coverage_anchor:
+                checks.append(Check("absence_mode_b_coverage", False,
+                                    {"coverage_anchor": pc.coverage_anchor}))
+                return (TerminalStatus.UNVERIFIED, FailureClass.POSTCONDITION_UNMET,
+                        "Absence by enumeration requires a coverage anchor proving the whole "
+                        "result set was seen (A3.2). Without one this is only \"we did not "
+                        "happen to see it\".")
+            total = coverage.get("items")
+            complete = total is not None and total == len(enumerated)
+            matches = [i for i in enumerated if _predicate_holds(i, predicate)]
+            checks.append(Check("absence_mode_b_coverage", complete,
+                                {"anchor_total": total, "enumerated": len(enumerated),
+                                 "anchor": pc.coverage_anchor}))
+            if not complete:
+                return (TerminalStatus.UNVERIFIED, FailureClass.POSTCONDITION_UNMET,
+                        f"The site's own count says {total} items; {len(enumerated)} were "
+                        f"enumerated from the artifact. Coverage is unproven, so absence "
+                        f"cannot be concluded.")
+            if matches:
+                checks.append(Check("absence_mode_b_predicate", False,
+                                    {"matches": [m.get("sku") for m in matches]}))
+                return (TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
+                        f"The run claimed nothing matched, but re-checking every enumerated "
+                        f"member found {len(matches)}: "
+                        f"{', '.join(str(m.get('sku')) for m in matches)}.")
+            checks.append(Check("absence_mode_b_predicate", True,
+                                {"checked": len(enumerated)}))
+            return (TerminalStatus.NO_RESULT_VERIFIED, None,
+                    f"Nothing matches, proven by enumeration: the site's own anchor "
+                    f"({pc.coverage_anchor}) says {total} items, all {len(enumerated)} were "
+                    f"re-read from the stored artifact, and none satisfies the frozen "
+                    f"predicate.")
+        return None
+
+
+# ---- extractors ----------------------------------------------------------------
+# Each returns (normalised value, verbatim span, the path that was re-resolved).
+
+def _innermost(tree, pattern: re.Pattern) -> list[Any]:
+    """Elements whose own text matches, with ancestors that only match through a child
+    dropped. Matching `<html>` because the phrase appears somewhere inside it is not an
+    anchor."""
+    hits = [el for el in tree.iter() if isinstance(el.tag, str)
+            and pattern.search(norm(el.text_content()))]
+    hit_ids = {id(el) for el in hits}
+    return [el for el in hits
+            if not any(id(child) in hit_ids for child in el.iterdescendants())]
+
+
+def _table_row_cell(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
+    xpath = ('//tr[th[normalize-space(.)=$label]]/td[1] '
+             '| //tr[td[1][normalize-space(.)=$label]]/td[2]')
+    cells = tree.xpath(xpath, label=spec.label)
+    if not cells:
+        raise AnchorNotFound(f"No row whose header cell reads {spec.label!r}")
+    values = {norm(c.text_content()) for c in cells}
+    if len(values) > 1:
+        raise AnchorAmbiguous(
+            f"The label {spec.label!r} appears in {len(cells)} rows with different values "
+            f"({sorted(values)}). Choosing one would be a guess.")
+    span = norm(cells[0].text_content())
+    return _coerce(span, spec.value_type), span, f"{xpath} [label={spec.label!r}]"
+
+
+def _counter_echo(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
+    for el in _innermost(tree, COUNTER):
+        span = norm(el.text_content())
+        m = COUNTER.search(span)
+        if m:
+            return ({"count": int(m.group("count")), "term": m.group("term")},
+                    span, f"//*[matches(., '{COUNTER.pattern}')] [label={spec.label!r}]")
+    raise AnchorNotFound(f"No element states a result count in the form {spec.label!r}")
+
+
+def _empty_state(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
+    needle = spec.label.lower()
+    for el in tree.iter():
+        if not isinstance(el.tag, str):
+            continue
+        text = norm(el.text_content())
+        if needle in text.lower() and len(text) < 200:
+            return True, text, f"//*[contains(., {spec.label!r})]"
+    raise AnchorNotFound(f"No empty-state element containing {spec.label!r}")
+
+
+def _pager_position(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
+    for el in _innermost(tree, PAGER):
+        span = norm(el.text_content())
+        m = PAGER.search(span)
+        if m:
+            return ({"page": int(m.group("page")), "total": int(m.group("total")),
+                     "items": int(m.group("items")) if m.group("items") else None},
+                    span, f"//*[matches(., 'Page N of M')] [label={spec.label!r}]")
+    raise AnchorNotFound(f"No pager position element ({spec.label!r})")
+
+
+def _list_enumeration(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
+    if not spec.container:
+        raise AnchorNotFound("List enumeration requires a declared container")
+    rows = tree.xpath(spec.container)
+    if not rows:
+        raise AnchorNotFound(f"Container {spec.container!r} resolved to nothing")
+    items = []
+    for row in rows:
+        text = norm(row.text_content())
+        money = MONEY.search(text)
+        items.append({"sku": row.get("data-sku") or _sku_from_text(text),
+                      "text": text,
+                      "price_gbp": float(money.group(1)) if money else None})
+    return items, f"{len(items)} rows", spec.container
+
+
+def _element_absent(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
+    found = tree.xpath(spec.container) if spec.container else []
+    if found:
+        raise AnchorNotFound(
+            f"{spec.label} is still present in the artifact ({len(found)} node(s)), so the "
+            f"state transition it was meant to evidence did not happen")
+    return True, f"{spec.label}: absent", spec.container
+
+
+SKU = re.compile(r"\b([A-Z]{2}-\d{3,5})\b")
+
+
+def _sku_from_text(text: str) -> str | None:
+    m = SKU.search(text)
+    return m.group(1) if m else None
+
+
+# ---- helpers -------------------------------------------------------------------
+
+def _coerce(value: Any, value_type: str) -> Any:
+    if value_type == "integer":
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return int(value)
+        m = re.search(r"-?\d+", str(value))
+        return int(m.group(0)) if m else None
+    if value_type == "money_gbp":
+        if isinstance(value, (int, float)):
+            return round(float(value), 2)
+        m = MONEY.search(str(value)) or re.search(r"(\d+(?:\.\d+)?)", str(value))
+        return round(float(m.group(1)), 2) if m else None
+    if value_type == "code":
+        return norm(str(value)).upper()
+    if value_type == "text":
+        return norm(str(value))
+    if value_type == "sku_list":
+        # Compared as a set of identifiers: the run reports which items it saw, and order
+        # is a property of the page rather than of the answer.
+        if isinstance(value, list):
+            return sorted(str(v.get("sku") if isinstance(v, dict) else v).upper()
+                          for v in value if (v.get("sku") if isinstance(v, dict) else v))
+        return value
+    return value
+
+
+def _frozen_input_drift(spec: ClaimSpec, value: Any, pc: Postcondition) -> str:
+    """Empty string when the page answered the frozen question, a reason when it did not."""
+    if spec.relation is Relation.COUNTER_ECHO and "term" in pc.inputs:
+        frozen = norm(str(pc.inputs["term"] or "")).casefold()
+        echoed = norm(str(value.get("term") or "")).casefold()
+        if frozen and echoed != frozen:
+            return (f"The plan froze the term {frozen!r}, but the page states it answered "
+                    f"{echoed!r}. The result set is real; it is a result set for a "
+                    f"different question.")
+    if spec.relation is Relation.PAGER_POSITION and "page" in pc.inputs:
+        frozen_page = pc.inputs["page"]
+        if frozen_page is not None and value.get("page") != frozen_page:
+            return (f"The plan froze page {frozen_page}, but the artifact shows page "
+                    f"{value.get('page')} as the visible one.")
+    return ""
+
+
+def _same_page(source_url: str | None, target_url: str) -> bool:
+    """Same origin and same path. Query strings differ legitimately (mutation seeds)."""
+    if not source_url:
+        return False
+    a, b = urlsplit(source_url), urlsplit(target_url)
+    return (a.scheme, a.netloc, a.path.rstrip("/")) == (b.scheme, b.netloc, b.path.rstrip("/"))
+
+
+def _missing_actions(run: Run, pc: Postcondition) -> list[str]:
+    missing = []
+    for action in pc.required_actions:
+        seen = sum(1 for t in run.trace
+                   if t.kind.value == action.kind and t.ok
+                   and (action.target in str(t.detail.get("selector", ""))
+                        or action.target.lower() in t.summary.lower()))
+        if seen < action.times:
+            missing.append(f"{action.kind} on {action.target} "
+                           f"({seen}/{action.times} observed)")
+    return missing
+
+
+def _optional(pc: Postcondition, name: str) -> bool:
+    return any(c.optional for c in pc.claims if c.name == name)
+
+
+def _predicate_holds(item: dict[str, Any], predicate: dict[str, Any]) -> bool:
+    field_name, op, target = predicate.get("field"), predicate.get("op"), predicate.get("value")
+    value = item.get(field_name)
+    if value is None:
+        return False
+    if op == ">":
+        return value > target
+    if op == "<":
+        return value < target
+    if op == "==":
+        return value == target
+    if op == "contains":
+        return str(target).lower() in str(value).lower()
+    return False
+
+
+def _rehydrate(data: dict[str, Any]) -> Postcondition:
+    from app.postcondition import RequiredAction
+    return Postcondition(
+        goal=data.get("goal", ""),
+        operation=data.get("operation", ""),
+        target_url=data.get("target_url", ""),
+        inputs=data.get("inputs", {}),
+        required_actions=tuple(RequiredAction(**a) for a in data.get("required_actions", [])),
+        claims=tuple(ClaimSpec(name=c["name"], label=c["label"],
+                               relation=Relation(c["relation"]),
+                               value_type=c["value_type"], container=c.get("container", ""),
+                               optional=c.get("optional", False))
+                     for c in data.get("claims", [])),
+        absence=AbsenceMode(data.get("absence", "none")),
+        coverage_anchor=data.get("coverage_anchor", ""),
+    )

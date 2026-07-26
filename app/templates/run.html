@@ -34,25 +34,68 @@
 </div>
 
 <div class="panel">
-  <h2>Claims</h2>
+  <h2>Claims and evidence</h2>
+  <div class="verified-def">
+    A result is <strong>verified</strong> when, exactly: this claim is consistent with the
+    source artifact we preserved at <code>retrieved_at</code>, and it passes deterministic
+    entity, type, date and unit checks. It does <strong>not</strong> mean the claim is true
+    in the world. Each value below was re-extracted from the stored artifact by
+    deterministic code, through the label anchor frozen before the run started, and compared
+    against what the run reported.
+  </div>
+
   {% if run.claims %}
     {% for c in run.claims %}
-      <div class="verified-def" style="margin-bottom:12px">
-        {% if c.verified %}
-          A result is <strong>verified</strong> when: this claim is consistent with the
-          source artifact preserved at <code>retrieved_at</code>, and it passes
-          deterministic entity, type, date and unit checks. It does <strong>not</strong>
-          mean the claim is true in the world.
-        {% else %}
-          <strong>Not verified.</strong> {{ c.note }}
+      <div style="margin:16px 0;border-left:3px solid {% if c.ok %}var(--ok){% else %}var(--bad){% endif %};padding-left:14px">
+        <p style="margin:0 0 6px">
+          <strong>{{ c.name }}</strong>
+          {% if c.ok %}<span class="badge b-ok">verified</span>
+          {% else %}<span class="badge b-bad">not verified</span>
+            <code>{{ c.failure_class }}</code>{% endif %}
+        </p>
+        {% if c.reason %}<p class="sub" style="margin:0 0 8px">{{ c.reason }}</p>{% endif %}
+        {% if c.evidence %}
+        <dl class="kv">
+          <dt>Value</dt><dd class="mono">{{ c.evidence.normalised_value | tojson }}</dd>
+          <dt>Bound to label</dt><dd class="mono">{{ c.evidence.label_anchor }}</dd>
+          <dt>Extracted span</dt><dd class="mono">{{ c.evidence.extracted_span }}</dd>
+          <dt>Structural anchor</dt><dd class="mono">{{ c.evidence.structural_anchor }}</dd>
+          <dt>Artifact</dt><dd>
+            {% if c.evidence.artifact_state == 'stored' %}
+              <a href="/api/artifacts/{{ c.evidence.artifact_id }}">{{ c.evidence.artifact_id }}</a>
+            {% else %}<span class="badge b-warn">expired</span>
+              <span class="mono">{{ c.evidence.artifact_id }}</span>{% endif %}
+            · <span class="mono">sha256 {{ c.evidence.artifact_sha256[:16] }}…</span></dd>
+          <dt>Source</dt><dd class="mono">{{ c.evidence.source_url }}</dd>
+          <dt>Trace steps</dt><dd class="mono">{{ c.evidence.trace_segment | join(', ') }}</dd>
+        </dl>
         {% endif %}
       </div>
-      <pre>{{ c.candidate | tojson(indent=1) }}</pre>
     {% endfor %}
   {% else %}
     <p class="sub">No claim was produced.</p>
   {% endif %}
 </div>
+
+{% if verdict %}
+<div class="panel">
+  <h2>What was checked</h2>
+  <p class="sub">Every gate the verifier ran, in order. A run reaches a success status only
+    if all of them pass; the executor cannot set one itself.</p>
+  <ul class="trace">
+    {% for check in verdict.checks %}
+    <li class="{% if not check.ok %}bad{% endif %}">
+      <div><strong>{{ check.name }}</strong>
+        {% if check.ok %}<span class="badge b-ok">pass</span>
+        {% else %}<span class="badge b-bad">fail</span>{% endif %}</div>
+      {% if check.detail %}
+      <details><summary>detail</summary><pre>{{ check.detail | tojson(indent=1) }}</pre></details>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
 
 <div class="panel">
   <h2>Frozen postcondition</h2>
@@ -62,9 +105,9 @@
     </dl>
     <pre>{{ run.postcondition | tojson(indent=1) }}</pre>
   {% else %}
-    <p class="sub">No postcondition was frozen. The postcondition is constructed and hashed
-      at plan time, which arrives with the planner at M2/M3; until then there is nothing to
-      re-check against and no run can be marked verified.</p>
+    <p class="sub">No postcondition was frozen — this run stopped before a plan was
+      selected. Nothing can be verified without one, and no run without one can reach a
+      success status.</p>
   {% endif %}
 </div>
 

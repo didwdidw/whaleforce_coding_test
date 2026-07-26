@@ -45,13 +45,18 @@
 <div class="panel">
   <h2>Known limitations, concretely</h2>
   <ul style="font-size:13.5px;padding-left:20px;margin:0">
-    <li><strong>This build is M1.</strong> There is no model in the loop and no verifier,
-      so every run that produces a value ends <code>unverified</code>. Nothing here should
-      be read as a correctness claim.</li>
-    <li><strong><code>verified</code> will not mean "true".</strong> It will mean the claim
+    <li><strong>This build is M2.</strong> There is no model in the loop: plans are
+      scripted and only the fixture is reachable. What is real is the verification — every
+      status comes from deterministic re-extraction against the stored artifact, and the
+      executor cannot set a success status itself.</li>
+    <li><strong><code>verified</code> does not mean "true".</strong> It means the claim
       is consistent with a preserved artifact and passes deterministic type, unit, date and
       entity checks. A value that is correct in form but taken from the wrong row, entity or
       period can still pass; label→value structural binding narrows this without closing it.</li>
+    <li><strong>A moved label costs a claim, deliberately.</strong> When the label a value is
+      bound to changes, the value may still be on the page and readable by other means — the
+      run is downgraded to <code>partial</code> anyway, because a binding that cannot be made
+      is not a verification. Re-anchoring is a recovery behaviour and arrives at M3.</li>
     <li><strong>Necessary UI actions are declared, not proven.</strong> The harness verifies
       that a case declared an action as required and the trace shows it happened. It does not
       prove the action was impossible to bypass. Only the fixture's GS-1/GS-2/GS-3 are

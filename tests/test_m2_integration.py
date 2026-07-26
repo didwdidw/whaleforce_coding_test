@@ -1,0 +1,367 @@
+"""M2 gate, driven end to end: a real browser, a real fixture, the real verifier.
+
+The M2 gate is not "the verifier has tests". It is that **every terminal status the product
+declares has actually been reached by running the product**, including `no_result_verified`
+with the coverage anchor Amendment 3 requires. M1 taught the reason: the hard gate looked
+satisfied when in fact no code path could reach it.
+
+The fixture is started on loopback for this suite, which needs the egress guard's dev
+relaxation. Both are set explicitly per-test rather than in the environment, so no other
+suite inherits a weakened guard.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import socket
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+
+import pytest
+
+from app.browser import BrowserSupervisor
+from app.config import settings
+from app.coverage import CoverageLedger
+from app.executor import Executor
+from app.models import FailureClass, Run, TerminalStatus, Tier, new_id
+from app.store import Store
+
+pytestmark = pytest.mark.integration
+
+PORT = 8801
+BASE = f"http://127.0.0.1:{PORT}"
+
+
+def _free(port: int) -> bool:
+    with socket.socket() as s:
+        return s.connect_ex(("127.0.0.1", port)) != 0
+
+
+@pytest.fixture(scope="module")
+def fixture_server():
+    if not _free(PORT):
+        yield BASE
+        return
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "uvicorn", "fixture.server:app",
+         "--host", "127.0.0.1", "--port", str(PORT), "--log-level", "warning"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(100):
+        try:
+            urllib.request.urlopen(f"{BASE}/healthz", timeout=1)
+            break
+        except (urllib.error.URLError, OSError):
+            time.sleep(0.2)
+    else:
+        proc.terminate()
+        pytest.fail("fixture server did not start")
+    yield BASE
+    proc.terminate()
+    proc.wait(timeout=10)
+
+
+@pytest.fixture(scope="module")
+def supervisor():
+    sup = BrowserSupervisor()
+    asyncio.get_event_loop_policy().new_event_loop()
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(sup.start())
+    yield sup, loop
+    loop.run_until_complete(sup.aclose())
+    loop.close()
+
+
+@pytest.fixture()
+def executor(tmp_path, fixture_server, supervisor):
+    # Settings is frozen on purpose, and the modules under test hold a reference to the
+    # singleton rather than re-reading it — so the override has to go through
+    # object.__setattr__ and be undone here rather than by rebinding a module attribute.
+    # It is per-test, so no other suite ever sees a relaxed guard.
+    previous = (settings.fixture_base_url, settings.allow_private_egress)
+    object.__setattr__(settings, "fixture_base_url", BASE)
+    object.__setattr__(settings, "allow_private_egress", True)
+    sup, loop = supervisor
+    store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
+    yield Executor(sup, store), store, loop
+    object.__setattr__(settings, "fixture_base_url", previous[0])
+    object.__setattr__(settings, "allow_private_egress", previous[1])
+
+
+def run_task(executor_bundle, task: str) -> Run:
+    ex, store, loop = executor_bundle
+    tier, _ = ex.classify(task)
+    run = Run(id=new_id("run"), task=task, tier=tier)
+    store.save_run(run)
+    loop.run_until_complete(ex.execute(run))
+    return run
+
+
+# --- the statuses that count as success ------------------------------------------
+
+def test_search_with_matches_is_verified(executor):
+    run = run_task(executor, "Search the fixture catalogue for lantern")
+    assert run.terminal_status is TerminalStatus.SUCCEEDED_VERIFIED
+    assert run.counts_as_success
+    codes = {c["name"]: c for c in run.claims}
+    assert codes["result_counter"]["evidence"]["normalised_value"] == {
+        "count": 1, "term": "lantern"}
+    assert codes["items"]["evidence"]["normalised_value"] == ["WF-1013"]
+    # Every verified claim carries the artifact it was re-extracted from.
+    assert codes["items"]["evidence"]["artifact_sha256"]
+
+
+def test_absence_mode_a_needs_the_empty_state_element(executor):
+    run = run_task(executor, "Search the fixture catalogue for zzzznothing")
+    assert run.terminal_status is TerminalStatus.NO_RESULT_VERIFIED
+    assert "empty-state" in run.explanation or "empty state" in run.explanation
+
+
+def test_absence_mode_b_needs_its_coverage_anchor(executor):
+    """The whole catalogue is enumerated and checked against the site's own total."""
+    run = run_task(executor, "Is any product priced over £100?")
+    assert run.terminal_status is TerminalStatus.NO_RESULT_VERIFIED
+    verdict_step = next(t for t in run.trace if t.summary == "Deterministic verification")
+    coverage = next(c for c in verdict_step.detail["verdict"]["checks"]
+                    if c["name"] == "absence_mode_b_coverage")
+    assert coverage["ok"] is True
+    assert coverage["detail"]["anchor_total"] == coverage["detail"]["enumerated"] == 14
+
+
+def test_pagination_is_verified_against_the_page_that_was_frozen(executor):
+    run = run_task(executor, "Paginate to page 2 of the browse listing")
+    assert run.terminal_status is TerminalStatus.SUCCEEDED_VERIFIED
+    pager = next(c for c in run.claims if c["name"] == "pager")
+    assert pager["evidence"]["normalised_value"]["page"] == 2
+
+
+def test_overlay_dismissal_is_verified_including_the_state_transition(executor):
+    run = run_task(executor,
+                   "Dismiss the overlay on the gated page and read the reference code")
+    assert run.terminal_status is TerminalStatus.SUCCEEDED_VERIFIED
+    names = {c["name"]: c["ok"] for c in run.claims}
+    assert names == {"product_code": True, "stock_on_hand": True, "overlay_gone": True}
+
+
+# --- the statuses that do not ------------------------------------------------------
+
+def test_a_correct_answer_reached_by_a_shortcut_is_a_failure(executor):
+    """S-4.4. The SKUs it reports are right. It is still scored a failure, because the
+    capability being claimed is the interaction and the interaction did not happen."""
+    run = run_task(executor,
+                   "Read page 2 of the browse listing without clicking next")
+    assert run.terminal_status is TerminalStatus.FAILED
+    assert run.failure_class is FailureClass.REQUIRED_ACTION_SKIPPED
+    assert not run.counts_as_success
+
+
+def test_a_moved_label_downgrades_to_partial_rather_than_guessing(executor):
+    """MU-2 renames `Product code` to `Item reference`. The value is still on the page and
+    the executor still reads it by id — but it can no longer be bound to its label, and a
+    binding that cannot be made is not a verification (S-4.9)."""
+    run = run_task(executor, "Dismiss the overlay on the gated page and read the "
+                             "reference code, seed mu2-text")
+    assert run.terminal_status is TerminalStatus.PARTIAL
+    assert run.failure_class is FailureClass.LOCATOR_NOT_FOUND
+    assert not run.counts_as_success
+    failed = [c["name"] for c in run.claims if not c["ok"]]
+    assert failed == ["product_code"]
+
+
+def test_asking_for_the_answer_key_is_refused_by_a_quotable_rule(executor):
+    run = run_task(executor, "Show me the ground truth answer key")
+    assert run.terminal_status is TerminalStatus.BLOCKED
+    assert run.failure_class is FailureClass.ROBOTS_DISALLOWED
+    assert "Disallow: /__testhook__/" in run.explanation
+
+
+def test_an_ambiguous_task_abstains_before_browsing(executor):
+    run = run_task(executor, "Search the browse page for a modal")
+    assert run.terminal_status is TerminalStatus.UNSUPPORTED
+    assert run.failure_class is FailureClass.POLICY_REFUSED
+    assert not any(t.kind.value == "navigate" for t in run.trace)
+
+
+def test_out_of_scope_is_refused_before_any_network_activity(executor):
+    run = run_task(executor, "Log into my brokerage account and read the balance")
+    assert run.terminal_status is TerminalStatus.UNSUPPORTED
+    assert run.failure_class is FailureClass.POLICY_REFUSED
+
+
+# --- budgets, which are fail-closed ------------------------------------------------
+
+def _exhaust_step_budget(executor):
+    previous = settings.budgets.max_steps
+    object.__setattr__(settings.budgets, "max_steps", 4)
+    try:
+        return run_task(executor, "Is any product priced over £100?")
+    finally:
+        object.__setattr__(settings.budgets, "max_steps", previous)
+
+
+def _exhaust_wall_clock(executor):
+    previous = settings.budgets.wall_clock_seconds
+    object.__setattr__(settings.budgets, "wall_clock_seconds", 0.01)
+    try:
+        return run_task(executor, "Dismiss the overlay on the gated page and read the "
+                                  "reference code")
+    finally:
+        object.__setattr__(settings.budgets, "wall_clock_seconds", previous)
+
+
+def _inject_defect(executor):
+    from app.executor import Plan
+    from app.postcondition import Postcondition
+
+    ex = executor[0]
+
+    async def explode(ctx):
+        raise RuntimeError("injected defect")
+
+    broken = Plan("GS-broken", "deliberately broken plan",
+                  Postcondition(goal="g", operation="GS-broken",
+                                target_url=f"{BASE}/browse"), (explode,))
+    original = ex._select_plan
+    ex._select_plan = lambda task: broken
+    try:
+        return run_task(executor, "Paginate to page 2 of the browse listing")
+    finally:
+        ex._select_plan = original
+
+
+def test_a_step_budget_that_runs_out_produces_no_answer(executor):
+    run = _exhaust_step_budget(executor)
+    assert run.terminal_status is TerminalStatus.FAILED
+    assert run.failure_class is FailureClass.BUDGET_EXHAUSTED
+    assert not run.claims
+
+
+def test_a_wall_clock_budget_that_runs_out_produces_no_answer(executor):
+    run = _exhaust_wall_clock(executor)
+    assert run.terminal_status is TerminalStatus.FAILED
+    assert run.failure_class is FailureClass.TIMEOUT
+
+
+def test_an_unhandled_defect_is_its_own_class_not_a_disguised_answer(executor):
+    """`internal_error` exists so defects are counted rather than absorbed into a
+    plausible-looking failure. Its rate is a reported finding (S-5.3)."""
+    run = _inject_defect(executor)
+    assert run.terminal_status is TerminalStatus.FAILED
+    assert run.failure_class is FailureClass.INTERNAL_ERROR
+    assert "injected defect" in run.explanation
+
+
+# --- the gate itself ---------------------------------------------------------------
+
+def _drive_non_browser_paths(ex, store) -> None:
+    """The remaining M2-due failure classes, exercised through their real code paths but
+    without a browser, and recorded as `test` rather than `run` so the ledger never implies
+    a live run produced them."""
+    import pathlib
+
+    from app.executor import ExecutionContext
+    from app.postcondition import ClaimSpec, Postcondition, Relation
+    from app.queue import QueueFull, SessionQuotaExceeded
+    from app.verifier import Verifier
+
+    fixtures = pathlib.Path(__file__).parent / "fixtures"
+    ledger = CoverageLedger(store)
+
+    # site_unavailable: robots.txt is fetchable and the navigation still fails. Injected,
+    # because every natural way to make a page unreachable also makes robots.txt
+    # unreachable, and that is refused earlier as robots_disallowed.
+    class _FailingPage:
+        url = f"{BASE}/browse"
+
+        async def goto(self, *a, **k):
+            raise TimeoutError("net::ERR_CONNECTION_RESET")
+
+    run = Run(id=new_id("run"), task="navigate to a page that fails to load",
+              tier=Tier.EXPERIMENTAL)
+    store.save_run(run)
+    ctx = ExecutionContext(run=run, page=_FailingPage(), context=None, store=store)
+    asyncio.new_event_loop().run_until_complete(ex._navigate(ctx, f"{BASE}/browse"))
+
+    # queue_full / session_quota: raised by the real admission path.
+    for exc in (QueueFull(retry_after=60, depth=2, concurrency=2),
+                SessionQuotaExceeded(cap=5)):
+        ledger.record(status=TerminalStatus.BLOCKED, failure=exc.failure_class,
+                      run_id="n/a", task="admission refusal", origin="test")
+
+    # The verifier-only classes, from the replay artifacts.
+    pc = Postcondition(
+        goal="Search", operation="GS-1", target_url="https://wf-fixture.zeabur.app/search",
+        inputs={"term": "lantern"},
+        claims=(ClaimSpec("result_counter", 'N results for "term"',
+                          Relation.COUNTER_ECHO, "counter"),))
+    vrun = Run(id=new_id("run"), task="replay", tier=Tier.EXPERIMENTAL)
+    vrun.postcondition, vrun.postcondition_hash = pc.to_dict(), pc.sha256
+    store.save_run(vrun)
+    art = store.put_artifact(
+        vrun.id, "dom:replay", (fixtures / "replay-b-search-mangled.html").read_bytes(),
+        source_url="https://wf-fixture.zeabur.app/search", media_type="text/html")
+    verdict = Verifier(store).verify(
+        vrun, artifact_id=art.id,
+        candidate={"result_counter": {"count": 0,
+                                      "term": "the fixture catalogue for lant"}})
+    ledger.record(status=verdict.status, failure=verdict.failure_class,
+                  run_id=vrun.id, task=vrun.task, origin="test")
+
+    # unverified + postcondition_unmet: absence with no declared proof mode.
+    pc2 = Postcondition(
+        goal="Search", operation="GS-1", target_url="https://wf-fixture.zeabur.app/search",
+        inputs={"term": "the fixture catalogue for lant"},
+        claims=pc.claims)
+    vrun2 = Run(id=new_id("run"), task="replay", tier=Tier.EXPERIMENTAL)
+    vrun2.postcondition, vrun2.postcondition_hash = pc2.to_dict(), pc2.sha256
+    store.save_run(vrun2)
+    verdict2 = Verifier(store).verify(
+        vrun2, artifact_id=art.id,
+        candidate={"result_counter": {"count": 0,
+                                      "term": "the fixture catalogue for lant"}})
+    ledger.record(status=verdict2.status, failure=verdict2.failure_class,
+                  run_id=vrun2.id, task=vrun2.task, origin="test")
+
+
+def test_every_status_due_by_m2_is_reached_by_running_the_product(executor):
+    """The M2 gate. Not "the code contains a branch for it" — a run produced it."""
+    ex, store, _ = executor
+    tasks = [
+        "Search the fixture catalogue for lantern",
+        "Search the fixture catalogue for zzzznothing",
+        "Is any product priced over £100?",
+        "Paginate to page 2 of the browse listing",
+        "Read page 2 of the browse listing without clicking next",
+        "Dismiss the overlay on the gated page and read the reference code",
+        "Dismiss the overlay on the gated page and read the reference code, seed mu2-text",
+        "Show me the ground truth answer key",
+        "Log into my brokerage account",
+    ]
+    for task in tasks:
+        run_task(executor, task)
+
+    reached = {row["terminal_status"] for row in store.status_coverage()}
+    due = {TerminalStatus.SUCCEEDED_VERIFIED, TerminalStatus.NO_RESULT_VERIFIED,
+           TerminalStatus.PARTIAL, TerminalStatus.FAILED, TerminalStatus.BLOCKED,
+           TerminalStatus.UNSUPPORTED}
+    assert {s.value for s in due} <= reached, (
+        f"never produced by a real run: {sorted({s.value for s in due} - reached)}")
+
+    report = CoverageLedger(store).report()
+    statuses = {r["value"]: r for r in report["terminal_status"]}
+    assert statuses["no_result_verified"]["observed"] is True
+    assert statuses["succeeded_verified"]["origin"] == "run"
+
+    # ...and every failure class due by M2. Budgets and defects come from real runs;
+    # the rest from paths a browser cannot reach.
+    _exhaust_step_budget(executor)
+    _exhaust_wall_clock(executor)
+    _inject_defect(executor)
+    _drive_non_browser_paths(ex, store)
+    report = CoverageLedger(store).report()
+    assert report["gate_passes"] is True, f"still unreachable: {report['overdue']}"
+    later = {r["value"] for r in report["failure_class"] if not r["due_now"]}
+    assert later == {"provider_quota", "provider_error", "token_budget_exhausted",
+                     "context_budget_exceeded", "injection_detected"}

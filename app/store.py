@@ -83,6 +83,19 @@ CREATE TABLE IF NOT EXISTS artifacts (
 );
 CREATE INDEX IF NOT EXISTS artifacts_run ON artifacts (run_id);
 CREATE INDEX IF NOT EXISTS artifacts_state ON artifacts (state, retrieved_at);
+
+-- Which terminal statuses and failure classes have ever actually been produced. An empty
+-- failure_class is stored as '' rather than NULL so the primary key stays meaningful.
+CREATE TABLE IF NOT EXISTS status_coverage (
+    terminal_status TEXT NOT NULL,
+    failure_class   TEXT NOT NULL DEFAULT '',
+    first_run_id    TEXT,
+    first_seen_at   REAL NOT NULL,
+    origin          TEXT NOT NULL DEFAULT 'run',
+    task            TEXT,
+    n               INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (terminal_status, failure_class)
+);
 """
 
 
@@ -236,6 +249,24 @@ class Store:
             claims=json.loads(row["claims"]) if row["claims"] else [],
         )
 
+    # ---- status coverage -------------------------------------------------------
+
+    def record_status_coverage(self, terminal_status: str, failure_class: str,
+                               run_id: str, task: str, origin: str) -> None:
+        """First observation wins; later ones only bump the count. The point of the row is
+        *when this first became reachable*, which a later overwrite would erase."""
+        self._conn.execute(
+            """INSERT INTO status_coverage (terminal_status, failure_class, first_run_id,
+                                            first_seen_at, origin, task, n)
+               VALUES (?,?,?,?,?,?,1)
+               ON CONFLICT(terminal_status, failure_class) DO UPDATE SET n = n + 1""",
+            (terminal_status, failure_class or "", run_id, time.time(), origin, task[:200]))
+        self._conn.commit()
+
+    def status_coverage(self) -> list[dict[str, Any]]:
+        return [dict(r) for r in self._conn.execute(
+            "SELECT * FROM status_coverage ORDER BY first_seen_at")]
+
     # ---- artifacts -------------------------------------------------------------
 
     def put_artifact(self, run_id: str, kind: str, data: bytes, *,
@@ -289,8 +320,10 @@ class Store:
 
         Age first, then size — oldest first — until the store is under its ceiling.
         """
-        retention_days = retention_days or settings.artifact_retention_days
-        max_mib = max_mib or settings.artifact_store_max_mib
+        # `or` here would turn an explicit 0 — "expire everything now" — into the default.
+        retention_days = (settings.artifact_retention_days if retention_days is None
+                          else retention_days)
+        max_mib = settings.artifact_store_max_mib if max_mib is None else max_mib
         cutoff = time.time() - retention_days * 86_400
         expired_by_age = self._expire(
             self._conn.execute(

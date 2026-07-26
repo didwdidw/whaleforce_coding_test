@@ -25,6 +25,7 @@ from fastapi.templating import Jinja2Templates
 from app import egress
 from app.browser import BrowserSupervisor
 from app.config import settings
+from app.coverage import CoverageLedger
 from app.executor import Executor
 from app.models import Run, TerminalStatus, Tier, new_id
 from app.queue import AdmissionRefused, RunQueue
@@ -34,10 +35,14 @@ from app.store import Store
 log = logging.getLogger(__name__)
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
+# Chosen so the homepage shows one of each outcome without anyone having to provoke it:
+# a verified answer, a proven absence, a right answer scored as a failure for skipping a
+# declared action, a partial where a label moved, and a refusal.
 DEMO_TASKS = [
     "Search the fixture catalogue for lantern",
-    "Browse the fixture catalogue and page forward to page 3",
-    "Dismiss the overlay on the gated page and read the reference code",
+    "Is any product priced over £100?",
+    "Read page 2 of the browse listing without clicking next",
+    "Dismiss the overlay on the gated page and read the reference code, seed mu2-text",
     "Log into my brokerage account and tell me my balance",
 ]
 
@@ -69,6 +74,7 @@ class App:
         self.supervisor = BrowserSupervisor()
         self.robots = RobotsCache()
         self.executor = Executor(self.supervisor, self.store, self.robots)
+        self.coverage = CoverageLedger(self.store)
         self.queue = RunQueue(self._execute, session_count=self.store.session_run_count)
         self.started_at = time.time()
         self.git_sha = git_sha()
@@ -140,9 +146,10 @@ async def home(request: Request) -> HTMLResponse:
         "queue": state.queue.snapshot().to_dict(),
         "browser": state.supervisor.status(),
         "demo_tasks": DEMO_TASKS,
-        "milestone": "M1 — walking skeleton. No model is in the loop and nothing is "
-                     "verified yet, so runs that produce a value end `unverified`, which "
-                     "is not a success state.",
+        "milestone": "M2 — evidence and deterministic verification. No model is in the "
+                     "loop yet: plans are scripted, and every status below was decided by "
+                     "code re-extracting the answer from the stored artifact through an "
+                     "anchor frozen before the run started.",
     })
 
 
@@ -151,10 +158,25 @@ async def run_detail(request: Request, run_id: str) -> Response:
     run = state.store.load_run(run_id)
     if run is None:
         return HTMLResponse("<h1>404</h1><p>No such run.</p>", status_code=404)
+    verdict = next((t.detail.get("verdict") for t in run.trace if t.detail.get("verdict")),
+                   None)
     return TEMPLATES.TemplateResponse(request, "run.html", {
         "run": run,
         "artifacts": state.store.artifacts_for_run(run_id),
         "position": state.queue.position_of(run_id),
+        "verdict": verdict,
+    })
+
+
+@app.get("/coverage", response_class=HTMLResponse)
+async def coverage(request: Request) -> HTMLResponse:
+    """Which statuses this deployment has actually produced (S-5.1, and the M1 lesson).
+
+    A declared status nobody has ever reached is an unreachable code path, which is how a
+    gate passes without having been tested.
+    """
+    return TEMPLATES.TemplateResponse(request, "coverage.html", {
+        "report": state.coverage.report(),
     })
 
 
@@ -185,6 +207,8 @@ async def submit(request: Request, task: str = Form(...)) -> Response:
         run.explanation = refusal.message
         run.finished_at = time.time()
         state.store.save_run(run)
+        state.coverage.record(status=run.terminal_status, failure=refusal.failure_class,
+                              run_id=run.id, task=run.task)
         headers = {"Retry-After": str(refusal.retry_after)} if refusal.retry_after else {}
         body = {"run_id": run.id, "terminal_status": run.terminal_status.value,
                 "failure_class": refusal.failure_class.value,
@@ -272,4 +296,13 @@ async def healthz() -> dict[str, Any]:
         "browser": state.supervisor.status(),
         "storage": state.store.storage_status(),
         "egress_guard": settings.egress_guard_state(),
+        # Which declared statuses this deployment has actually produced. `overdue` is the
+        # list of paths nothing has ever reached, which is the shape an untested gate takes.
+        "status_coverage": {k: v for k, v in state.coverage.report().items()
+                            if k in ("milestone", "overdue", "gate_passes")},
     }
+
+
+@app.get("/api/coverage")
+async def api_coverage() -> dict[str, Any]:
+    return state.coverage.report()
