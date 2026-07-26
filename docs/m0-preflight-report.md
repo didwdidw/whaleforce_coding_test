@@ -110,13 +110,33 @@ the runtime, and the dashboard is not a source of truth.
 |---|---|
 | CPU | 2 cores |
 | Memory total | 3,723 MB |
-| Memory used at idle (k3s + Zeabur agent) | **477 MB** |
+| Memory used at idle (native Ubuntu + Tencent agents) | **477 MB** |
 | Memory available at idle | 3,246 MB |
 | **Swap** | **1,987 MB, enabled** |
 | Disk | 59 GB total, 5.2 GB used, 52 GB available |
 
-The idle 477 MB corroborates the ~484 MB orchestration baseline the product owner quoted. Headroom for
-the app is therefore ~3.2 GB against a measured 794 MiB peak — comfortable.
+**Correction: the 477 MB idle figure contains no k3s.** An earlier draft of this report attributed it
+to "k3s + the Zeabur agent". A later inventory of the box disproved that: there is no container
+runtime of any kind — no `docker`, `containerd`, `k3s`, `kubectl`, `crictl` or `nerdctl` on PATH, no
+`/var/lib/rancher`, and `/usr/local/bin` holds a single symlink to `tat_agent`. **Zeabur has not
+touched this machine yet.** Every non-native process is Tencent's own: `tat_agent` (remote command),
+`barad_agent` (monitoring), and `YDService` / `YDLive` (host security). The dashboard figures come
+from Tencent's API, not from anything Zeabur installed.
+
+So 477 MB is the **floor, not the baseline**. Zeabur will install k3s when it deploys, and that adds
+an estimated **300–500 MB** on top. The headroom arithmetic changes accordingly:
+
+| Term | MB | Status |
+|---|---|---|
+| Total | 3,723 | measured |
+| − native Ubuntu + Tencent agents | −477 | measured |
+| − k3s + Zeabur agent | −300 to −500 | **estimated, not yet installed** |
+| − app peak | −~800 | to be measured (M0.1) |
+| **= remaining** | **~1,950–2,150** | |
+
+Still comfortable, but the margin is roughly 500 MB smaller than the earlier draft implied, and the
+k3s term stays an estimate until Zeabur has actually deployed. It is confirmed at the pod
+re-verification described in §10.
 
 **Swap changes what the RAM gate means.** With ~2 GB of swap the box will not OOM at the peak, it will
 get slow instead, and a slow run inside a 180 s wall clock fails as `timeout` — a symptom two steps
@@ -408,20 +428,23 @@ Three consequences for how we deploy, from the product owner's notes:
 2. **Zeabur's language auto-detection will apply a stock Python image, which cannot produce a working
    Chromium.** Deployment must use a **custom Dockerfile based on the official Playwright image**
    (`mcr.microsoft.com/playwright/python:v1.61.0-noble`), which ships the browser and its shared
-   libraries. Zeabur builds it at deploy time. **The host has no Docker daemon and will not get one** —
-   it already runs k3s, and a second container runtime is a decision rather than a step. M0.1
-   therefore measures inside **k3s pods against the base image directly** (`deploy/m0-*.yaml`), which
-   is closer to production than Docker would have been, since k3s is what actually serves the system.
-   A related trap: a container's default `/dev/shm` is 64 MB and Chromium crashes without more, so
-   production must pass `--disable-dev-shm-usage` or mount a larger `/dev/shm`.
-3. **k3s and the Zeabur agent occupy ~484 MB before our process starts.** That baseline is reported on
-   its own line, separately from the app's footprint — `preflight/measure_ram.py` now records
-   `orchestration_baseline` (system used memory before launch, plus the largest processes outside our
-   tree) alongside `app_tree_peak_rss_mib`. Conflating the two would either flatter or indict the app
-   for memory that is not its own. Headroom arithmetic to check at M0.1:
-   `4096 MB − ~484 MB orchestration − app peak`.
+   libraries. Zeabur builds it at deploy time. **The host has no container runtime at all and is not
+   getting one by hand** — Zeabur installs k3s when it deploys, and a manually installed copy risks
+   colliding with it. M0.1 is therefore measured **on the host with system Python** (Ubuntu 24.04,
+   Python 3.12.3), and **re-verified in a pod after M1 deploys**; both figures stay in this report.
+   Container-vs-host RSS differs by tens of MB, which does not change whether the app fits — cold
+   start is the figure that genuinely depends on the runtime, so A8.5's measurement moves to M1.
+   A related trap for the pod run: a container's default `/dev/shm` is 64 MB and Chromium crashes
+   without more, so production must pass `--disable-dev-shm-usage` or mount a larger `/dev/shm`.
+3. **The ~477 MB resident before our process starts is native Ubuntu plus Tencent's agents — not
+   k3s, which is not installed yet** (§2). It is reported on its own line, separately from the app's
+   footprint: `preflight/measure_ram.py` records `orchestration_baseline` (system used memory before
+   launch, plus the largest processes outside our tree) alongside `app_tree_peak_rss_mib`. Conflating
+   the two would either flatter or indict the app for memory that is not its own. Headroom arithmetic
+   at M0.1: `3,723 MB − 477 MB floor − (300–500 MB k3s, once Zeabur deploys) − app peak`.
 
-**Cold start (A8.5) is still owed** and is measured by the same script run that closes M0.1.
+**Cold start (A8.5) moves to M1** and is measured in a pod once Zeabur has deployed, for the reason
+in point 2: it is the one figure the runtime actually changes.
 
 ## 9. Amendment 9 — **APPROVED**, and what it obliges us to build
 
@@ -457,16 +480,20 @@ measurement job with a fixture to run against, so it belongs on the M1 checklist
 
 ## 10. What is needed to close M0
 
-One item left. Both were measurements on `43.166.128.37`, deliberately sequenced so the host
+One item left before M0 closes, plus one deferred to M1. Measurements were sequenced so the host
 question was settled before anything was built on it.
 
 1. ~~**M0.2 reachability.**~~ **Done — all clear** (§2). No site refuses the Tencent IP.
 2. **M0.1 RAM + A8.5 cold start — the last item.** Procedure:
-   `docs/m0-runbook-ram.md`. Runs as a **k3s pod** against the Playwright base image — no Docker, no
-   image build — because k3s is the runtime that serves production and the box has no Docker daemon.
-   `preflight/measure_ram.py` separates the 477 MB k3s/agent baseline from the app's own footprint and
-   now returns a **swap verdict** — the box has ~2 GB of swap, so a peak reached by swapping is a fail,
-   not a pass.
+   `docs/m0-runbook-ram.md`, one paste: `bash ~/preflight/run_host_ram.sh`. Measured **on the host
+   with system Python** — no container runtime is installed and none is being added by hand, since
+   Zeabur brings k3s with it at deploy time. `preflight/measure_ram.py` separates the 477 MB floor
+   from the app's own footprint and returns a **swap verdict**: the box has ~2 GB of swap, so a peak
+   reached by swapping is a fail, not a pass.
+3. **Pod re-verification and A8.5 cold start — after M1 deploys.** `deploy/m0-ram-measure.yaml` and
+   `deploy/m0-coldstart.yaml` run the same measurement inside k3s once Zeabur has provisioned it,
+   which also fixes the 300–500 MB k3s term as a measured number rather than an estimate. Cold start
+   is measured there rather than here because it is the one figure the runtime actually changes.
 
 **M1 proceeds in parallel and does not wait for either.** The walking skeleton runs against the
 fixture with no LLM in the loop (§13 M1), so nothing in it depends on the reachability result or the

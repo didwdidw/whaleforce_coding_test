@@ -250,3 +250,42 @@ $docker version --format '{{.Server.Version}}' 2>/dev/null || echo "no docker da
 => no docker daemon
 
 我覺得不要裝 docker 了，理由跟你講的一樣
+
+==========
+
+k3s 也沒有。docker、containerd、kubectl 全都沒有
+
+ubuntu@VM-20-55-ubuntu:~$ which -a k3s kubectl containerd crictl nerdctl 2>/dev/null; echo "---"
+---
+ubuntu@VM-20-55-ubuntu:~$ ls -l /usr/local/bin/
+total 0
+lrwxrwxrwx 1 root root 37 Jul 26 21:44 tat_agent -> /usr/local/qcloud/tat_agent/tat_agent
+ubuntu@VM-20-55-ubuntu:~$ sudo ls /var/lib/rancher
+no rancher dir
+ubuntu@VM-20-55-ubuntu:~$ sudo systemctl list-units --type=service --state=running --no-pager
+  acpid / chrony / cron / dbus / getty@tty1 / ModemManager / multipathd
+  networkd-dispatcher / polkit / rsyslog / serial-getty@ttyS0 / ssh
+  systemd-journald / systemd-logind / systemd-networkd / systemd-resolved
+  systemd-udevd / tat_agent / udisks2 / unattended-upgrades / upower / user@1000
+ubuntu@VM-20-55-ubuntu:~$ ps aux --sort=-rss | head -8
+root  3950  1.6%  63120  /usr/local/qcloud/YunJing/YDEyes/YDService
+root   353  0.7%  27292  /sbin/multipathd -d -s
+root  2668  0.7%  26888  barad_agent
+root   302  0.6%  26080  /usr/lib/systemd/systemd-journald
+root   987  0.6%  23396  unattended-upgrade-shutdown
+root   935  0.5%  21132  networkd-dispatcher
+root  4082  0.4%  17000  /usr/local/qcloud/YunJing/YDLive/YDLive
+------------------------------------------------------
+Zeabur 還沒碰過這台，非原生的東西全是騰訊自己的 agent
+我覺得不裝 k3s。等 Zeabur 部署時它自己裝，手動裝一套如果有衝突會煩死
+M0.1 改成在主機上用 system Python 量，就是你最早那版 run_cloud_preflight.sh。24.04 / Python 3.12.3 都在
+容器對 RSS 只差幾十 MB，不影響塞不塞得下。會被 runtime 影響的是 cold start，那個等 M1 部署完再量
+
+所以 M0.1 現在主機上量，M1 部署完在 pod 裡複驗，兩個數字都留在報告裡
+另外 484 MB 那個 baseline 是低估的，裡面沒有 k3s。Zeabur 部署上去還會再跳三到五百 MB，headroom 算式要改
+
+給我 server 版的指令，一樣 paste-and-go
+
+另外補充兩點:
+1. 回覆給我的訊息請用繁體中文，我讀起來比較快
+2. SSH name 為 ubuntu。後面還有command的話直接幫我填進去
