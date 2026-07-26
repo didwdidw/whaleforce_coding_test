@@ -825,3 +825,64 @@ committed**; `eval/holdout-manifest.md` records only their case counts and conte
 
 **A6.4** Test cases MUST differ from dev cases by more than wording — at minimum by entity, page
 type, operation order, or expected result type. A synonym-swapped duplicate is not a held-out case.
+
+### Amendment 7 — Token budgets, snapshot reduction, and cost accounting (2026-07-26)
+
+Extends **§6** and **§13 M0**. Adds two values to the closed set in **S-5.2**.
+
+**Rationale (product owner):** budgets currently count LLM *calls*. Cost and free-tier quota are
+consumed by **tokens and requests**, not by call count. An untrimmed accessibility tree of a large
+list article can be tens of thousands of tokens in a single call, so a 12-call budget bounds nothing
+that matters.
+
+**A7.1 Per-call input cap.** Every model call has a hard input-token cap (default: **8,000 tokens**
+for the page-derived portion of the context). A call whose assembled context exceeds the cap MUST be
+reduced further or fail closed — it MUST NOT be sent.
+
+**A7.2 Snapshot reduction is mandatory.** No raw page snapshot is ever sent to a model. What is sent
+is a reduced view containing: interactive elements, the target region, and text in the neighbourhood
+of candidate anchors. The reduction rule has a version identifier.
+
+**A7.3 Reduction must be recorded.** The trace MUST record, per call: the reduction rule version,
+what was dropped (counts by category — e.g. rows, non-interactive nodes, script/style, off-target
+regions), and a reference to the full stored artifact. Without this, a wrong answer cannot be
+attributed between *the model reasoned badly* and *we trimmed away the evidence*, which is the whole
+point of having a trace.
+
+**A7.4 Verification always runs on the full artifact.** The deterministic verifier (§4.3) MUST
+re-resolve anchors inside the **complete stored snapshot**, never inside the reduced view sent to the
+model. Verifying against the trimmed view would make verification circular.
+
+**A7.5 Per-run token budget.** In addition to the call budget (S-6.2), each run has a cumulative
+input-token budget (default: **60,000 tokens**). Exhaustion is fail-closed, exactly as S-6.3.
+
+**A7.6 Per-run cost accounting.** Every run MUST record: input tokens and output tokens per call and
+in total, the pinned model ID, the unit prices in force (from configuration, not hard-coded), and the
+computed USD cost. This is stored in the trace and displayed in the UI. Without it, acceptance item
+A-25 ("measured cost per run") has no source.
+
+**A7.7 New `failure_class` values:** `context_budget_exceeded`, `token_budget_exhausted`.
+
+**A7.8 M0 additions.** Beyond reading the account's actual rate limits, M0 MUST measure and report:
+
+1. **Token and cost per run** for one run on each of three page shapes: a books.toscrape category
+   listing, the S&P 500 Wikipedia article (the large-DOM case), and a product detail page. Report
+   input tokens, output tokens, and USD per run, at the pinned model's published prices.
+2. **Requests-per-day feasibility.** A full evaluation round is dev 15 + validation 8 + test 8 = 31
+   task cases, plus the mutation gate suite and the safety suite. At up to 12 model calls per run
+   that is on the order of **400+ provider requests per round**, before any development iteration.
+   M0 MUST report the account's actual requests-per-day limit and state plainly **how many full
+   rounds fit in one day**.
+3. If a full round does not fit in the free tier, **stop and report the numbers with the paid-tier
+   cost of a round**. Do NOT silently spread runs across days, reduce the call budget, or switch to a
+   cheaper model to fit — any of those changes the measured system.
+
+**A7.9 Free-tier data use.** Google's published pricing states that free-tier content is used to
+improve their products, and paid-tier content is not. Because v1.0 sends only public page content
+(P2), the free tier is acceptable — but this MUST be stated in the README, and the future
+private-data gate (P3) MUST revisit it before any non-public content is ever sent.
+
+**A7.10 Verified prices (2026-07-26, `ai.google.dev/gemini-api/docs/pricing`).** `gemini-2.5-flash`:
+input **$0.30 / 1M**, output **$2.50 / 1M**. `gemini-3.5-flash`: input **$1.50 / 1M**, output
+**$9.00 / 1M**. These are configuration inputs for A7.6 and MUST be re-checked at M0 rather than
+trusted from this document.

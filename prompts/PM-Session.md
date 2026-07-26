@@ -191,3 +191,26 @@ eval 現在就寫。dev 15 條進 repo。validation 跟 test 直接貼在回覆�
 2. 你自己說的那條原則不變：如果某條承諾需要 2 個案例才站得住，就直接砍那條承諾，不要擠壓 test
 
 ==========
+
+validation 跟 test 那幾條我認可了。寫成檔案放在 Users/tim/Desktops 底下好了
+
+我們現在的 budget 只管 LLM call 次數，沒有管 token。但成本跟 free tier 配額是被 token 跟 request 數吃掉的，不是被 call 幾次吃掉的
+比如說 S&P 500 那頁的 a11y tree 如果整棵送進去，一次 call 就可能塞好幾萬個 token
+
+另外補一條 amendment：
+- 每次 LLM call 要有 input token 上限。snapshot 進 model 之前一定要裁，只留互動元素、目標區塊、anchor 附近的文字，裁掉了什麼要留在 trace 裡（不然出錯時分不清是模型笨還是我們把證據裁掉了）
+- 每個 run 記錄實際 input/output token 跟換算成本。A-25 說要 measured cost per run，但現在沒有任何東西會產生那個數字
+- M0 除了讀限額，還要實測：拿 toscrape listing、S&P 500 條目、商品詳情頁各跑一次，回報單次 run 的 token 數跟美金成本
+
+另外有件事我要在動工前知道：free tier 是按 requests per day 算的，一個 run 打 12 次就吃掉 12 個配額。dev 15 + validation 8 + test 8，跑一輪全套就是三四百個 request。一天的免費額度夠不夠跑完一輪？似乎完全不夠
+M0 一併回報。不夠就直接講，我寧可花錢也不要卡進度（金額我再決定，你先給我數字就好）
+
+然後 engineering session 的開場 brief 你寫吧
+但寫短，並且要明確要求他是 enginnering session 要服從 spec，不可以自作主張。如果過程中有遇到窒礙難行的要求，或是實作過程中有發現更好的作法，可以停下來討論，但禁止自己決定。要求它自己會去讀 spec，你不用在 brief 裡把 spec 再講一遍。這裡要講的是它一開工就該知道、但不會自己從 spec 讀出來的東西：
+1. 從哪開始、前兩個 milestone 的實際交付長怎樣
+2. 有哪些坑。哪幾個地方最容易做出「看起來對但其實錯」的東西
+3. 哪些事不准它自己決定，要回來問我
+
+還有 validation 跟 test 的內容它永遠拿不到，只會拿到分數跟 failure_class 分布，這點在 brief 裡講明白，免得它之後跑來跟我要
+
+==========
