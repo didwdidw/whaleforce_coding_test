@@ -158,13 +158,34 @@ curl -s -X POST -d 'task=Log into my brokerage account' $APP/api/runs
 Expect from (3): a few `202` then `429`. From (5): `unsupported / policy_refused` with no
 navigation in the trace.
 
-**Cold start (A8.5) is measured here**, on the first request after a deploy:
+**Cold start (A8.5) — measured, see the M1 report §4 for the numbers.** Timing a single
+request after a deploy is not enough: it reports whichever pod happened to answer. Drive the
+restart and watch the window instead.
 
 ```bash
-time curl -s -o /dev/null https://<app-domain>/
+NS=environment-6a6644a75f062718bc7b1a95
+POD=$(ssh wf-prod "sudo kubectl -n $NS get pods -o name | grep 6a664945")
+
+# Poll the public URL continuously in one shell...
+while :; do
+  printf '%s ' "$(date +%s.%N)"
+  curl -s -o /dev/null -m 4 -w '%{http_code} %{time_total}\n' https://wf-agent.zeabur.app/
+  sleep 0.4
+done
+
+# ...and delete the pod in another. The gap between the last 200 and the next one is the
+# window a grader can land in.
+ssh wf-prod "sudo kubectl -n $NS delete $POD --wait=false"
+
+# kubelet reports the pull itself, which the poll cannot see:
+ssh wf-prod "sudo kubectl -n $NS get events --sort-by=.lastTimestamp | grep -E 'Pulled|Started'"
 ```
 
-Record it — this is the figure M0 deferred, and it is the one a grader experiences.
+Two figures come out of this and they answer different questions: **pod restart with the
+image on the node** is the routine case, and **a full redeploy including the pull** is the
+window a pushed version is exposed to. Check `/healthz` at the first `200` as well — if
+`browser.connected` is false there, the homepage is answering before the system can actually
+run anything, and the real cold start is longer than the HTTP number suggests.
 
 ## Capacity this deployment has to fit in — measured, not estimated
 

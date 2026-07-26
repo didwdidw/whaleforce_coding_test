@@ -5,7 +5,8 @@
 
 **Gate (§13 M1): PASS.** A public URL accepts a task, runs against the fixture with no model in
 the loop, shows progress and a step trace, and the queue and 429 behaviour are correct.
-**A8.5 cold start is still owed** — the one measurement that needs a container start (§4).
+**A8.5 cold start is measured** (§4): 8.3 s from pod delete to first HTTP 200, of which the
+URL is actually unavailable for 1–6 s, and a redeploy's image pull does not add to that.
 
 ---
 
@@ -90,11 +91,80 @@ The correction has been generalised rather than patched twice:
 - **14 regression tests** pin the routing and the extraction, including the exact inputs that
   failed.
 
-## 4. Still owed
+## 4. A8.5 cold start — measured
 
-**A8.5 cold start.** It needs a container start, and the service has been warm since the last
-deploy. It will be measured on the first request after the next restart — the figure a grader
-actually experiences, not the warm 0.84 s above.
+Two separate windows, because they are not the same event and only one of them is what a
+grader hits. Measured from outside the cluster (macOS → Ashburn), by deleting the app pod in
+k3s and polling `/` continuously; pull durations are kubelet's own, from the pod events.
+
+### 4.1 Pod restart, image already on the node
+
+| Stage | Measured |
+|---|---|
+| Image pull | **0.153 s** — `Successfully pulled … in 153ms`, nothing transferred |
+| Delete issued → new container process running | **4.4 s** |
+| Process running → first HTTP 200 on `/` | **3.9 s** |
+| **Delete → first HTTP 200** | **8.3 s** |
+| **URL unavailable, as seen from outside** | **1.1 s** (run 2) and **4.7–5.6 s** (run 1) |
+| Warm request, for comparison | 0.83 s total, 0.63 s TTFB |
+
+**There is no second cold start hiding behind the first.** At the moment the homepage first
+answered, `/healthz` already reported `browser.connected: true`, 577 MiB RSS and
+`runs_served: 3` — Chromium was up and the three pre-executed runs had already completed. The
+first *task* on the cold pod finished in **1.30 s** against **1.27 s** warm. A homepage that
+answers before the browser is usable would have been the worse outcome and is not what
+happens.
+
+### 4.2 Full redeploy, including the image pull
+
+From the real Zeabur redeploy that shipped `b0792ef`, both services rebuilt and rolled at once:
+
+| | App image | Fixture image |
+|---|---|---|
+| Pull | **8.988 s** | **12.588 s** |
+| Reported image size | 1,052,726,141 B | 1,052,725,911 B |
+
+The reported size is the *image's* size, not bytes transferred: the
+`mcr.microsoft.com/playwright/python:v1.61.0-noble` base (981 MB) was already on the node, so
+only the app layers moved. Pod created → serving is therefore **≈ 13 s** for a redeploy
+against ≈ 8 s for a restart.
+
+**The pull does not lengthen the outage, and that is worth stating because it contradicts the
+obvious guess.** The rollout is `RollingUpdate` with `maxSurge` 25 % on one replica, so the
+new pod is created and pulls its image *while the old pod is still serving*. The pull extends
+the deploy; the outage is the app's own boot time either way. Both windows are the same
+1–6 s.
+
+### 4.3 The outage that does exist is a missing readiness probe, not a slow app
+
+The app deployment has **no readiness, liveness or startup probe at all**. Kubernetes
+therefore treats "container started" as "ready" and kills the old pod ~3.9 s before the new
+one can answer anything. Whether a grader sees `502`s in that gap is a race against how long
+the terminating pod keeps receiving traffic — we observed it both ways in two consecutive
+restarts, 1.1 s and 5.6 s. A race is not a property to rely on.
+
+Zeabur exposes this: **Service → Settings → Health Check**, path `/healthz`. Its documented
+behaviour is exactly the missing piece — *"only when the health check passes will the
+deployment be considered ready; before that, the previous deployment continues to operate."*
+Setting it turns a 1–6 s race into a deterministic zero. It is a dashboard setting, so it is
+raised here rather than committed.
+
+### 4.4 Storage is ephemeral, and that becomes a correctness problem at M2
+
+`DATA_DIR` defaults to `/tmp/task1-data` and the pod mounts **no volume**, so every restart
+and every deploy destroys all runs and artifacts. At M1 this is invisible — the pre-executed
+runs are regenerated at boot, which is why the homepage looks intact after a restart.
+
+At M2 it stops being invisible. An evidence bundle whose artifacts vanish on the next deploy
+is a dangling reference that *looks* fine until someone opens it, which is the silent-failure
+shape the spec penalises most. The fix is a mounted volume at `DATA_DIR`, and it has a cost
+that belongs to the product owner rather than to me: **Zeabur switches a service with a
+mounted volume from `RollingUpdate` to `Recreate`**, so buying durable evidence means giving
+up the overlapping rollout measured in §4.2 and accepting a full boot of downtime per deploy.
+Flagged, not decided.
+
+`run_ddaea0d44d0c` was created after the last restart and is the marker for confirming this
+empirically at the next deploy.
 
 ## 5. Amendment 10, implemented
 
@@ -123,8 +193,18 @@ tests would keep passing while testing nothing.
 ## 6. What M2 inherits
 
 - The verifier is the answer to §3.1, not an incremental feature.
+- **The two defective runs become verifier-level regression cases, not executor-level ones.**
+  The 14 tests in §3.1 only stop those two bugs recurring. What has to be proved is different:
+  replay each run's stored artifact through the verifier and show it is *rejected*. Both runs
+  had the right step count, the right artifact count, the right terminal status and the right
+  HTTP code — a verifier that cannot catch them is not doing its job, and the place that would
+  otherwise surface is M4, against a live site.
+- **The M2 gate is that every `terminal_status` has actually been reached at least once**,
+  including `no_result_verified` together with its coverage anchor. An unreachable path is not
+  a passing path; §2 above is the precedent.
 - `no_result_verified` must be unreachable without a coverage anchor (Amendment 3), and the
   first code that can reach a success status is the first code that can violate Gate 1.
+- Evidence has to outlive a deploy, or the bundle is a dangling reference (§4.4).
 - Verification re-resolves anchors in the **full stored artifact** (A7.4). The artifacts are
   already captured and hashed; expiry is a recorded state, so a bundle is never a dangling
   reference.

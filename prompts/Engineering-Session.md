@@ -415,3 +415,26 @@ A10.2 明文禁用 urllib.robotparser，確認沒有路徑會回到它
 2. 搜尋詞你做得好，沒指定就 abstain，不編一個。同一條原則要往上一層套到路由：marker 沒有信心命中、或多個操作同時命中的時候，要 unsupported，不是挑第一個。「gated page」那次不是 marker 寫得不夠好，是「猜」這個行為本身錯了
 
 你自己那句「我只驗了結構沒驗內容，是檢查方法有漏不只是程式有 bug」比那兩個 bug 都重要。Good job。那正好是 M2 verifier 存在的理由，寫進報告
+
+==========
+
+Approved
+你自己從 k3s 刪 pod 去量
+現在還沒交件，30 秒中斷沒有代價
+
+但我要兩個數字，不是一個：
+- pod 重啟、image 已經在節點上: 這是常態，也是 A8.5 要記的數字
+- 完整 redeploy 含拉 image: 這是我每次推版本時 URL 真正不可用的那個窗口，比前者長，而且那才是最可能撞到人的時刻。你之前量過 image pull，兩段加起來就好
+
+M1 收了，往 M2
+M2 有一件事現在就排進去：那兩個有缺陷的 run 要留著當回歸案例，但是放在 verifier 層，不是 executor 層
+你那 14 個 executor 測試只防止同樣的 bug 再犯
+我要證明的是拿那兩次的 artifact 重播時 verifier 會擋下來
+
+理由是你自己講的那句：那兩個 run 步數對、artifact 數對、terminal status 對、HTTP code 對，全部通過，只是回答了另一個問題。verifier 如果攔不住這兩個，它就沒有在做它該做的事，而我們會等到 M4 打真實網站時才發現
+
+「hard gate 還碰不到，不是被通過了」這句寫得對。M2 的 gate 是每個 terminal_status 都要真的被走到過。包含 no_result_verified 和它的 coverage anchor
+不要留到 M4 才發現那條路根本走不通
+
+A10 那些做得好，A10.2 用 AST 解析而不是 grep 文字這個細節尤其值得讚許
+Good job, thanks
