@@ -1,0 +1,161 @@
+{
+ "measured_at": "2026-07-26T12:53:35Z",
+ "egress_ip": {
+  "ipify": "{\"ip\":\"1.171.14.75\"}",
+  "cloudflare": "fl=80f335\nh=cloudflare.com\nip=1.171.14.75\nts=1785070415.777\nvisit_scheme=https\nuag=WhaleforceCodingTest-Task1/0.1 (contact: didwdidw0309@gmail.com)\ncolo=TPE\nsliver=001-tier1\nhttp=http/1.1\nloc=TW\ntls=TLSv1.3\nsni=plaintext\nwarp=off\ngateway=off\nrbi=off\nkex=X25519"
+ },
+ "targets": [
+  {
+   "name": "wikipedia_article",
+   "url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "103.102.166.224"
+   ],
+   "status": 200,
+   "final_url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+   "seconds": 0.716,
+   "wire_bytes": 201646,
+   "bytes": 1509483,
+   "content_type": "text/html; charset=UTF-8",
+   "content_encoding": "gzip",
+   "sha256": "1ab5f689b34ae1a305d06d6bdc8de21b1addf69b8a14ca461e35946ea6d10624"
+  },
+  {
+   "name": "wikipedia_robots",
+   "url": "https://en.wikipedia.org/robots.txt",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "103.102.166.224"
+   ],
+   "status": 200,
+   "final_url": "https://en.wikipedia.org/robots.txt",
+   "seconds": 0.238,
+   "wire_bytes": 5283,
+   "bytes": 28275,
+   "content_type": "text/plain; charset=utf-8",
+   "content_encoding": "gzip",
+   "sha256": "48b98d80c8444d37cdf50cc9a4d2257b66039477e581066d2356062a4cbd678f"
+  },
+  {
+   "name": "books_home",
+   "url": "https://books.toscrape.com/",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "35.211.122.109"
+   ],
+   "status": 200,
+   "final_url": "https://books.toscrape.com/",
+   "seconds": 1.063,
+   "wire_bytes": 51294,
+   "bytes": 51294,
+   "content_type": "text/html",
+   "content_encoding": null,
+   "sha256": "9fdd63da34161ebd13408d7a85105f83ec3c9f351c5d77cd0aa578790e121c1e"
+  },
+  {
+   "name": "books_robots",
+   "url": "https://books.toscrape.com/robots.txt",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "35.211.122.109"
+   ],
+   "status": 404,
+   "seconds": 0.652,
+   "error": "HTTPError 404 Not Found",
+   "body_head": "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx/1.21.6</center>\r\n</body>\r\n</html>\r\n"
+  },
+  {
+   "name": "books_category",
+   "url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "35.211.122.109"
+   ],
+   "status": 200,
+   "final_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html",
+   "seconds": 1.062,
+   "wire_bytes": 52725,
+   "bytes": 52725,
+   "content_type": "text/html",
+   "content_encoding": null,
+   "sha256": "be69d3a5293343cf9c27062b7819af219233cfe02e98ac0d36eb3a739d94c0d2"
+  },
+  {
+   "name": "sec_robots",
+   "url": "https://www.sec.gov/robots.txt",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "23.42.106.200"
+   ],
+   "status": 200,
+   "final_url": "https://www.sec.gov/robots.txt",
+   "seconds": 0.237,
+   "wire_bytes": 900,
+   "bytes": 2622,
+   "content_type": "text/plain",
+   "content_encoding": "gzip",
+   "sha256": "72d6196b3f20737396e566ddeb769fb4174b44f334985a1267a59ae0f08c2f2f"
+  },
+  {
+   "name": "sec_archives_index",
+   "url": "https://www.sec.gov/Archives/edgar/data/320193/",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "23.42.106.200"
+   ],
+   "status": 200,
+   "final_url": "https://www.sec.gov/Archives/edgar/data/320193/",
+   "seconds": 0.06,
+   "wire_bytes": 36086,
+   "bytes": 451854,
+   "content_type": "text/html",
+   "content_encoding": "gzip",
+   "sha256": "eed52ab5c16675c132215b91a702605866b7f3deb4851341dacffed2f4a1d8ce"
+  },
+  {
+   "name": "sec_submissions_api",
+   "url": "https://data.sec.gov/submissions/CIK0000320193.json",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "23.41.133.98"
+   ],
+   "status": 200,
+   "final_url": "https://data.sec.gov/submissions/CIK0000320193.json",
+   "seconds": 0.238,
+   "wire_bytes": 28524,
+   "bytes": 164394,
+   "content_type": "application/json",
+   "content_encoding": "gzip",
+   "sha256": "ea2aa552e984a29e920cf80e0827cf32b632563935f029b6ec9de7f4fa3c026d"
+  },
+  {
+   "name": "sec_robots_no_ua",
+   "url": "https://www.sec.gov/robots.txt",
+   "user_agent_declared": false,
+   "resolved_ips": [
+    "23.42.106.200"
+   ],
+   "status": 403,
+   "seconds": 0.246,
+   "error": "HTTPError 403 Forbidden",
+   "body_head": "\u001f\ufffd\b\u0000\u0000\u0000\u0000\u0000\u0000\u0003\ufffdUio\ufffd6\u0010\ufffd\ufffd_1U\ufffdh\u000b\ufffd.\u001f9\u0014\ufffd@\ufffdd\u000f`\ufffd5\u0012\ufffd\u01e7\ufffd\u0016\ufffd\u0012\ufffd\u0012\ufffd%\ufffd\ufffd\ufffd\ufffd\ufffd$:q\u0434@Z\u0630(i\ufffd\ufffd\u035b\ufffdq\ufffd\ufffd\ufffd/\ufffd\ufffd\u001f\ufffdk(lU\ufffd\ufffd\ufffdO\u001f'\ufffd\ufffda\ufffd\ufffd`\u0012\ufffdW\ufffd+\ufffd\ufffd\ufffd\ufffd\ufffd'\ufffd\ufffd\bf\ufffdI#\ufffdP\ufffd\ufffdax\ufffd\ufffd\u0007^am\ufffd\ufffd\ufffdz\ufffd\u000e\u0583@\ufffd<\ufffd\u0744\ufffd\u0006+n\ufffd\ufffd\u04b7\u0007\ufffd\u0001\ufffd\ufffd\u001b\ufffd\ufffdv\ufffdMUJs\ufffd\u0002L|vv\ufffde\ufffd\ufffd\ufffd8]*\ufffd\f\ufffdX\u001f\ufffd.\ufffd\ufffd\u009b(iQZ\u007f\ufffd\ufffd\u0443\ufffd\ufffd\ufffd\ufffd,nl\ufffd\ufffdCV0m\ufffd^\ufffd\ufffd\ufffd\ufffd\ufffd\u001e\ufffd\ufffdb\ufffd-q|{=\tr\ufffd\ufffdopC`h,\ufffd0\ufffd0+4\ufffdB\ufffd\u001c\ufffd7\u0019\"G\ufffd\ufffd]B/5v\ufffd\\[\ufffd\u0002E^\ufffd\u0004\ufffd(z\ufffd\u041b+\ufffd}\ufffd\ufffd\u001c*\ufffds!\ufffd\ufffd\u001cj\u01b9\ufffd9-\u001fzGM"
+  }
+ ],
+ "policy_facts": {
+  "wikipedia_robots": {
+   "star_block_disallows_/w/": true,
+   "star_block_disallows_Special": true,
+   "star_block_disallows_/api/": true,
+   "bytes": 28028,
+   "crawl_delay_in_star_block": false
+  },
+  "sec_robots": {
+   "allows_Archives_edgar_data": true,
+   "disallows_cgi_bin": true,
+   "disallows_search": true,
+   "bytes": 2622
+  },
+  "books_robots_status": 404
+ }
+}
