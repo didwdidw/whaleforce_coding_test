@@ -174,3 +174,20 @@ C3 你提醒得好。demo 跟 eval 用不同的 key，demo 端加 per-session ru
 - engineering session 跟 acceptance session 各自的驗收清單照你說的附上
 
 ==========
+
+第一，維持 2 個真實站 must-have，Gutenberg 留 stretch。你的取捨理由我認同，locator memory 跟 safety suite 是評分重點，第三站不是。但 README 跟前端要把這件事寫成刻意的取捨，不要看起來像做不完。另外 "across different sites" 這條要求我認為不該靠站數回答，該靠 experimental tier——任意公開站都能試，試不出來就誠實棄權而且說明卡在哪。這才是我們拿去對這條需求的東西，spec 裡把這個連結講清楚
+
+第二，fixture 不應該算進對外承諾。它是驗證工具，不是產品能力。拿自己出的考題當對外承諾，正好就是你 R-2 在擔心的事，而根本解法不是加緩解，是它本來就不該算
+- 承諾只算真實站那幾條（Wikipedia 2 + toscrape 2）
+- fixture 的 mutation / injection 全部走 gate suite
+- 前端跟 README 都要明講 fixture 是我們自建的評測環境，不是支援的網站
+- 這樣 test 的 8 格就有緩衝，你剛講的「每條承諾只能配 1 個案例」自己就解掉了。多出來的格子拿去放負向案例：查無結果、越界棄權、experimental 的未知站
+- R-2 記得跟著更新
+
+eval 現在就寫。dev 15 條進 repo。validation 跟 test 直接貼在回覆裡給我，不要寫成檔案，我怕不小心被 commit 進去。repo 只留數量跟 hash
+
+寫的時候注意兩點：
+1. test 的案例不要只是把 dev 換個同義詞。至少要換 entity、換頁型、換操作順序或換預期結果。要真的有測試的意義！
+2. 你自己說的那條原則不變：如果某條承諾需要 2 個案例才站得住，就直接砍那條承諾，不要擠壓 test
+
+==========

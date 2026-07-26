@@ -719,4 +719,109 @@ address. Disclosed (S-2.6) rather than claimed solved.
 
 ## 16. Amendments
 
-None. Append numbered entries below; do not edit §0–§15.
+Append numbered entries below; do not edit §0–§15. An amendment supersedes the text it names.
+
+### Amendment 1 — The fixture is not a promised capability (2026-07-26)
+
+Supersedes the promised-record table in **§3.2**.
+
+**Rationale (product owner):** promising operations on a site we built ourselves is setting our own
+exam. The fix is not more mitigation — the fixture simply is not a product capability. It is an
+evaluation instrument.
+
+**A1.1** The promised set is **OP-4, OP-5, OP-6, OP-7 only** — four records across two real
+third-party sites. OP IDs are not renumbered; ID stability matters more than tidiness.
+
+**A1.2** OP-1, OP-2, OP-3 are **withdrawn from the promised set** and become gate-suite operations
+**GS-1** (POST-only form search), **GS-2** (JS pagination with no URL change), **GS-3** (overlay
+dismissal then act). They are exercised on the fixture inside the mutation gate suite (§10.2) and
+MUST NOT appear in the support matrix, the frontend's supported-sites list, or any success-rate
+figure.
+
+**A1.3** The frontend and README MUST state explicitly that the fixture is **our own evaluation
+environment, not a supported website**, wherever the fixture is visible.
+
+**A1.4** The freed test/validation slots go to negative cases: proof of absence, out-of-scope
+abstention, and experimental-tier unknown sites. They MUST NOT be used to pad promised-record counts.
+
+### Amendment 2 — "Across different sites" is answered by the experimental tier (2026-07-26)
+
+Extends **§1.3** and **§3**.
+
+**A2.1** The source requirement "reliably executes them across different sites" is **not** answered by
+counting declared sites. It is answered by the **T-EXPERIMENTAL tier**: any public, policy-clean,
+read-only site may be attempted; where the system cannot verify a result it abstains and says where
+it got stuck. Two declared sites plus an honest experimental tier is the deliberate answer, and the
+README and frontend MUST present it that way — as a chosen trade-off (depth on locator memory and
+the safety suite over breadth of declared sites), not as unfinished work.
+
+**A2.2** An experimental abstention MUST name (a) the step it stopped at, (b) the last observed page
+state, and (c) why the postcondition could not be verified. An abstention without this is a product
+defect, not a safe default.
+
+**A2.3** A third real site (Project Gutenberg — `robots.txt` disallows only `/ebooks/search`) remains
+**stretch**, added only after §13's must-have gates pass.
+
+### Amendment 3 — Two proof modes for absence (2026-07-26)
+
+Extends **XB-1** in §3.3.
+
+**A3.1** `no_result_verified` may be reached by either mode:
+
+- **Mode A — empty-state element:** a deterministically located element stating that nothing matched.
+  Available on the fixture (MU-8).
+- **Mode B — verified exhaustive enumeration:** the complete result set was enumerated, coverage is
+  proven against the site's own count/pagination anchor (e.g. `"110 results - showing 1 to 20."`,
+  `"Page 1 of 6"`), and the verifier re-checks from the saved artifacts that **every** member was
+  seen and **none** satisfies the predicate.
+
+**A3.2** Mode B requires a **coverage anchor**. Absence claimed without one is `unverified`, never
+`no_result_verified`. "I looked and didn't find it" is not a proof of absence.
+
+### Amendment 4 — Restatement of which surfaces are structurally shortcut-proof (2026-07-26)
+
+Supersedes the last sentence of **S-4.3**.
+
+**A4.1** Among the promised records, **OP-4 and OP-5 are structurally shortcut-proof**: a client-side
+table sort and a collapse/expand produce no URL a shortcut could target. OP-6 and OP-7 have stable
+URLs and therefore rest on declared-necessity plus trace verification (S-4.2/S-4.3).
+
+**A4.2** Honest qualification on OP-5: on Wikipedia the collapsed content is generally *present in
+the DOM* before expansion, so an agent could in principle read it without expanding. The state
+transition (`aria-expanded`, visibility) is what the harness verifies. OP-5's claim is therefore
+"declared and trace-verified", not "impossible to bypass". This MUST be stated in the README.
+
+**A4.3** GS-1/GS-2/GS-3 on the fixture remain structurally shortcut-proof by construction and carry
+that part of the argument — as gate evidence, not as a promise.
+
+### Amendment 5 — Replacement for known risk R-2 (2026-07-26)
+
+Supersedes **R-2** in §15.
+
+**R-2 (revised) · The promised surface is narrow: two real sites, four records.** The fixture is
+excluded from promises by design (Amendment 1), which removes the "graded our own exam" objection but
+leaves a genuinely small declared surface. Our position: promise quality over promise count — every
+promised record carries dev and test coverage, and breadth is handled by the experimental tier with
+honest abstention (Amendment 2). A reviewer may still judge the declared surface thin; that is a
+disclosed trade-off, not an oversight.
+
+**R-2b · The strongest anti-shortcut evidence now sits in a suite we authored.** GS-1/GS-2/GS-3 run
+on our own fixture. Mitigated by OP-4/OP-5 being structurally shortcut-proof on a real site
+(Amendment 4), and by the fixture's ground truth coming from server state independent of the
+mutation layer (S-9.3).
+
+### Amendment 6 — Eval split composition and repository policy (2026-07-26)
+
+Extends **§10.1**.
+
+**A6.1** Split sizes as authored: **dev 15, validation 8, test 8.**
+
+**A6.2** Composition — dev: 10 promised-record cases (OP-4 ×3, OP-5 ×2, OP-6 ×3, OP-7 ×2) plus 5
+behavioural cases. Validation and test: 4 promised-record cases (one per record) plus 4 behavioural
+cases each.
+
+**A6.3** The dev split lives at `eval/dev-set.md`. Validation and test **case content is never
+committed**; `eval/holdout-manifest.md` records only their case counts and content hashes.
+
+**A6.4** Test cases MUST differ from dev cases by more than wording — at minimum by entity, page
+type, operation order, or expected result type. A synonym-swapped duplicate is not a held-out case.
