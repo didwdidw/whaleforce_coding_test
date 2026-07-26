@@ -964,3 +964,106 @@ provider bill on its own.
 batch classification of injection cases, code review. They MUST NOT appear anywhere in the product's
 inference path. **Evaluation cases are authored by the product owner**; the engineering session MUST
 NOT generate its own eval cases.
+
+### Amendment 9 — Model availability, credential policy, and the M0 outcome (2026-07-26)
+
+Extends **A7.10**, **A7.8**, **S-11.15**, **A8.8**, **A8.11**, **S-2.16**, **S-11.9**. Proposed by the
+engineering session in `docs/m0-preflight-report.md` §9, approved with modifications and additions by
+the product owner. §5 and §7 of that report are the evidence.
+
+#### Model availability and the pin
+
+**A9.1** `gemini-2.5-flash` and `gemini-2.5-flash-lite` return `404 NOT_FOUND` for this project's key
+("no longer available to new users"), verified by live `generateContent` calls at M0. A7.10's prices
+for `gemini-2.5-flash` remain correct as published and are retained as historical record; they are no
+longer usable as configuration inputs for A7.6.
+
+**A9.2** The pinned model for development and evaluation is **`gemini-3.1-flash-lite`** (GA, input
+**$0.25 / 1M**, output **$1.50 / 1M**, verified 2026-07-26), the cheapest callable stable model.
+A8.11's bounded comparison still governs the final pin and runs before M3.
+
+**A9.2.1** **No validation or test run may be executed before the pin is final.** Both held-out
+splits are scored on their first run (S-10.6) and every first run records the pinned model ID
+(S-10.7). Running them against a provisional model burns a held-out run whose only value was that it
+could be spent once.
+
+**A9.3** S-11.15's startup validation MUST issue a **minimal live call**, not a `models.list()`
+lookup. Both unavailable models are present in the list response and fail only on use, so a
+list-based check passes and then fails at the first real call — which would surface as
+`blocked / provider_error` mid-run rather than at startup.
+
+**A9.4** A7.8's cost arithmetic is restated at the pinned model's prices: measured **$0.0011–$0.0036
+per run**, ~**$0.15 per full evaluation round**, ~$0.80 per round if every run exhausted its 12-call
+budget.
+
+**A9.5** **A8.11's comparison MUST include at least one non-lite candidate.** A full round costs
+~$0.15 at the lite model; a model six times more expensive costs ~$0.90, which sits well inside the
+USD 5 self-approval ceiling (A8.10). **Price is therefore not a deciding variable at this scale** —
+the pin is decided on the quality of locator reasoning, and A8.11's "cheapest acceptable" is settled
+only after acceptability is demonstrated, not before. Within the $1.50-input band the candidate is
+**`gemini-3.6-flash`** (output $7.50 / 1M), not `gemini-3.5-flash` (output $9.00 / 1M): same input
+price, cheaper output, and output is the dominant cost (A8.12).
+
+#### Credentials for scored runs
+
+**A9.6** **Validation and test runs MUST use the paid (`Billing_agent_API_Key`) credential
+unconditionally**, whether or not free-tier quota remains. This narrows A8.8: automatic free→paid
+fallback still applies to development, but a scored run does not start on the free key at all.
+
+Two reasons. First, mid-run exhaustion on a held-out split is `blocked / provider_quota` **and that
+round cannot be re-run** — the split's value is that it is spent once. Second, it makes A7.9's README
+disclosure clean: free-tier content is used by the provider to improve its products and paid-tier
+content is not, so putting every scored run on the paid tier means **no evaluation content is ever
+used for product improvement**, with no case-by-case reasoning required.
+
+This is arithmetic, not preference. The account's free-tier limits for `gemini-3.1-flash-lite`,
+read from AI Studio at M0, are **RPM 15 / TPM 250,000 / RPD 500**. Against the measured **~294
+requests per full round** (report §6), `500 / 294` is **one round per day**, leaving ~200 requests for
+development iteration — and a round in which runs actually spend the S-6.1 12-call budget is ~756
+requests, which does not fit at all. **This closes the final open item of A7.8**; A7.8.3's
+prohibition stands unchanged — the response to a tight quota is the paid key, never spreading a round
+across days or trimming the call budget.
+
+#### Unattended operation
+
+**A9.7** **The service MUST run unattended and continuously for two weeks or more.** This is an
+acceptance condition, not an aspiration: the deployed system is graded on a schedule we do not
+control, and a demo that is healthy on deploy day and dead a week later scores as broken. Three
+mechanisms are required:
+
+1. **Browser lifecycle recovery.** A crashed or unresponsive browser process MUST be detected and
+   relaunched without human intervention, and in-flight runs MUST terminate as an honest
+   `failed` / `blocked` state rather than hanging.
+2. **Bounded storage growth.** The artifact store and logs MUST have an enforced retention or size
+   bound. A single large-DOM run stores ~2 MB of snapshot (report §1); unbounded, this fills the disk
+   and takes the service down. Eviction MUST NOT silently break evidence bundles already referenced
+   by a reported result — expiry is a recorded state, not a dangling reference.
+3. **No memory growth over time.** Per-run resources (contexts, pages, listeners, temp files) MUST be
+   released, and steady-state memory MUST be observed to be flat across a sustained multi-hour run,
+   not merely at start-up.
+
+#### Corrections promoted to requirements
+
+**A9.8** **S-2.16 is a functional precondition, not politeness.** M0 measured SEC returning **403** to
+a request without a declared contact `User-Agent` (report §2). The header MUST be set at fetcher
+construction time so it cannot be omitted per call, and the seam's test suite MUST cover its absence
+— a missing header presents as a network-level block and would otherwise be misdiagnosed as
+`site_unavailable`.
+
+**A9.9** **Wikipedia imposes no crawl-delay on us.** The `Crawl-delay: 5` in `en.wikipedia.org/robots.txt`
+sits inside the `User-agent: SemrushBot` block, not `User-agent: *` (report §3). Per-origin pacing
+(S-2.15) remains enforced, but the README MUST describe it as **our own voluntary limit**, and MUST
+NOT present it as compliance with a robots directive. Claiming an obligation we do not have is a
+false claim about our own behaviour, which is the same class of error the honesty requirements exist
+to prevent.
+
+#### Host
+
+**A9.10** **Production host: Tencent Cloud, Ashburn (US) region — 2 vCPU / 4 GB RAM / 60 GB SSD, USD
+4/month, rented through Zeabur, with Zeabur as the deployment layer.** This is within the S-11.9
+ceiling of USD 10/month fixed cost and supersedes the options weighed in report §8. The 4 GB
+allowance carries the measured ~794 MiB peak (report §1) with room for the second context and steady
+growth, so the RAM gate is not the binding constraint the 1 GB candidates would have made it.
+A8.4 is unchanged: cold start is still accepted and MUST NOT be bought away. A8.5's remaining
+deliverables — the measured cold-start duration and the cloud RAM and reachability figures — are
+still owed, now measured on this host.

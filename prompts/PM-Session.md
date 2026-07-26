@@ -248,3 +248,28 @@ Gemini：
 M0 報告回來的時候，順便告訴我它挑了哪個 host 當最後正式使用的、為什麼，還有 cold start 大概多久
 
 ==========
+
+ENG 在 M0 報告裡提了 Amendment 9 給我批。先讀 docs/m0-preflight-report.md，§9 是它的草稿，§5 和 §7 是依據
+
+我批准了，但想修改一下，你來照我的旨意寫進 spec §16
+
+- A9.1 / A9.3 / A9.4 照它的草稿收下。A9.3 那個「models.list() 會列出來、真的打才 404」是這份報告裡最有價值的一條
+- A9.2 加一句：pin 定案前不准跑 validation 或 test。那兩份是 first-run 計分、綁 model ID 的，用暫定 model 去跑等於白燒一次 held-out run，而 held-out 的價值就在只能跑一次
+
+哦再另外加三條：
+- A9.5 — A8.11 的比較至少要放一個非 lite 的候選。一輪 $0.15，貴六倍也才 $0.9，在 $5 額度內，錢不是變數。pin 的依據是 locator reasoning 的品質，不是價格。also，報告表裡 3.6-flash 是 1.50/7.50、3.5-flash 是 1.50/9.00，同一價位帶挑 3.6
+- A9.6 — 憑證政策延伸 A8.8：validation 和 test 一律走 billing API key，不管 free 還有沒有 quota。中途 quota 用盡是 blocked / provider_quota，而那輪不能重跑。另一個好處是 A7.9 的 README 揭露變乾淨，計分內容全部走付費層不會被拿去改進產品
+- A9.7 — 服務要能無人值守連續運作兩週以上，這是驗收條件。三件事：瀏覽器 crash 之後自己起來、artifact store 和 log 的成長有上限不能塞爆磁碟、長時間累積的記憶體不能一路往上爬
+
+A7.8 最後一行可以結案了。free tier 對 gemini-3.1-flash-lite 是 RPM 15 / TPM 250K / RPD 500。按 ENG 的 294 requests per round，500 / 294 = 一天只塞得下一輪，剩約兩百個 request 給開發迭代；跑到 S-6.1 的 12-call 上限（756/round）就不夠。所以 A9.6 那條不是偏好，是算出來的
+
+報告 §7 有兩個已經不是 finding 而是需求變更，也一起處理：
+- SEC 沒有 declared UA 直接 403。S-2.16 從 politeness 改成 functional precondition，seam 的測試要涵蓋 header 缺失
+- Wikipedia 的 Crawl-delay: 5 在 SemrushBot 區塊底下，對我們不適用。README 不能把我們的 pacing 寫成 robots 義務，那是自願的
+
+主機也定了，一起寫進去：
+Tencent Cloud / Ashburn US，2 vCPU / 4 GB / 60 GB SSD，$4 per month，透過 Zeabur 租、Zeabur 當 deploy 層。在 S-11.9 的 $10 ceiling 內
+
+寫完 commit，我再讓 engineering session 往下走
+
+==========
