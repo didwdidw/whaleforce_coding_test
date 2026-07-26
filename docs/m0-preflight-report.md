@@ -2,14 +2,14 @@
 
 **Session:** Engineering Session · **Date:** 2026-07-26 · **Spec:** `docs/task1-spec.md` §13 M0, A7.8, A8.3, A8.5
 
-**Verdict: M0 is PARTIALLY COMPLETE. Four of six items pass. The two outstanding ones both need
-measurements taken on the production host, which now exists (A9.10). One spec assumption was
-contradicted by reality and is resolved by Amendment 9, approved.**
+**Verdict: M0 is PARTIALLY COMPLETE. Five of six items pass. Only M0.1 (RAM) and the A8.5
+cold-start figure remain, both of which must be measured inside the deployment image. One spec
+assumption was contradicted by reality and is resolved by Amendment 9, approved.**
 
 | M0 item | Gate | Status |
 |---|---|---|
 | M0.1 RAM headroom, browser + 2 contexts + app under load | 13(a) | **Outstanding** — local baseline 794 MiB; to be measured on the production host |
-| M0.2 Reachability from the deployment IP | 13(b) | **Outstanding** — runbook ready (`docs/m0-runbook-reachability.md`); residential control clean |
+| M0.2 Reachability from the deployment IP | 13(b) | **Pass** — all clear from `43.166.128.37`; every target 200, both expected non-200s correct |
 | M0.3 §3.4 policy facts re-verified | 13(c) | **Pass** — all facts hold verbatim; one correction, one new hard requirement (both now A9.8/A9.9) |
 | M0.4 Account's actual Gemini rate limits | 13(d) | **Pass** — RPM 15 / TPM 250,000 / RPD 500, read from AI Studio |
 | M0.5 Token + USD per run, requests/day feasibility | A7.8 | **Pass** — measured; arithmetic closed in §6 |
@@ -59,34 +59,69 @@ store has to absorb.
 container on a datacenter IP. It prints cgroup limits, does M0.2, times cold start, and runs the RAM
 measurement.
 
-## 2. M0.2 — Reachability
+## 2. M0.2 — Reachability — **PASS**
 
-**Not yet measured from a deployment IP.** The residential control run below establishes that the
-script and the expectations are correct, so a difference on the cloud box is attributable to the IP
-rather than to the harness.
+Measured from the production host `43.166.128.37` (Tencent Cloud, Ashburn US) on 2026-07-26T15:07:40Z.
+Verbatim session record: `server_environment.txt`. Summariser exit status **0 — ALL CLEAR**.
 
-Control run, egress `1.171.14.75` (residential, TW), `preflight/results/reachability-local-residential.json`:
+| Target | HTTP | Resolved | Bytes | Seconds |
+|---|---|---|---|---|
+| `control_example_com` (TLS control) | **200** | 104.20.23.154 | 559 | 0.046 |
+| `en.wikipedia.org/wiki/List_of_S%26P_500_companies` | **200** | 208.80.154.224 | 1,509,745 | 0.050 |
+| `en.wikipedia.org/robots.txt` | **200** | 208.80.154.224 | 28,275 | 0.040 |
+| `books.toscrape.com/` | **200** | 35.211.122.109 | 51,294 | 0.098 |
+| `books.toscrape.com/robots.txt` | **404** (expected) | 35.211.122.109 | — | 0.075 |
+| `books.toscrape.com/.../nonfiction_13/` | **200** | 35.211.122.109 | 52,725 | 0.097 |
+| `www.sec.gov/robots.txt` | **200** | 104.68.246.135 | 2,622 | 0.071 |
+| `www.sec.gov/Archives/edgar/data/320193/` | **200** | 104.68.246.135 | 451,854 | 0.051 |
+| `data.sec.gov/submissions/CIK0000320193.json` | **200** | 23.49.181.96 | 164,394 | 0.055 |
+| `www.sec.gov/robots.txt` **without declared UA** | **403** (expected) | 104.68.246.135 | — | 0.090 |
 
-| Target | HTTP | Resolved | Bytes |
-|---|---|---|---|
-| `en.wikipedia.org/wiki/List_of_S%26P_500_companies` | **200** | 103.102.166.224 | 1,509,483 |
-| `en.wikipedia.org/robots.txt` | **200** | 103.102.166.224 | 28,275 |
-| `books.toscrape.com/` | **200** | 35.211.122.109 | 51,294 |
-| `books.toscrape.com/robots.txt` | **404** (expected — no robots.txt) | 35.211.122.109 | — |
-| `books.toscrape.com/catalogue/category/books/nonfiction_13/` | **200** | 35.211.122.109 | 52,725 |
-| `www.sec.gov/robots.txt` | **200** | 23.42.106.200 | 2,622 |
-| `www.sec.gov/Archives/edgar/data/320193/` | **200** | 23.42.106.200 | 451,854 |
-| `data.sec.gov/submissions/CIK0000320193.json` | **200** | 23.41.133.98 | 164,394 |
-| `www.sec.gov/robots.txt` **without a declared UA** | **403** | 23.42.106.200 | — |
+**No site treats this IP differently from a residential one.** The risk the product owner flagged —
+that a Tencent netblock might be refused — did not materialise on any of the three sites. The TLS
+control returned 200 first, so none of the results are an artefact of a missing CA bundle.
 
-**New hard requirement, measured not assumed:** SEC returns **403** to a request whose User-Agent is
-not a declared contact string. S-2.16 was written as politeness; it is actually a functional
-precondition. A missing UA is a `blocked / site_unavailable` that looks like a network fault, so the
-server-side fetcher must set the header at construction time, and the seam's tests must cover its
-absence.
+Three things the measurement settled beyond the gate itself:
 
-Note that `books.toscrape.com` resolves into Google Cloud (35.211.122.109). A deployment on GCP would
-be reaching it from inside the same provider, which is worth knowing but is not by itself a risk.
+**The host is genuinely in the US.** Cloudflare's trace reports `colo=IAD`, `loc=US`, and Wikipedia
+resolved to `208.80.154.224` (Wikimedia's US edge) rather than the Singapore address a residential
+Taiwan run gets. The Ashburn region is behaving as an Ashburn region.
+
+**Latency is 5–10× better than the residential control**, which changes what the wall-clock budget
+buys. Wikipedia 0.472 s → **0.050 s**, books.toscrape 1.066 s → **0.098 s**, SEC 0.322 s → **0.051 s**.
+The S-6.1 default of 180 s wall clock was sized without this; page fetch is now a small fraction of a
+run, and the budget is dominated by browser work and model latency rather than by the network.
+
+**A9.8 reconfirmed on the production IP.** SEC returned **403** to the undeclared User-Agent — and
+notably the 403 body arrives gzipped, so a naive error path that tries to read it as text gets
+mojibake rather than a diagnosis. The fetcher's error handling has to decompress before it reports.
+
+### Correction: the OS is 24.04, not 22.04
+
+The Zeabur dashboard reported Ubuntu 22.04; the box is **Ubuntu 24.04.4 LTS (noble), Python 3.12.3,
+OpenSSL 3.0.13, kernel 6.8.0-124, x86_64**. The dashboard was wrong, and Step 2 of the runbook existed
+precisely so this was checked rather than assumed. It resolves in our favour — nothing has to be
+back-ported to Python 3.10 — but the lesson holds for the deployment image: the base image tag pins
+the runtime, and the dashboard is not a source of truth.
+
+### Host resource baseline, from the same session
+
+| Measure | Value |
+|---|---|
+| CPU | 2 cores |
+| Memory total | 3,723 MB |
+| Memory used at idle (k3s + Zeabur agent) | **477 MB** |
+| Memory available at idle | 3,246 MB |
+| **Swap** | **1,987 MB, enabled** |
+| Disk | 59 GB total, 5.2 GB used, 52 GB available |
+
+The idle 477 MB corroborates the ~484 MB orchestration baseline the product owner quoted. Headroom for
+the app is therefore ~3.2 GB against a measured 794 MiB peak — comfortable.
+
+**Swap changes what the RAM gate means.** With ~2 GB of swap the box will not OOM at the peak, it will
+get slow instead, and a slow run inside a 180 s wall clock fails as `timeout` — a symptom two steps
+removed from its cause. So M0.1 must report **whether swap was touched at all**, not only the peak RSS.
+A green peak on a swapping box is not a pass.
 
 ## 3. M0.3 — §3.4 policy facts re-verified — **PASS**
 
@@ -418,18 +453,16 @@ measurement job with a fixture to run against, so it belongs on the M1 checklist
 
 ## 10. What is needed to close M0
 
-Two items, both measurements on `43.166.128.37`, and they are deliberately sequenced.
+One item left. Both were measurements on `43.166.128.37`, deliberately sequenced so the host
+question was settled before anything was built on it.
 
-1. **M0.2 reachability — next, and on its own.** `docs/m0-runbook-reachability.md` is the
-   copy-pasteable procedure. Ten requests, standard library only, no `pip`, no provider calls, no
-   secrets. The Tencent network block is the one genuinely unknown risk in the whole plan, so nothing
-   further is built on this host until it comes back clean. Stop conditions are in the runbook: a
-   Wikipedia or books.toscrape block ends the host choice (OP-4…OP-7 all depend on them); a SEC-only
-   block is Task 2 seam scope and is reported, not worked around; no site is substituted either way.
-2. **M0.1 RAM + A8.5 cold start — after, and inside the deployment image.** Must run in a container
-   built from the Playwright base image rather than a system Python, or the number does not describe
-   what runs in production (§8). `preflight/measure_ram.py` now separates the ~484 MB k3s/agent
-   baseline from the app's own footprint.
+1. ~~**M0.2 reachability.**~~ **Done — all clear** (§2). No site refuses the Tencent IP.
+2. **M0.1 RAM + A8.5 cold start — the last item.** Procedure:
+   `docs/m0-runbook-ram.md`. Runs inside the Playwright-based deployment image (`Dockerfile`), because
+   a figure measured against a different runtime than production uses does not describe production.
+   `preflight/measure_ram.py` separates the 477 MB k3s/agent baseline from the app's own footprint and
+   now returns a **swap verdict** — the box has ~2 GB of swap, so a peak reached by swapping is a fail,
+   not a pass.
 
 **M1 proceeds in parallel and does not wait for either.** The walking skeleton runs against the
 fixture with no LLM in the loop (§13 M1), so nothing in it depends on the reachability result or the

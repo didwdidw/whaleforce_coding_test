@@ -1,0 +1,6 @@
+# Pinned. The Playwright version must match the Dockerfile's base image tag.
+playwright==1.61.0
+google-genai==2.14.0
+httpx==0.28.1
+lxml==6.1.1
+certifi==2026.7.22

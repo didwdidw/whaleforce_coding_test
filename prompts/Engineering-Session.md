@@ -237,3 +237,9 @@ SSH 我從 Zeabur dashboard 進得去，要用的時候跟我拿
 - Zeabur 的自動偵測看到 Python 會套標準 image，裝不出 Chromium。之後部署要用自訂 Dockerfile，從 Playwright 官方 image 起手
 
 M1 照走，不等這些
+
+==========
+
+我跑的 command 跟結果都放在 server_environment.txt 了
+你自己看一下
+looks good to me

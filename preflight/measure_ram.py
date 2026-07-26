@@ -52,6 +52,22 @@ def total_rss_kb():
     return total, detail
 
 
+def swap_used_kb():
+    """Swap in use, in KiB. The host has ~2 GB of swap enabled, so it will not OOM at the
+    peak — it will get slow, and a slow run inside the wall clock fails as `timeout`, two
+    steps removed from its cause. A green peak on a swapping box is not a pass."""
+    try:
+        vals = {}
+        with open("/proc/meminfo") as f:
+            for line in f:
+                k, _, v = line.partition(":")
+                if k in ("SwapTotal", "SwapFree"):
+                    vals[k] = int(v.split()[0])
+        return vals["SwapTotal"] - vals["SwapFree"]
+    except (OSError, KeyError, ValueError):
+        return None
+
+
 def system_used_kb():
     """System-wide used memory (MemTotal - MemAvailable), in KiB.
 
@@ -116,10 +132,31 @@ def meminfo():
     return info
 
 
+def swap_verdict(samples, before_kb):
+    """Did the measurement push the box into swap? A peak reached via swap is not a pass."""
+    seen = [s["swap_used_kb"] for s in samples if s.get("swap_used_kb") is not None]
+    if not seen:
+        return {"observable": False, "note": "no /proc/meminfo (not Linux)"}
+    peak = max(seen)
+    baseline = before_kb if before_kb is not None else min(seen)
+    grew = peak - baseline
+    return {
+        "observable": True,
+        "baseline_mib": round(baseline / 1024, 1),
+        "peak_mib": round(peak / 1024, 1),
+        "growth_during_run_mib": round(grew / 1024, 1),
+        # A little pre-existing swap is normal; growth during our run is the signal.
+        "touched_by_this_run": grew > 4096,
+        "verdict": "PASS - no swap growth" if grew <= 4096 else
+                   "FAIL - the peak was reached by swapping, not by fitting in RAM",
+    }
+
+
 async def sample_loop(samples, stop):
     while not stop.is_set():
         rss, detail = total_rss_kb()
-        samples.append({"t": round(time.time(), 2), "rss_kb": rss, "by_proc": detail})
+        samples.append({"t": round(time.time(), 2), "rss_kb": rss, "by_proc": detail,
+                        "swap_used_kb": swap_used_kb(), "system_used_kb": system_used_kb()})
         await asyncio.sleep(0.4)
 
 
@@ -130,6 +167,7 @@ async def run(hold):
     marks["baseline_kb"] = total_rss_kb()[0]
     # Captured before anything of ours is launched.
     orchestration_baseline = {"system_used_kb_before_launch": system_used_kb(),
+                              "swap_used_kb_before_launch": swap_used_kb(),
                               "outside_our_tree": processes_outside_tree()}
 
     async with async_playwright() as p:
@@ -189,6 +227,7 @@ async def run(hold):
         "marks_mib": {k: round(v / 1024, 1) for k, v in marks.items()
                       if k.endswith("_kb")},
         "app_tree_peak_rss_mib": round(peak["rss_kb"] / 1024, 1),
+        "swap": swap_verdict(samples, orchestration_baseline["swap_used_kb_before_launch"]),
         "peak_by_process_mib": {k: round(v / 1024, 1) for k, v in peak["by_proc"].items()},
         "artifact_dom_chars": sizes,
         "load_errors": errs,

@@ -1,0 +1,252 @@
+ubuntu@VM-20-55-ubuntu:~$ lsb_release -a 2>/dev/null || cat /etc/os-release
+Distributor ID: Ubuntu
+Description:    Ubuntu 24.04.4 LTS
+Release:        24.04
+Codename:       noble
+
+ubuntu@VM-20-55-ubuntu:~$ python3 -V
+Python 3.12.3
+
+ubuntu@VM-20-55-ubuntu:~$ python3 -c "import ssl, json, urllib.request; print('stdlib ok |', ssl.OPENSSL_VERSION)"
+stdlib ok | OpenSSL 3.0.13 30 Jan 2024
+
+ubuntu@VM-20-55-ubuntu:~$ nproc; free -m; df -h /
+2
+               total        used        free      shared  buff/cache   available
+Mem:            3723         477        2524           2         959        3246
+Swap:           1987           0        1987
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/vda2        59G  5.2G   52G  10% /
+
+ubuntu@VM-20-55-ubuntu:~$ cd ~ && python3 preflight/check_reachability.py --out ~/cloud-reachability.json > /dev/null
+
+ubuntu@VM-20-55-ubuntu:~$ python3 preflight/summarise_reachability.py ~/cloud-reachability.json; echo "exit=$?"
+host      : python 3.12.3 | Linux-6.8.0-124-generic-x86_64-with-glibc2.39
+openssl   : OpenSSL 3.0.13 30 Jan 2024
+egress ip : {"ip":"43.166.128.37"}
+measured  : 2026-07-26T15:07:40Z
+
+target                    HTTP    secs      bytes  verdict
+control_example_com        200   0.046        559  ok
+wikipedia_article          200    0.05    1509745  ok
+wikipedia_robots           200    0.04      28275  ok
+books_home                 200   0.098      51294  ok
+books_robots               404   0.075          -  ok (expected 404)
+books_category             200   0.097      52725  ok
+sec_robots                 200   0.071       2622  ok
+sec_archives_index         200   0.051     451854  ok
+sec_submissions_api        200   0.055     164394  ok
+sec_robots_no_ua           403    0.09          -  ok (expected 403)
+
+policy facts: {"wikipedia_robots": {"star_block_disallows_/w/": true, "star_block_disallows_Special": true, "star_block_disallows_/api/": true, "bytes": 2802
+8, "crawl_delay_in_star_block": false}, "sec_robots": {"allows_Archives_edgar_data": true, "disallows_cgi_bin": true, "disallows_search": true, "bytes": 2622
+}, "books_robots_status": 404}
+
+VERDICT: ALL CLEAR. Every target reachable from this IP; expected non-200s behaved as expected.
+exit=0
+
+ubuntu@VM-20-55-ubuntu:~$ cat ~/cloud-reachability.json
+{
+ "measured_at": "2026-07-26T15:07:40Z",
+ "host": {
+  "python": "3.12.3",
+  "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+  "openssl": "OpenSSL 3.0.13 30 Jan 2024",
+  "hostname": "VM-20-55-ubuntu"
+ },
+ "egress_ip": {
+  "ipify": "{\"ip\":\"43.166.128.37\"}",
+  "cloudflare": "fl=1024f70\nh=cloudflare.com\nip=43.166.128.37\nts=1785078460.305\nvisit_scheme=https\nuag=WhaleforceCodingTest-Task1/0.1 (contact: didwdidw
+0309@gmail.com)\ncolo=IAD\nsliver=none\nhttp=http/1.1\nloc=US\ntls=TLSv1.3\nsni=plaintext\nwarp=off\ngateway=off\nrbi=off\nkex=X25519"
+ },
+ "targets": [
+  {
+   "name": "control_example_com",
+   "url": "https://example.com/",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "104.20.23.154",
+    "172.66.147.243",
+    "2606:4700:10::6814:179a",
+    "2606:4700:10::ac42:93f3"
+   ],
+   "status": 200,
+   "final_url": "https://example.com/",
+   "seconds": 0.046,
+   "wire_bytes": 388,
+   "bytes": 559,
+   "content_type": "text/html",
+   "content_encoding": "gzip",
+   "sha256": "ff67a9d764d6a2367a187734e697f6a53217db9a21c101d410a113ca871a299d"
+  },
+  {
+   "name": "wikipedia_article",
+   "url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "208.80.154.224",
+    "2620:0:861:ed1a::1"
+   ],
+   "status": 200,
+   "final_url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+   "seconds": 0.05,
+   "wire_bytes": 201783,
+   "bytes": 1509745,
+   "content_type": "text/html; charset=UTF-8",
+   "content_encoding": "gzip",
+   "sha256": "6b931e1287948f4ce32b3239acaa59307a52bd529b4884fb00cdea88c57fcbcb"
+  },
+  {
+   "name": "wikipedia_robots",
+   "url": "https://en.wikipedia.org/robots.txt",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "208.80.154.224",
+    "2620:0:861:ed1a::1"
+   ],
+   "status": 200,
+   "final_url": "https://en.wikipedia.org/robots.txt",
+   "seconds": 0.04,
+   "wire_bytes": 5283,
+   "bytes": 28275,
+   "content_type": "text/plain; charset=utf-8",
+   "content_encoding": "gzip",
+   "sha256": "48b98d80c8444d37cdf50cc9a4d2257b66039477e581066d2356062a4cbd678f"
+  },
+  {
+   "name": "books_home",
+   "url": "https://books.toscrape.com/",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "35.211.122.109"
+   ],
+   "status": 200,
+   "final_url": "https://books.toscrape.com/",
+   "seconds": 0.098,
+   "wire_bytes": 51294,
+   "bytes": 51294,
+   "content_type": "text/html",
+   "content_encoding": null,
+   "sha256": "9fdd63da34161ebd13408d7a85105f83ec3c9f351c5d77cd0aa578790e121c1e"
+  },
+  {
+   "name": "books_robots",
+   "url": "https://books.toscrape.com/robots.txt",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "35.211.122.109"
+   ],
+   "status": 404,
+   "seconds": 0.075,
+   "error": "HTTPError 404 Not Found",
+   "body_head": "<html>\r\n<head><title>404 Not Found</title></head>\r\n<body>\r\n<center><h1>404 Not Found</h1></center>\r\n<hr><center>nginx/1.21.6</center
+>\r\n</body>\r\n</html>\r\n"
+  },
+  {
+   "name": "books_category",
+   "url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "35.211.122.109"
+   ],
+   "status": 200,
+   "final_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html",
+   "seconds": 0.097,
+   "wire_bytes": 52725,
+   "bytes": 52725,
+   "content_type": "text/html",
+   "content_encoding": null,
+   "sha256": "be69d3a5293343cf9c27062b7819af219233cfe02e98ac0d36eb3a739d94c0d2"
+  },
+  {
+   "name": "sec_robots",
+   "url": "https://www.sec.gov/robots.txt",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "104.68.246.135",
+    "2600:1408:c400:38b::17b2",
+    "2600:1408:c400:38c::17b2"
+   ],
+   "status": 200,
+   "final_url": "https://www.sec.gov/robots.txt",
+   "seconds": 0.071,
+   "wire_bytes": 900,
+   "bytes": 2622,
+   "content_type": "text/plain",
+   "content_encoding": "gzip",
+   "sha256": "72d6196b3f20737396e566ddeb769fb4174b44f334985a1267a59ae0f08c2f2f"
+  },
+  {
+   "name": "sec_archives_index",
+   "url": "https://www.sec.gov/Archives/edgar/data/320193/",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "104.68.246.135",
+    "2600:1408:c400:38b::17b2",
+    "2600:1408:c400:38c::17b2"
+   ],
+   "status": 200,
+   "final_url": "https://www.sec.gov/Archives/edgar/data/320193/",
+   "seconds": 0.051,
+   "wire_bytes": 36086,
+   "bytes": 451854,
+   "content_type": "text/html",
+   "content_encoding": "gzip",
+   "sha256": "eed52ab5c16675c132215b91a702605866b7f3deb4851341dacffed2f4a1d8ce"
+  },
+  {
+   "name": "sec_submissions_api",
+   "url": "https://data.sec.gov/submissions/CIK0000320193.json",
+   "user_agent_declared": true,
+   "resolved_ips": [
+    "23.49.181.96",
+    "2600:1408:c400:781::2374",
+    "2600:1408:c400:791::2374"
+   ],
+   "status": 200,
+   "final_url": "https://data.sec.gov/submissions/CIK0000320193.json",
+   "seconds": 0.055,
+   "wire_bytes": 28524,
+   "bytes": 164394,
+   "content_type": "application/json",
+   "content_encoding": "gzip",
+   "sha256": "ea2aa552e984a29e920cf80e0827cf32b632563935f029b6ec9de7f4fa3c026d"
+  },
+  {
+   "name": "sec_robots_no_ua",
+   "url": "https://www.sec.gov/robots.txt",
+   "user_agent_declared": false,
+   "resolved_ips": [
+    "104.68.246.135",
+    "2600:1408:c400:38b::17b2",
+    "2600:1408:c400:38c::17b2"
+   ],
+   "status": 403,
+   "seconds": 0.09,
+   "error": "HTTPError 403 Forbidden",
+   "body_head": "\u001f\ufffd\b\u0000\u0000\u0000\u0000\u0000\u0000\u0003\ufffdU\ufffdn\ufffd6\u0010}\ufffdWL\u0015,\ufffd\u0002+Q\ufffdc\u01d6\u0015\u0003\u
+fffd\ufffd\ufffd\u0000\ufffd\ufffd\ufffd8\ufffd<\u0005\ufffd4\ufffd\ufffd\ufffdH-I_To\ufffd\ufffd\ufffd\ufffd\u0013\u0007M\u000b\ufffd\ufffd\r\ufffd\ufffdf\u
+000e\u03dc9\u001cG\ufffd]\ufffd2[\ufffd1\ufffd\ufffd\ufffd\u00169\ufffd\ufffd~\ufffd\ufffdq\u0006\ufffd\ufffd\ufffdo\ufffd\u0019cW\ufffd+\ufffd\ufffd\ufffd\u
+fffd\ufffd'\b<\u001f\u0016\ufffdK#\ufffdP\ufffd\ufffd]\ufffd\uc013Y[\ufffd\ufffdm\ufffd[o\ufffd\ufffd\ufffdN\ufffd\ufffd\ufffdj\ufffd\ufffdN\ue5ae=\ufffd\uff
+fd\u0012\ufffd8\ufffd^\ufffdl\ufffd+ri.^\ufffd\t\ufffd\ufffdq\ufffd\ufffd\ufffd\"O\ufffdR\ufffd\ufffdP\u01fa\ufffdu-6\u0017\ufffdLI\ufffd\u04ba\ufffd\ufffdD\
+u0007\ufffd\ufffd\ufffd\u00b1\ufffd\ufffd\ufffd\u039d@\ufffdqm\ufffd^\ufffd-\u07b9#\u0007\u0018\ufffdXas\ufffd\ufffd^\u03fcTm\ufffd\u001b\ufffd\u0010\u0018\u
+001a\u000b7\ufffd\",2\ufffd&Sy\u0002\u05fb\u00181\ufffd$bmB/2\ufffd\ufffd\ufffd\r\ufffd}\ufffd\"\ufffdl\b\ufffd\ufffdy\ufffd-UR=\u007f6\ufffd\ufffd\ufffdT\uf
+ffd\u041f@\u0253D\u0214\ufffd\u000f\ufffd\ufffd\ufffd"
+  }
+ ],
+ "policy_facts": {
+  "wikipedia_robots": {
+   "star_block_disallows_/w/": true,
+   "star_block_disallows_Special": true,
+   "star_block_disallows_/api/": true,
+   "bytes": 28028,
+   "crawl_delay_in_star_block": false
+  },
+  "sec_robots": {
+   "allows_Archives_edgar_data": true,
+   "disallows_cgi_bin": true,
+   "disallows_search": true,
+   "bytes": 2622
+  },
+  "books_robots_status": 404
+ }
