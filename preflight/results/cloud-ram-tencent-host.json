@@ -10,18 +10,54 @@
   "outside_our_tree": {
    "total_mib": 453.5,
    "top": [
-    {"comm": "YDService", "rss_mib": 65.4},
-    {"comm": "multipathd", "rss_mib": 26.7},
-    {"comm": "barad_agent", "rss_mib": 26.3},
-    {"comm": "systemd-journal", "rss_mib": 26.0},
-    {"comm": "unattended-upgr", "rss_mib": 22.8},
-    {"comm": "packagekitd", "rss_mib": 20.7},
-    {"comm": "networkd-dispat", "rss_mib": 20.6},
-    {"comm": "YDLive", "rss_mib": 16.6},
-    {"comm": "systemd", "rss_mib": 13.6},
-    {"comm": "udisksd", "rss_mib": 13.3},
-    {"comm": "ModemManager", "rss_mib": 12.9},
-    {"comm": "systemd-resolve", "rss_mib": 12.9}
+    {
+     "comm": "YDService",
+     "rss_mib": 65.4
+    },
+    {
+     "comm": "multipathd",
+     "rss_mib": 26.7
+    },
+    {
+     "comm": "barad_agent",
+     "rss_mib": 26.3
+    },
+    {
+     "comm": "systemd-journal",
+     "rss_mib": 26.0
+    },
+    {
+     "comm": "unattended-upgr",
+     "rss_mib": 22.8
+    },
+    {
+     "comm": "packagekitd",
+     "rss_mib": 20.7
+    },
+    {
+     "comm": "networkd-dispat",
+     "rss_mib": 20.6
+    },
+    {
+     "comm": "YDLive",
+     "rss_mib": 16.6
+    },
+    {
+     "comm": "systemd",
+     "rss_mib": 13.6
+    },
+    {
+     "comm": "udisksd",
+     "rss_mib": 13.3
+    },
+    {
+     "comm": "ModemManager",
+     "rss_mib": 12.9
+    },
+    {
+     "comm": "systemd-resolve",
+     "rss_mib": 12.9
+    }
    ]
   },
   "system_used_mib_before_launch": 627.7,
@@ -35,7 +71,10 @@
   "both_loaded_kb": 866484,
   "after_artifact_capture_kb": 890464,
   "after_screenshots_kb": 911640,
-  "screenshot_bytes": [187221, 181460]
+  "screenshot_bytes": [
+   187221,
+   181460
+  ]
  },
  "marks_mib": {
   "baseline_kb": 32.1,
@@ -60,7 +99,10 @@
   "chrome-headless": 721.4,
   "ps": 4.3
  },
- "artifact_dom_chars": {"heavy": 1921689, "light": 52426},
+ "artifact_dom_chars": {
+  "heavy": 1921689,
+  "light": 52426
+ },
  "load_errors": [],
  "samples": 61
 }

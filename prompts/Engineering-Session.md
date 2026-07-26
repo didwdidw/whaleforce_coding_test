@@ -347,3 +347,9 @@ robots 那兩個抓得好。空行那個很棒，「這一類 bug 用 dev-set �
 2. ALLOW_PRIVATE_EGRESS 要防呆。production 誤設等於 SSRF 防護整個關掉，而且系統會安靜地照常運作，沒人會發現。非 dev 環境偵測到就拒絕啟動，另外每個 run 的 trace 要記錄當下 egress guard 是開的——稽核看得到，不用相信我們的說法
 
 Dockerfile 現在的 CMD 還是 M0 那個佔位的，部署前記得換掉
+
+==========
+
+我出了一個 mistake
+看來 OS 應該要選 ZeaburOS 才能用 Zeabur 的服務
+我現在要重灌，幫我確認一下所有資料都有備份我可以安心重灌
