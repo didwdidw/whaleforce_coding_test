@@ -128,20 +128,22 @@ time curl -s -o /dev/null https://<app-domain>/
 
 Record it — this is the figure M0 deferred, and it is the one a grader experiences.
 
-## Pod re-verification of RAM (the other M0 deferral)
+## Capacity this deployment has to fit in — measured, not estimated
 
-Once Zeabur has provisioned k3s on the box, `deploy/m0-ram-measure.yaml` runs the same
-measurement inside a pod and turns the estimated 300–500 MB k3s term into a measured one.
-On the host, via `ssh wf-prod`:
+`deploy/m0-ram-measure.yaml` has already run in a pod on this host (M0 report §1.1):
 
-```bash
-sudo k3s kubectl get nodes -o wide          # confirm k3s is now present
-free -m                                     # the new baseline, with k3s running
-```
+| Term | MiB |
+|---|---|
+| MemTotal | 3,723.9 |
+| ZeaburOS + k3s + Tencent agents, before we start | 1,507.8 |
+| App at peak (browser + 2 contexts) | 996.7 |
+| **Spare** | **1,219.4** — 67% of the box used at peak |
 
-If `free -m` shows the used figure has moved from ~477 MB to somewhere near 800–1,000 MB,
-that is the k3s term arriving and the headroom table in the M0 report should be updated with
-the measured value.
+Swap was untouched. The browser recycles at an app-tree ceiling of 1,400 MiB, which sits
+above the measured peak with room to spare and still leaves the box at 78% if it is reached.
+
+Two consequences for the Zeabur service settings: **do not set a memory limit below ~1.5 GB**
+on the app service, and expect the fixture service to be small — it runs no browser.
 
 ## If the build fails
 
