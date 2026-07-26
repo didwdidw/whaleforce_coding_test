@@ -214,3 +214,37 @@ M0 一併回報。不夠就直接講，我寧可花錢也不要卡進度（金�
 還有 validation 跟 test 的內容它永遠拿不到，只會拿到分數跟 failure_class 分布，這點在 brief 裡講明白，免得它之後跑來跟我要
 
 ==========
+
+給 engineering agent 的 brief 我看過了，沒問題
+engineering session 我會自己開，不用你操心，你不要開 sub-agent 去做
+你這邊之後就是我需要改 spec 或有爭議或需要討論時再拉回來的 PM 角色
+
+開工前先把以下錢的事寫進 brief 或是更新一下 spec
+
+主機：
+- 固定月費 10 美元以內，它自己挑
+- 開發階段我建議先用 cloudflare tunnel 讓我的本地電腦當 host 就好。這個階段不該花時間糾結怎麼 host，應該著重功能性開發
+- 但 M0 的 RAM 跟「從部署 IP 的可達性」還是要在真的雲端主機上量一次，不能用 tunnel 混過去。那條檢查存在的理由就是機房 IP 跟住宅 IP 會被差別對待，走我家網路會永遠是綠燈，然後在最後要部署的時候才發現站被擋。開個 container、curl 三個站、看一下記憶體就好，這是量測不是 hosting 決策
+- 「花錢買掉 cold start」還是不准，這條不變
+
+Gemini：
+- 用量另外算。M0 如果顯示 free tier 塞不下一輪 eval，直接開 billing 去跑，累計 5 美元以內自己決定
+- 我在 project folder 裡放了 api_keys。先把這個資料夾加進 .gitignore。Free_tier_agent_API_Key 是免費層，Billing_agent_API_Key 是付費層
+- key 只准從檔案載入，不准印出內容、不准寫進任何 log、trace 或 prompt 記錄。S-2.13 本來就這樣要求，但現在 key 就躺在 repo 旁邊，很容易不小心 cat 出來然後進到要交出去的 prompts/ 裡
+- free tier 打滿就 fallback 到付費，不用問我。但這只限 dev 跟 eval，公開 demo 那條路不准自動 fallback。理由是 S-11.11 把兩把 key 分開就是為了不讓外部流量吃掉評測配額，會自動跳過去的話那道牆等於沒有，而且「5 美元以內」是我的意圖，app 在 runtime 沒有東西能執行它
+- trace 要記錄這次 run 用的是哪一把 key。A7.9 說免費層的內容 Google 會拿去改進產品、付費層不會，而 README 要揭露這件事，會靜默切換的話那個揭露就不準了
+- 先做有限度的實驗看看每個 model 的效果，在效果可以接受的情況下使用成本最低的 model。https://ai.google.dev/gemini-api/docs/pricing 是唯一價格的 source of truth。
+
+成本：
+- 在 provider adapter 加一層 dev-only 的 response cache，prompt hash 命/ memory / mutation layer / UI 時重跑同一批 case 幾乎不用錢，改 prompt
+才會 invalidate。這層只在 dev 模式開，validation 和 test 一律關掉，確保、成本數字是真的
+- output token 也要有上限。A7 只鎖了 input，但 Gemini 把 thinking 算成 3 倍。打滿 budget 時 input 只佔 $0.018，thinking 一開自己就能吃掉 $0.06
+- S-10.8 的「mutation gate suite 每次 build 都跑」改成有節制的觸發，這一項可能自己就佔掉三分之一的帳單
+- Claude Code 的 sub-agent 用在 mutation seed、fixture 頁面、injection ce 批次分類、code review 這種離線工作，不進產品的 inference path。eval
+案例還是我這邊出，它不要自己生
+
+最後，M0 第一個 gate 大概就是第一個會爆的。這件事不用你解，但 brief 裡要讓它知道這是預期中的結果、不是它做錯了什麼。量出來不夠就換一個夠的，不要為了塞進去把 concurrency 或 budget 砍掉
+
+M0 報告回來的時候，順便告訴我它挑了哪個 host 當最後正式使用的、為什麼，還有 cold start 大概多久
+
+==========

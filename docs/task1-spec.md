@@ -886,3 +886,81 @@ private-data gate (P3) MUST revisit it before any non-public content is ever sen
 input **$0.30 / 1M**, output **$2.50 / 1M**. `gemini-3.5-flash`: input **$1.50 / 1M**, output
 **$9.00 / 1M**. These are configuration inputs for A7.6 and MUST be re-checked at M0 rather than
 trusted from this document.
+
+### Amendment 8 — Hosting, credentials, and spend control (2026-07-26)
+
+Extends **§11.2**, **§11.3**, **§13 M0**, and **S-10.8**.
+
+#### Hosting
+
+**A8.1** Fixed monthly hosting cost stays at **≤ USD 10** (S-11.9). The engineering session picks the
+provider.
+
+**A8.2** During feature development the system MAY be served from the product owner's local machine
+via **Cloudflare Tunnel**. Choosing a host is not a milestone; do not spend development time on it.
+
+**A8.3** **M0's RAM and reachability measurements MUST NOT be taken through the tunnel.** Spin up a
+real cloud container, `curl` the three target sites from it, and observe memory under load. The check
+exists precisely because datacenter IPs and residential IPs are treated differently; run from a home
+network it is always green, and the block is then discovered on deployment day. This is a
+measurement, not a hosting commitment — the container can be destroyed immediately afterwards.
+
+**A8.4** Cold start MUST NOT be bought away (S-11.9 unchanged).
+
+**A8.5** The M0 report additionally states: **which host was chosen for final production and why**,
+and the **measured cold-start duration**.
+
+#### Credentials
+
+**A8.6** Keys live in `api_keys/`, which is git-ignored: `Free_tier_agent_API_Key` (free tier) and
+`Billing_agent_API_Key` (paid tier).
+
+**A8.7** Keys are **loaded from file only**. They MUST NOT be echoed to a terminal, written to logs,
+placed in a trace, included in a prompt record, or embedded in any artifact. S-2.13 already required
+this; it is restated because the keys now sit beside the repository, where a careless `cat` lands the
+secret in `prompts/` — a file that is deliberately published.
+
+**A8.8** **Fallback policy.** When the free tier is exhausted, **dev and eval runs fall back to the
+paid key automatically**, without asking. **The public demo path MUST NOT auto-fall-back**; its
+exhaustion remains `blocked / provider_quota` (S-11.13). Two reasons: the credential separation in
+S-11.11 exists so external traffic cannot consume the evaluation quota, and auto-fallback would
+remove that wall entirely; and the spend ceiling below is an intent held by a person — nothing at
+runtime can enforce it.
+
+**A8.9** Each run's trace MUST record **which credential tier was used**. A7.9 discloses that
+free-tier content is used by the provider to improve its products and paid-tier content is not; a
+silent switch would make that disclosure inaccurate.
+
+#### Spend
+
+**A8.10** Provider usage is budgeted **separately** from the hosting ceiling. If M0 shows the free
+tier cannot cover a full evaluation round, enable billing and proceed. The engineering session may
+self-approve provider spend up to **cumulative USD 5**; beyond that, stop and ask.
+
+**A8.11** **Model selection is an experiment, not a guess.** Run a bounded comparison across
+candidate *stable* models, pick the **cheapest one whose quality is acceptable**, and record the
+comparison in the analysis report. `ai.google.dev/gemini-api/docs/pricing` is the **sole** source of
+truth for prices. One model is then pinned for the evaluation (S-11.15).
+
+**A8.12** **Output tokens need a cap too.** Amendment 7 bounded input only. Output is billed
+including thinking tokens, and at the verified prices output costs **8.3× input** on
+`gemini-2.5-flash` ($2.50 vs $0.30 per 1M) and **6× input** on `gemini-3.5-flash` ($9.00 vs $1.50) —
+so output, not input, is the dominant cost risk. Each call MUST have a max-output-token cap, each run
+a cumulative output cap, and where the model exposes a thinking budget it MUST be bounded. Exceeding
+is fail-closed as in S-6.3.
+
+**A8.13** **Dev-only response cache.** The provider adapter carries a response cache keyed by a hash
+of the assembled prompt. It makes re-running the same cases nearly free while iterating on memory,
+the mutation layer, or the UI; changing the prompt invalidates the entry. The cache MUST be
+**disabled for validation and test runs**, and every performance or cost figure reported must come
+from uncached runs — otherwise the measured numbers are fiction.
+
+**A8.14** Supersedes the "run on every build" clause of **S-10.8**: the mutation gate suite runs on a
+**throttled trigger** — a full seed sweep before each milestone gate and before any acceptance run,
+a small smoke subset otherwise, plus on demand. Run unthrottled it can account for a third of the
+provider bill on its own.
+
+**A8.15** **Sub-agents are for offline work only** — mutation seed generation, fixture page authoring,
+batch classification of injection cases, code review. They MUST NOT appear anywhere in the product's
+inference path. **Evaluation cases are authored by the product owner**; the engineering session MUST
+NOT generate its own eval cases.

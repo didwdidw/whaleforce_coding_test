@@ -1,3 +1,9 @@
+# Credentials — never committed, never printed, never logged
+api_keys/
+*.key
+.env
+.env.*
+
 # Test spec — kept local, this repo is public
 task_description/
 

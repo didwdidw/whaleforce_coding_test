@@ -42,6 +42,12 @@ This is a **report, not code**. Deliverable: a written preflight report containi
 **If anything in M0 fails, stop and report.** Do not substitute a site, do not engineer around a
 block, do not shrink a budget to make the numbers fit.
 
+**The first gate is the one most likely to fail, and that is the expected outcome, not a mistake you
+made.** M0 exists to find out whether the plan fits reality. If the RAM measurement or the quota
+arithmetic comes back short, report it and get a box or a budget that fits. **Do not cut concurrency,
+budgets, or model calls to make the numbers fit** — that silently changes the system being measured,
+and every later number becomes meaningless.
+
 ### M1 — Walking skeleton, deployed
 
 Deliverable: a **public URL** where a task can be submitted, runs against the fixture with **no LLM
@@ -104,6 +110,33 @@ is not deployed scores nothing — the graders test the deployed system.
    fallback (S-3.4) — confirm which one you took.
 8. **Dropping a promised record.** Allowed, and sometimes correct — but it is a product decision, and
    it must be removed from the support matrix and README at the same time.
+
+## Money and credentials (spec Amendment 8 — read it, this is the short form)
+
+- **Hosting during development: Cloudflare Tunnel from the product owner's machine.** Picking a host
+  is not a milestone. Do not spend development time on it.
+- **But M0's RAM and reachability numbers must come from a real cloud container, not the tunnel.**
+  Spin one up, `curl` the three sites, watch memory, tear it down. Measuring from a home network is
+  always green and just moves the discovery to deployment day.
+- **Keys are in `api_keys/`** (git-ignored): `Free_tier_agent_API_Key`, `Billing_agent_API_Key`.
+  Load from file only. Never `cat` them, never log them, never let them reach a trace or a prompt
+  record — `prompts/` is a published artifact and the keys now sit right next to it.
+- **Free → paid fallback is automatic for dev and eval.** It is **forbidden on the public demo path**,
+  which stays `blocked / provider_quota`. Otherwise grader traffic eats the evaluation quota, and the
+  spend ceiling — which only exists in a person's head — has nothing enforcing it at runtime.
+- **Record which credential tier each run used.** The README discloses that free-tier content is used
+  by the provider to improve its products and paid-tier content is not; a silent switch makes that
+  disclosure false.
+- **Provider spend: up to USD 5 cumulative is yours to approve.** Past that, ask.
+- **Output tokens are the expensive half**, not input — output is billed including thinking, at 8.3×
+  input on `gemini-2.5-flash`. Cap output per call and per run, and bound the thinking budget where
+  the model exposes one.
+- **Dev-only response cache** in the provider adapter, keyed by prompt hash. Off for validation and
+  test. Any cost or latency number you report must come from an uncached run.
+- **Pick the cheapest stable model that is good enough**, by running a bounded comparison — not by
+  assumption. The pricing page is the only price source.
+- **Sub-agents: offline work only** (mutation seeds, fixture pages, batch classification, code
+  review). Never in the product's inference path. You do not author eval cases.
 
 ## Working conventions
 
