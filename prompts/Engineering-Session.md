@@ -289,3 +289,24 @@ M0.1 改成在主機上用 system Python 量，就是你最早那版 run_cloud_p
 另外補充兩點:
 1. 回覆給我的訊息請用繁體中文，我讀起來比較快
 2. SSH name 為 ubuntu。後面還有command的話直接幫我填進去
+
+==========
+
+*[M0.1 result pasted from the host: `cat ~/cloud-ram.json`. Stored verbatim as
+`preflight/results/cloud-ram-tencent-host.json`; reproduced here in summary to keep the log
+readable — peak 899.9 MiB, swap verdict PASS, no load errors.]*
+
+```
+"system_used_mib_before_launch": 627.7, "system_used_mib_after_teardown": 562.0,
+"outside_our_tree": {"total_mib": 453.5, top: YDService 65.4, multipathd 26.7,
+                     barad_agent 26.3, systemd-journal 26.0, unattended-upgr 22.8, ...}
+"marks_mib": {baseline 32.1, browser_launched 424.8, two_contexts_idle 597.0,
+              both_loaded 846.2, after_artifact_capture 869.6, after_screenshots 890.3}
+"concurrent_load_seconds": 0.94
+"app_tree_peak_rss_mib": 899.9
+"peak_by_process_mib": {python 32.1, MainThread 142.1, chrome-headless 721.4, ps 4.3}
+"swap": {baseline_mib 0.0, peak_mib 0.0, growth_during_run_mib 0.0,
+         touched_by_this_run false, verdict "PASS - no swap growth"}
+"platform_meminfo": {MemTotal 3813268 kB, MemAvailable 3237804 kB, SwapTotal 2035708 kB}
+"artifact_dom_chars": {heavy 1921689, light 52426}, "load_errors": [], "samples": 61
+```

@@ -2,19 +2,19 @@
 
 **Session:** Engineering Session · **Date:** 2026-07-26 · **Spec:** `docs/task1-spec.md` §13 M0, A7.8, A8.3, A8.5
 
-**Verdict: M0 is PARTIALLY COMPLETE. Five of six items pass. Only M0.1 (RAM) and the A8.5
-cold-start figure remain, both of which must be measured inside the deployment image. One spec
-assumption was contradicted by reality and is resolved by Amendment 9, approved.**
+**Verdict: M0 is COMPLETE. All six items pass.** A8.5's cold-start figure is deliberately deferred
+to M1, where it is measured in the runtime that determines it. One spec assumption was contradicted
+by reality and is resolved by Amendment 9, approved.
 
 | M0 item | Gate | Status |
 |---|---|---|
-| M0.1 RAM headroom, browser + 2 contexts + app under load | 13(a) | **Outstanding** — local baseline 794 MiB; to be measured on the production host |
+| M0.1 RAM headroom, browser + 2 contexts + app under load | 13(a) | **Pass** — 899.9 MiB peak on the host, no swap growth, ~1.7–1.9 GB headroom |
 | M0.2 Reachability from the deployment IP | 13(b) | **Pass** — all clear from `43.166.128.37`; every target 200, both expected non-200s correct |
 | M0.3 §3.4 policy facts re-verified | 13(c) | **Pass** — all facts hold verbatim; one correction, one new hard requirement (both now A9.8/A9.9) |
 | M0.4 Account's actual Gemini rate limits | 13(d) | **Pass** — RPM 15 / TPM 250,000 / RPD 500, read from AI Studio |
 | M0.5 Token + USD per run, requests/day feasibility | A7.8 | **Pass** — measured; arithmetic closed in §6 |
 | M0.6 OP-4…OP-7 targets pinned, OP-5 variant chosen | 13(e) | **Pass** — all eight targets verified; OP-5 primary variant kept |
-| A8.5 Host choice + cold-start duration | A8.5, A9.10 | **Host decided** (Tencent/Zeabur); cold start rides on M0.1 |
+| A8.5 Host choice + cold-start duration | A8.5, A9.10 | **Host decided** (Tencent/Zeabur); cold start deferred to M1 by decision, §1 |
 
 **The one thing that contradicts the spec:** the model family Amendment 7.10 is written around no
 longer exists for this account. `gemini-2.5-flash` and `gemini-2.5-flash-lite` both return
@@ -23,41 +23,77 @@ longer exists for this account. `gemini-2.5-flash` and `gemini-2.5-flash-lite` b
 
 ---
 
-## 1. M0.1 — RAM headroom
+## 1. M0.1 — RAM headroom — **PASS**
 
-**Not yet measured on a cloud tier.** A8.3 requires this from a real container, and the reason is
-sound: measuring from a residential machine is always green. What follows is the *local baseline*,
-taken to size the box worth testing — not the gate.
+Measured on the production host `43.166.128.37` with system Python 3.12.3, one Chromium process, two
+contexts loading concurrently, held 20 s, 61 samples. Raw result:
+`preflight/results/cloud-ram-tencent-host.json`.
 
-Measured on macOS 14.5 / arm64 / 16 GiB, one Chromium process, two contexts, both loading
-concurrently (`preflight/measure_ram.py`, result in `preflight/results/ram-local-macos.json`):
+**Measured on the host, not in a container, by decision.** The box has no container runtime of any
+kind — verified: no `docker`, `containerd`, `k3s`, `kubectl`, `crictl` or `nerdctl`, no
+`/var/lib/rancher`, and `/usr/local/bin` holds one symlink to `tat_agent`. Zeabur installs k3s when it
+deploys, and a hand-installed copy risks colliding with it. Container-vs-host RSS differs by tens of
+MB, which does not change whether the app fits; **cold start is the figure the runtime genuinely
+changes**, so A8.5 moves to M1 and is measured in a pod there (§10).
 
-| Mark | RSS |
-|---|---|
-| Python app baseline | 31.0 MiB |
-| + browser launched | 316.7 MiB |
-| + 2 contexts idle | 482.0 MiB |
-| + both pages loaded concurrently (S&P 500 + a books.toscrape category) | 757.1 MiB |
-| + full DOM serialised in both contexts (artifact capture) | 762.3 MiB |
-| + screenshot in both contexts | 781.8 MiB |
-| **Peak sampled** | **794.0 MiB** |
+| Mark | Host (Linux) | Local baseline (macOS) |
+|---|---|---|
+| App baseline | 32.1 MiB | 31.0 MiB |
+| + browser launched | 424.8 MiB | 316.7 MiB |
+| + 2 contexts idle | 597.0 MiB | 482.0 MiB |
+| + both pages loaded concurrently | 846.2 MiB | 757.1 MiB |
+| + full DOM serialised in both | 869.6 MiB | 762.3 MiB |
+| + screenshot in both | 890.3 MiB | 781.8 MiB |
+| **Peak sampled** | **899.9 MiB** | 794.0 MiB |
 
-Peak by process: `chrome-headless-shell` 601.4 MiB, `node` 155.5 MiB, `Python` 35.3 MiB.
+At peak: `chrome-headless` 721.4 MiB, Playwright's Node driver 142.1 MiB, Python 32.1 MiB. Concurrent
+load of both pages took **0.94 s**, no load errors, and both artifacts came back at full size
+(1,921,689 and 52,426 chars).
 
-Two things this already settles:
+**Both pass conditions are met:**
 
-- **512 MB tiers are out.** Render's free tier and Fly's 256/512 MB machines cannot hold this. The
-  measurement box must be 1–2 GB.
-- **The Playwright Node driver costs 155 MiB** and is easy to forget. Playwright's Python binding
-  spawns a Node process; that is permanent overhead in production, not a measurement artifact.
+1. **Fits, with room.** Headroom below.
+2. **Swap untouched.** `SwapTotal` 1,988 MiB, swap in use **0.0 MiB at baseline and 0.0 MiB at peak,
+   growth 0.0** — the peak was reached in RAM, not by swapping. This mattered: the box has enough
+   swap to survive a peak while getting slow, and a slow run inside the 180 s wall clock fails as
+   `timeout`, a symptom two steps from its cause.
 
-Concurrent load of both pages took 1.54 s on a residential connection, and full-page DOM was
-1,933,703 chars (S&P 500) against 52,426 chars (category listing) — a 37× spread that the artifact
-store has to absorb.
+### My expectation was wrong, and in the unsafe direction
 
-**What is needed to close this gate:** `preflight/run_cloud_preflight.sh` run on a 1–2 GB Linux
-container on a datacenter IP. It prints cgroup limits, does M0.2, times cold start, and runs the RAM
-measurement.
+The runbook predicted 550–800 MiB on the grounds that "Linux usually below macOS". The host came in
+at **899.9 MiB — 13% above the macOS figure, and above the top of my predicted range**. Chromium
+alone was 721.4 MiB against 601.4 locally. The prediction was stated in advance precisely so this
+would be visible rather than rationalised afterwards; recording it is the point of having written it
+down.
+
+It is still well inside the ~1.2 GB threshold at which I said I would stop, so the gate passes on the
+number rather than on a revised standard. But the direction of the error matters for what comes next:
+**the local macOS figure is a floor, not an estimate.** Any later memory projection — the M1 pod
+re-verification, the A9.7.3 steady-state observation — should assume the real runtime costs more than
+the development machine, not less.
+
+### Headroom
+
+| Term | MiB | Status |
+|---|---|---|
+| MemTotal | 3,723.9 | measured |
+| − system used before launch | −627.7 | measured |
+| − k3s + Zeabur agent | −300 to −500 | **estimated; confirmed at the M1 pod re-verification** |
+| − app peak | −899.9 | measured |
+| **= remaining** | **~1,700–1,900** | |
+
+Two notes on the baseline term. The 627.7 MiB reading is **higher than the 477 MB seen at idle**
+earlier because the measurement script had just run `apt-get` and `pip` — `packagekitd` (20.7 MiB)
+and `unattended-upgr` (22.8 MiB) are both in the top-12 list and are transient. After teardown it
+settled to 562.0 MiB. The conservative 627.7 figure is used above so the headroom is not flattered.
+
+Separately, the sum of RSS outside our tree is **453.5 MiB** while system-used is 627.7 MiB; the gap
+is kernel memory, slab and non-reclaimable cache that no process's RSS accounts for. The larger
+figure is the right one for headroom. **None of it is k3s** — that term is still an estimate and is
+added on top.
+
+**~1.7 GB spare against a 900 MiB app.** The RAM gate is not the binding constraint on this host,
+which is what A9.10's 4 GB was chosen to buy.
 
 ## 2. M0.2 — Reachability — **PASS**
 
@@ -478,24 +514,46 @@ decision, and schema decisions are cheap at M1 and expensive at M5.
 **A9.7.3 flat steady-state memory** has to be observed across a sustained multi-hour run. That is a
 measurement job with a fixture to run against, so it belongs on the M1 checklist, not at the end.
 
-## 10. What is needed to close M0
+## 10. M0 is closed — what carries into M1
 
-One item left before M0 closes, plus one deferred to M1. Measurements were sequenced so the host
-question was settled before anything was built on it.
+**All six M0 items pass.** No gate failed, no site was substituted, no budget was trimmed to fit.
 
-1. ~~**M0.2 reachability.**~~ **Done — all clear** (§2). No site refuses the Tencent IP.
-2. **M0.1 RAM + A8.5 cold start — the last item.** Procedure:
-   `docs/m0-runbook-ram.md`, one paste: `bash ~/preflight/run_host_ram.sh`. Measured **on the host
-   with system Python** — no container runtime is installed and none is being added by hand, since
-   Zeabur brings k3s with it at deploy time. `preflight/measure_ram.py` separates the 477 MB floor
-   from the app's own footprint and returns a **swap verdict**: the box has ~2 GB of swap, so a peak
-   reached by swapping is a fail, not a pass.
-3. **Pod re-verification and A8.5 cold start — after M1 deploys.** `deploy/m0-ram-measure.yaml` and
-   `deploy/m0-coldstart.yaml` run the same measurement inside k3s once Zeabur has provisioned it,
-   which also fixes the 300–500 MB k3s term as a measured number rather than an estimate. Cold start
-   is measured there rather than here because it is the one figure the runtime actually changes.
+Two measurements are deliberately deferred, both to the point where they can be taken meaningfully
+rather than guessed:
 
-**M1 proceeds in parallel and does not wait for either.** The walking skeleton runs against the
-fixture with no LLM in the loop (§13 M1), so nothing in it depends on the reachability result or the
-RAM figure. What it does depend on is settled: the host is decided (A9.10) and the deployment image is
-Playwright-based (§8).
+1. **A8.5 cold start — measured at M1**, in a pod, because the runtime is the one thing that
+   determines it. `deploy/m0-coldstart.yaml` is written and waiting.
+2. **Pod re-verification of RAM — at M1**, via `deploy/m0-ram-measure.yaml`. It turns the 300–500 MB
+   k3s term from an estimate into a measured number and confirms the host figure holds inside a
+   container. Note for that run: a container's default `/dev/shm` is 64 MB and Chromium crashes
+   without more — `measure_ram.py` passes `--disable-dev-shm-usage`, so production must pass the same
+   flag or mount a larger `/dev/shm`, or it passes every measurement and dies under real load.
+
+### The numbers M1 inherits
+
+| Quantity | Value | Source |
+|---|---|---|
+| Pinned model | `gemini-3.1-flash-lite` | A9.2 |
+| Free-tier limits | RPM 15 / TPM 250,000 / RPD 500 | §5 |
+| Scored-run credential | paid key, unconditionally | A9.6 |
+| Cost per run | $0.0011–$0.0036 | §6 |
+| Cost per full eval round | ~$0.15 | §6 |
+| App memory peak | 899.9 MiB, no swap | §1 |
+| Headroom after k3s | ~1.7–1.9 GB | §1 |
+| Page fetch latency from host | 0.05–0.098 s | §2 |
+| Largest artifact | ~1.92 M chars DOM | §1 |
+
+### Constraints M1 must build in, not retrofit
+
+- **Provider pacing is a scheduler obligation** (§5): RPM 15 against concurrency 2, enforced by us,
+  never discovered from a provider 429 — and structurally distinct from S-11.8's user-facing HTTP 429.
+- **A9.7 browser lifecycle**: no import-time singleton; a supervised owner that detects a dead *or
+  unresponsive* browser and fails in-flight runs honestly.
+- **A9.7 artifact expiry is a recorded state, not a deletion** — a schema decision, cheap now.
+- **A9.7 steady-state memory must be observed**, not asserted, across a sustained run. The M0.1 result
+  makes this concrete: the development machine understates the real figure, so the observation has to
+  happen on the host.
+- **Readiness waits are mandatory on real sites** (§7.5): `th.headerSort` count is 0 and the collapsed
+  set is wrong until the page's own JS has run.
+- **A9.8**: the declared contact `User-Agent` is set at fetcher construction, and its error path
+  decompresses before reporting — SEC's 403 body arrives gzipped (§2).
