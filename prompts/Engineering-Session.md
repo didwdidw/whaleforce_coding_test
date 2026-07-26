@@ -164,3 +164,32 @@ is not deployed scores nothing — the graders test the deployed system.
   history is graded as evidence of real incremental development.
 - Build in milestone order (§13). Do not start a milestone with an earlier gate unmet.
 - When you cut scope, cut in the pre-committed order (S-13.1) and say so out loud.
+
+==========
+
+*[Answers to a three-question decision block raised by the engineering session before M0 could
+close. Recorded verbatim as the selected option labels; the questions are included so the answers
+are readable.]*
+
+**Q1 — Cloud access.** "M0.1/M0.2 need RAM and reachability measured from a real cloud container
+(A8.3) — I have no cloud credentials and can't authenticate. Local baseline peak is 794 MiB
+(Chromium 601 + Playwright node driver 155 + app 35), so 512 MB tiers are already out. How do you
+want the cloud measurement done?"
+
+> **You run my script, paste JSON (Recommended)**
+
+**Q2 — Rate limits.** "S-11.18 / M0.4 requires the account's actual Gemini rate limits read from the
+console — the docs don't publish them and I can't reach AI Studio. Can you read them for me?"
+
+> **I'll read AI Studio and paste them (Recommended)**
+
+**Q3 — Pinned model.** "Stop-and-ask #4: the pinned model. `gemini-2.5-flash` and
+`gemini-2.5-flash-lite` — including the A7.10 reference model — return 404 'no longer available to
+new users' on this key. Only Gemini 3.x works. All prices re-verified today; all options are stable
+GA, not preview. Which do I pin?"
+
+> **gemini-3.1-flash-lite (Recommended)**
+
+==========
+
+啊怎麼沒有根據 system prompt 把我的 prompt 記錄下來
