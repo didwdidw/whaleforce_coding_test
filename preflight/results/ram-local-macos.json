@@ -1,0 +1,39 @@
+{
+ "platform_meminfo": {
+  "platform": "no /proc/meminfo (not Linux)"
+ },
+ "marks_kb": {
+  "baseline_kb": 31776,
+  "browser_launched_kb": 324256,
+  "two_contexts_idle_kb": 493536,
+  "concurrent_load_seconds": 1.54,
+  "both_loaded_kb": 775280,
+  "after_artifact_capture_kb": 780576,
+  "after_screenshots_kb": 800528,
+  "screenshot_bytes": [
+   191635,
+   182769
+  ]
+ },
+ "marks_mib": {
+  "baseline_kb": 31.0,
+  "browser_launched_kb": 316.7,
+  "two_contexts_idle_kb": 482.0,
+  "both_loaded_kb": 757.1,
+  "after_artifact_capture_kb": 762.3,
+  "after_screenshots_kb": 781.8
+ },
+ "peak_rss_mib": 794.0,
+ "peak_by_process_mib": {
+  "Python": 35.3,
+  "node": 155.5,
+  "chrome-headless-shell": 601.4,
+  "ps": 1.9
+ },
+ "artifact_dom_chars": {
+  "heavy": 1933703,
+  "light": 52426
+ },
+ "load_errors": [],
+ "samples": 24
+}

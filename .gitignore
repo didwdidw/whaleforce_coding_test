@@ -8,3 +8,8 @@ api_keys/
 task_description/
 
 .DS_Store
+
+# Python virtualenv
+.venv/
+__pycache__/
+*.pyc
