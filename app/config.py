@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -129,6 +130,9 @@ class Settings:
     queue: QueuePolicy = field(default_factory=QueuePolicy)
     provider: ProviderPolicy = field(default_factory=ProviderPolicy)
 
+    # Defaults to production. An unset or misspelled value must not be read as "dev",
+    # because "dev" is the only value that can switch the SSRF guard off.
+    app_env: str = field(default_factory=lambda: _str("APP_ENV", "production").lower())
     data_dir: Path = field(default_factory=lambda: Path(_str("DATA_DIR", "/tmp/task1-data")))
     fixture_base_url: str = field(
         default_factory=lambda: _str("FIXTURE_BASE_URL", "http://127.0.0.1:8801"))
@@ -144,6 +148,40 @@ class Settings:
     # over a public hostname, with no allow-list hole (S-2.8). Relaxed only for local dev.
     allow_private_egress: bool = field(
         default_factory=lambda: _bool("ALLOW_PRIVATE_EGRESS", False))
+
+    @property
+    def is_dev(self) -> bool:
+        return self.app_env in ("dev", "development", "local")
+
+    def validate_or_die(self) -> None:
+        """Refuse to start in a configuration that silently disables a safety control.
+
+        `ALLOW_PRIVATE_EGRESS` turns off the SSRF guard. Set by mistake in production the
+        system keeps working normally and nothing looks wrong, so the failure is invisible
+        until it is exploited. The only safe response is to not start.
+        """
+        if self.allow_private_egress and not self.is_dev:
+            raise SystemExit(
+                "REFUSING TO START: ALLOW_PRIVATE_EGRESS is enabled but APP_ENV is "
+                f"'{self.app_env}', not a development environment.\n"
+                "This flag disables the SSRF guard: loopback, RFC1918, link-local and "
+                "CGNAT destinations all become reachable, and the system would carry on "
+                "working with no visible sign that the protection is off.\n"
+                "Either unset ALLOW_PRIVATE_EGRESS, or set APP_ENV=dev if this really is "
+                "a development machine.")
+
+    def egress_guard_state(self) -> dict[str, Any]:
+        """Recorded on every run so an auditor can see the guard's state rather than
+        take our word for it."""
+        return {
+            "app_env": self.app_env,
+            "ssrf_guard_enabled": not self.allow_private_egress,
+            "private_egress_allowed": self.allow_private_egress,
+            "note": ("Private, loopback, link-local and CGNAT destinations are refused."
+                     if not self.allow_private_egress else
+                     "SSRF GUARD DISABLED - development only. Results from this run were "
+                     "not produced under production egress policy."),
+        }
 
     @property
     def artifact_dir(self) -> Path:

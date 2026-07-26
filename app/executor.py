@@ -119,6 +119,16 @@ class Executor:
         run.credential_tier = "none (no model call in M1)"
         self._store.save_run(run)
 
+        # First step of every run, including refusals: the egress guard's state at the
+        # moment this run executed. An auditor reads it from the trace instead of trusting
+        # a claim about how the deployment was configured.
+        guard = settings.egress_guard_state()
+        entry = self._step(run, StepKind.POLICY_CHECK,
+                           "SSRF guard enabled" if guard["ssrf_guard_enabled"]
+                           else "SSRF GUARD DISABLED (development configuration)",
+                           egress_guard=guard)
+        self._finish_step(run, entry, ok=guard["ssrf_guard_enabled"])
+
         if run.tier is Tier.REFUSED:
             _, what = self.classify(run.task)
             entry = self._step(run, StepKind.POLICY_CHECK,

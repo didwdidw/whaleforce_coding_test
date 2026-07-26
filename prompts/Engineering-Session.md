@@ -323,3 +323,27 @@ headroom 1.7 GB ÷ 336 小時 = 每小時漏 5 MB 就吃光。5 MB/h 在三小�
 其他照你說的走
 
 go ahead now
+
+==========
+
+兩個 hostname 應該沒問題
+Zeabur 的網域看起來是綁在 service 上不是 project 上
+同一個 project 開兩個 service、各自 Generate Domain，各拿一個免費的 *.zeabur.app
+不用買網域也不用開洞
+
+部署前要先把目前的 commit push 上 GitHub，這樣 Zeabur 才能從 git 拉去 build
+我確認過了 .gitignore 有擋應該擋的，沒有 tracked 到任何 key，歷史上也從來沒 commit 過，可以推
+
+SSH 連線用 ssh wf-prod 就好。我把環境搞好了
+主機別名 wf-prod，直接用：
+  ssh wf-prod
+  rsync -av preflight/ wf-prod:~/preflight/
+金鑰在我 Mac 的 ~/.ssh 裡
+
+robots 那兩個抓得好。空行那個很棒，「這一類 bug 用 dev-set 抓不到」這句比 bug 本身重要
+
+有兩件事：
+1. RFC 9309 的語意要進 spec，S-2.3 現在只寫 enforce robots 太鬆，剛剛證明了 parser 語意不同會變成實質違規。我讓 PM 補，你不用動 spec
+2. ALLOW_PRIVATE_EGRESS 要防呆。production 誤設等於 SSRF 防護整個關掉，而且系統會安靜地照常運作，沒人會發現。非 dev 環境偵測到就拒絕啟動，另外每個 run 的 trace 要記錄當下 egress guard 是開的——稽核看得到，不用相信我們的說法
+
+Dockerfile 現在的 CMD 還是 M0 那個佔位的，部署前記得換掉

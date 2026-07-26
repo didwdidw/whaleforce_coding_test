@@ -82,6 +82,8 @@ app = FastAPI(title="Task 1 — Browser Automation Agent", docs_url=None, redoc_
 
 @app.on_event("startup")
 async def _startup() -> None:
+    # Before anything else: refuse to run with the SSRF guard silently off.
+    settings.validate_or_die()
     await state.supervisor.start()
     await state.queue.start()
     state.store.enforce_retention()
@@ -257,4 +259,5 @@ async def healthz() -> dict[str, Any]:
         "queue": state.queue.snapshot().to_dict(),
         "browser": state.supervisor.status(),
         "storage": state.store.storage_status(),
+        "egress_guard": settings.egress_guard_state(),
     }

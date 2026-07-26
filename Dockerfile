@@ -32,11 +32,26 @@ RUN python -c "from playwright.sync_api import sync_playwright; \
     print('chromium ok:', b.version); b.close(); p.stop()"
 
 COPY preflight/ ./preflight/
+COPY app/ ./app/
+COPY fixture/ ./fixture/
+COPY tests/ ./tests/
+COPY entrypoint.sh ./
+RUN chmod +x entrypoint.sh
 
-# The app itself is added as M1 lands.
-#
-# Chromium needs more than a container's default 64 MB /dev/shm. The app launches with
-# --disable-dev-shm-usage; if that ever changes, the deployment must raise --shm-size or
-# mount a larger /dev/shm instead, or the container passes every test and dies under load.
+# Artifacts and the run database live here. Mount a volume over it to keep runs across
+# deploys; without one the store starts empty on each release, which is acceptable but
+# should be a decision rather than a surprise.
+ENV DATA_DIR=/data
+RUN mkdir -p /data
 
-CMD ["python", "-c", "print('image ready; no entrypoint yet (M1 pending)')"]
+# Chromium needs more than a container's default 64 MB /dev/shm. The browser is launched
+# with --disable-dev-shm-usage; if that ever changes, the deployment must raise --shm-size
+# or mount a larger /dev/shm, or the container passes every test and dies under load.
+
+# APP_ROLE selects which service this container runs: `app` or `fixture`. APP_ENV defaults
+# to production, so ALLOW_PRIVATE_EGRESS cannot silently disable the SSRF guard here — the
+# app refuses to start in that combination.
+ENV APP_ROLE=app APP_ENV=production PORT=8080
+EXPOSE 8080
+
+CMD ["./entrypoint.sh"]

@@ -117,3 +117,52 @@ def test_egress_names_the_range_it_blocked():
     """The trace has to say which range stopped it, not just that policy did."""
     d = egress.check_url("https://169.254.169.254/", allow_private=False)
     assert "link-local" in d.reason
+
+
+def test_production_refuses_to_start_with_the_ssrf_guard_off(monkeypatch):
+    """The flag disables SSRF protection and the system would keep working normally with
+    no visible sign, so a misconfiguration must be a startup failure, not a silent one."""
+    from app.config import Settings
+
+    monkeypatch.setenv("ALLOW_PRIVATE_EGRESS", "true")
+    monkeypatch.setenv("APP_ENV", "production")
+    with pytest.raises(SystemExit) as excinfo:
+        Settings().validate_or_die()
+    assert "ALLOW_PRIVATE_EGRESS" in str(excinfo.value)
+
+
+def test_unset_app_env_is_treated_as_production(monkeypatch):
+    """A missing or misspelled APP_ENV must not be read as dev — dev is the only value
+    that can switch the guard off."""
+    from app.config import Settings
+
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setenv("ALLOW_PRIVATE_EGRESS", "true")
+    with pytest.raises(SystemExit):
+        Settings().validate_or_die()
+
+    monkeypatch.setenv("APP_ENV", "prod-eu")   # not a recognised dev value
+    with pytest.raises(SystemExit):
+        Settings().validate_or_die()
+
+
+def test_dev_may_relax_the_guard_but_says_so(monkeypatch):
+    from app.config import Settings
+
+    monkeypatch.setenv("APP_ENV", "dev")
+    monkeypatch.setenv("ALLOW_PRIVATE_EGRESS", "true")
+    s = Settings()
+    s.validate_or_die()
+    guard = s.egress_guard_state()
+    assert guard["ssrf_guard_enabled"] is False
+    assert "DISABLED" in guard["note"]
+
+
+def test_guard_state_is_recorded_for_audit(monkeypatch):
+    from app.config import Settings
+
+    monkeypatch.delenv("ALLOW_PRIVATE_EGRESS", raising=False)
+    monkeypatch.setenv("APP_ENV", "production")
+    guard = Settings().egress_guard_state()
+    assert guard["ssrf_guard_enabled"] is True
+    assert guard["app_env"] == "production"
