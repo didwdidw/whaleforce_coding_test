@@ -10,6 +10,7 @@ requirement rather than an assumed one.
 
 import argparse
 import gzip
+import platform
 import hashlib
 import io
 import json
@@ -45,6 +46,9 @@ def decode_body(raw, encoding):
     return raw
 
 TARGETS = [
+    # Neutral control: if this fails too, the box has a TLS/CA problem and nothing below
+    # can be read as a site-level block.
+    ("control_example_com", "https://example.com/", UA),
     ("wikipedia_article", "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies", UA),
     ("wikipedia_robots", "https://en.wikipedia.org/robots.txt", UA),
     ("books_home", "https://books.toscrape.com/", UA),
@@ -153,6 +157,12 @@ def main():
     a = ap.parse_args()
     result = {
         "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "host": {
+            "python": platform.python_version(),
+            "platform": platform.platform(),
+            "openssl": ssl.OPENSSL_VERSION,
+            "hostname": socket.gethostname(),
+        },
         "egress_ip": egress_ip(),
         "targets": [dict(name=n, **fetch(u, ua)) for n, u, ua in TARGETS],
         "policy_facts": policy_facts(),

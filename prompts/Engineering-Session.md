@@ -193,3 +193,47 @@ GA, not preview. Which do I pin?"
 ==========
 
 啊怎麼沒有根據 system prompt 把我的 prompt 記錄下來
+
+==========
+
+1. Amendment 9: Approve
+PM 改寫了一版 spec
+自己看一下 commit log, 我稍微講一下重點差異：
+- A9.2 多一句：pin 定案前不准跑 validation 或 test
+- 新增 A9.5：A8.11 的比較至少放一個非 lite 的候選。pin 用 locator reasoning 的品質決定，不是價格。3.6-flash 是 1.50/7.50、3.5-flash 是 1.50/9.00，同價位帶挑 3.6
+- 新增 A9.6：validation 和 test 一律走付費 key
+- 新增 A9.7：要能無人值守連續跑兩週
+- §7 的 SEC UA 和 Crawl-delay 兩條升格成需求
+
+A9.1 / A9.3 / A9.4 照你原本的
+
+2. Rate limits
+gemini-3.1-flash-lite, free tier: RPM 15 / TPM 250K / RPD 500
+且量測當下已用 13 / 28.61K / 23
+按你的 294 requests per round：一天一輪，剩約兩百個 request 給開發迭代。跑到 S-6.1 上限就不夠
+
+所以計分那幾輪走付費 key，開發迭代走 free、打完自動 fallback
+另外 RPM 15 是另一條線，concurrency 2 的排程要自己遵守，不要等 provider 回 429 才知道。那跟我們自己的 429 是兩回事
+
+3. 主機買好了，你 §8 的建議我改掉
+Info: Tencent Cloud / Ashburn US，2 vCPU / 4 GB / 60 GB SSD / 1.5 TB, $4 per month
+透過 Zeabur 租、Zeabur 當 deploy 層
+IPv4 43.166.128.37
+SSH 我從 Zeabur dashboard 進得去，要用的時候跟我拿
+最好給我 step by step 的操作讓我可以直接貼上
+
+這台同時是 M0 的量測對象和 M1 的正式主機，不會再換
+
+先跑 reachability，其他後面再說：
+- 這是 Tencent 的網段，三個站對它的態度是唯一有風險的未知數。先只跑 M0.2，403 的話立刻回報，不要繼續往下做
+- Wikipedia 或 books.toscrape 被擋就跟我講，我換 provider 重買。OP-4…OP-7 全靠它們
+- 只有 SEC 被擋的話也跟我講，先別自己處理，那是 Task 2 seam 的範圍
+- 都不准換 site
+
+另外：
+- repo 還沒 push 到 GitHub，機器上不能 clone(你想 push 也可以 push)。rsync 傳 preflight/ 就好，api_keys/ 不要上去
+- dashboard 顯示 OS 是 Ubuntu 22.04，不是結帳時選的 24.04。先 lsb_release -a 和 python3 -V 確認，不要假設 24.04 / Python 3.12
+- 量 RAM 的時候把 k3s + agent 的 484 MB baseline 單獨列一行，跟 app 自己的 footprint 分開
+- Zeabur 的自動偵測看到 Python 會套標準 image，裝不出 Chromium。之後部署要用自訂 Dockerfile，從 Playwright 官方 image 起手
+
+M1 照走，不等這些

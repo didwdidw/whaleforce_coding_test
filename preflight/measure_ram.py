@@ -52,6 +52,51 @@ def total_rss_kb():
     return total, detail
 
 
+def system_used_kb():
+    """System-wide used memory (MemTotal - MemAvailable), in KiB.
+
+    On this host the orchestration layer (k3s + the Zeabur agent) occupies a baseline
+    before our process starts. That baseline is reported separately from the app's own
+    footprint so the two are never conflated.
+    """
+    try:
+        vals = {}
+        with open("/proc/meminfo") as f:
+            for line in f:
+                k, _, v = line.partition(":")
+                if k in ("MemTotal", "MemAvailable"):
+                    vals[k] = int(v.split()[0])
+        return vals["MemTotal"] - vals["MemAvailable"]
+    except (OSError, KeyError, ValueError):
+        return None
+
+
+def processes_outside_tree(top=12):
+    """Largest resident processes that are not part of our own tree."""
+    out = subprocess.run(["ps", "-eo", "pid,ppid,rss,comm"], capture_output=True,
+                         text=True, check=True).stdout
+    rows = []
+    for line in out.splitlines()[1:]:
+        parts = line.split(None, 3)
+        if len(parts) < 4:
+            continue
+        try:
+            rows.append((int(parts[0]), int(parts[1]), int(parts[2]), parts[3]))
+        except ValueError:
+            continue
+    tree, changed = {os.getpid()}, True
+    while changed:
+        changed = False
+        for pid, ppid, _, _ in rows:
+            if ppid in tree and pid not in tree:
+                tree.add(pid)
+                changed = True
+    outside = [(rss, os.path.basename(comm)) for pid, _, rss, comm in rows if pid not in tree]
+    outside.sort(reverse=True)
+    return {"total_mib": round(sum(r for r, _ in outside) / 1024, 1),
+            "top": [{"comm": c, "rss_mib": round(r / 1024, 1)} for r, c in outside[:top]]}
+
+
 def meminfo():
     """Container/host memory limits, where the platform exposes them."""
     info = {}
@@ -83,6 +128,9 @@ async def run(hold):
     stop = asyncio.Event()
     sampler = asyncio.create_task(sample_loop(samples, stop))
     marks["baseline_kb"] = total_rss_kb()[0]
+    # Captured before anything of ours is launched.
+    orchestration_baseline = {"system_used_kb_before_launch": system_used_kb(),
+                              "outside_our_tree": processes_outside_tree()}
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(args=["--disable-dev-shm-usage"])
@@ -127,12 +175,20 @@ async def run(hold):
     stop.set()
     await sampler
     peak = max(samples, key=lambda s: s["rss_kb"])
+    sys_used = system_used_kb()
     return {
         "platform_meminfo": meminfo(),
+        "orchestration_baseline": {
+            **orchestration_baseline,
+            "system_used_mib_before_launch": (
+                round(orchestration_baseline["system_used_kb_before_launch"] / 1024, 1)
+                if orchestration_baseline["system_used_kb_before_launch"] else None),
+            "system_used_mib_after_teardown": round(sys_used / 1024, 1) if sys_used else None,
+        },
         "marks_kb": marks,
         "marks_mib": {k: round(v / 1024, 1) for k, v in marks.items()
                       if k.endswith("_kb")},
-        "peak_rss_mib": round(peak["rss_kb"] / 1024, 1),
+        "app_tree_peak_rss_mib": round(peak["rss_kb"] / 1024, 1),
         "peak_by_process_mib": {k: round(v / 1024, 1) for k, v in peak["by_proc"].items()},
         "artifact_dom_chars": sizes,
         "load_errors": errs,

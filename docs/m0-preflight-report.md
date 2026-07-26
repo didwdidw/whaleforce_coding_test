@@ -2,22 +2,24 @@
 
 **Session:** Engineering Session · **Date:** 2026-07-26 · **Spec:** `docs/task1-spec.md` §13 M0, A7.8, A8.3, A8.5
 
-**Verdict: M0 is PARTIALLY COMPLETE. Two gates are blocked on measurements that cannot be taken
-from this machine, and one spec assumption is contradicted by reality.**
+**Verdict: M0 is PARTIALLY COMPLETE. Four of six items pass. The two outstanding ones both need
+measurements taken on the production host, which now exists (A9.10). One spec assumption was
+contradicted by reality and is resolved by Amendment 9, approved.**
 
 | M0 item | Gate | Status |
 |---|---|---|
-| M0.1 RAM headroom, browser + 2 contexts + app under load | 13(a) | **Blocked** — local baseline taken (794 MiB); cloud figure pending |
-| M0.2 Reachability from the deployment IP | 13(b) | **Blocked** — residential control run clean; cloud figure pending |
-| M0.3 §3.4 policy facts re-verified | 13(c) | **Pass** — all facts hold verbatim; one correction, one new hard requirement |
-| M0.4 Account's actual Gemini rate limits | 13(d) | **Blocked** — console not reachable from here |
-| M0.5 Token + USD per run, requests/day feasibility | A7.8 | **Measured** — final arithmetic waits on M0.4's RPD |
+| M0.1 RAM headroom, browser + 2 contexts + app under load | 13(a) | **Outstanding** — local baseline 794 MiB; to be measured on the production host |
+| M0.2 Reachability from the deployment IP | 13(b) | **Outstanding** — runbook ready (`docs/m0-runbook-reachability.md`); residential control clean |
+| M0.3 §3.4 policy facts re-verified | 13(c) | **Pass** — all facts hold verbatim; one correction, one new hard requirement (both now A9.8/A9.9) |
+| M0.4 Account's actual Gemini rate limits | 13(d) | **Pass** — RPM 15 / TPM 250,000 / RPD 500, read from AI Studio |
+| M0.5 Token + USD per run, requests/day feasibility | A7.8 | **Pass** — measured; arithmetic closed in §6 |
 | M0.6 OP-4…OP-7 targets pinned, OP-5 variant chosen | 13(e) | **Pass** — all eight targets verified; OP-5 primary variant kept |
-| A8.5 Host choice + cold-start duration | A8.5 | **Deferred** — numbers below; measurement rides on M0.1 |
+| A8.5 Host choice + cold-start duration | A8.5, A9.10 | **Host decided** (Tencent/Zeabur); cold start rides on M0.1 |
 
 **The one thing that contradicts the spec:** the model family Amendment 7.10 is written around no
 longer exists for this account. `gemini-2.5-flash` and `gemini-2.5-flash-lite` both return
-`404 NOT_FOUND — "no longer available to new users"`. See §5 and the proposed Amendment 9 in §9.
+`404 NOT_FOUND — "no longer available to new users"`. See §5. **Resolved: Amendment 9 is approved**
+(spec §16), with additions by the product owner — §9 records what it obliges us to build.
 
 ---
 
@@ -140,11 +142,42 @@ tree. An accessibility-driven agent (S-11.17, which is our architecture) genuine
 without expanding. A4.2's honest qualification should stay in the README as written, because a
 DOM-scraping agent *could* bypass it — but our reduced view cannot, and that is worth stating.
 
-## 5. M0.4 — Gemini rate limits — **BLOCKED**, and a model-availability failure
+## 5. M0.4 — Gemini rate limits — **PASS**, and a model-availability failure
 
-**Rate limits: not obtained.** S-11.18 says the numbers exist only in AI Studio, which is not
-reachable from this session. The product owner is reading them. Without RPD the last line of A7.8
-cannot be answered, so it is left open in §6 rather than guessed.
+**Free-tier limits for `gemini-3.1-flash-lite`, read from AI Studio by the product owner
+(S-11.18):**
+
+| Limit | Value | Consumed at time of reading |
+|---|---|---|
+| Requests per minute | **15** | 13 |
+| Tokens per minute | **250,000** | 28,610 |
+| Requests per day | **500** | 23 |
+
+Two separate constraints fall out of this, and they are not the same constraint.
+
+**RPD 500 decides the credential policy.** Against ~294 requests per full round (§6), `500 / 294` is
+**one round per day**, leaving ~200 requests for development iteration — and a round in which runs
+actually spend the S-6.1 12-call budget is ~756 requests, which does not fit at all. Scored runs
+therefore go on the paid key unconditionally (A9.6) and development keeps the free key with automatic
+fallback (A8.8).
+
+**RPM 15 is a scheduling requirement, not a quota to be discovered at runtime.** With concurrency 2
+(S-11.8) and up to 12 calls per run, two runs stepping in parallel can exceed 15 requests/minute
+without either run misbehaving. The scheduler MUST pace provider calls to stay under the limit
+**proactively** — waiting for the provider to return 429 makes quota exhaustion a run outcome instead
+of a scheduling decision.
+
+**This is a distinct mechanism from S-11.8's HTTP 429**, and the two must not be conflated in the
+code or in the UI:
+
+| | S-11.8 HTTP 429 | Provider rate limit |
+|---|---|---|
+| Who is refused | the *user* submitting a task | *us* calling the model |
+| Cause | our queue is full (depth 2) | our own call pacing |
+| Surfaced as | HTTP 429 + `Retry-After`, `blocked / queue_full` | never, if paced correctly; `blocked / provider_quota` if genuinely exhausted |
+| Correct handling | refuse fast, tell the user to retry | delay our own call inside the run's wall clock |
+
+A provider 429 leaking out as a user-facing 429 would tell a grader the queue is full when it is not.
 
 **Model availability, measured against the free-tier key** (`models.list()` plus a real
 `generateContent` call each — listing alone is not proof, which is how this was found):
@@ -168,9 +201,18 @@ Prices above were re-fetched from `ai.google.dev/gemini-api/docs/pricing` today,
 **A7.10's two quoted price pairs are still exactly right** (`gemini-2.5-flash` 0.30/2.50,
 `gemini-3.5-flash` 1.50/9.00) — the prices did not move; the models became unavailable.
 
-**Pinned model, approved by the product owner this session: `gemini-3.1-flash-lite`** — the cheapest
-callable stable model. A8.11's bounded quality comparison still has to run before M3; if the lite
-model cannot do the locator reasoning, the pin changes and the affected cases are re-run (S-11.16).
+**Pinned model, approved by the product owner and now spec text (A9.2): `gemini-3.1-flash-lite`** —
+the cheapest callable stable model. Three constraints attach to it:
+
+- **A9.2.1 — no validation or test run before the pin is final.** Held-out splits score on their
+  first run (S-10.6) and record the model ID (S-10.7); running one against a provisional model spends
+  a run whose only value was that it could be spent once.
+- **A9.5 — A8.11's comparison must include a non-lite candidate, and price is not a deciding
+  variable.** At ~$0.15 per round, a 6× more expensive model costs ~$0.90 — inside the USD 5 ceiling.
+  The pin is decided on locator-reasoning quality. The non-lite candidate is **`gemini-3.6-flash`**
+  ($1.50 in / $7.50 out), not `gemini-3.5-flash` ($1.50 / $9.00): same input price, cheaper output,
+  and output dominates (A8.12).
+- **A9.6 — validation and test always use the paid key**, regardless of remaining free quota.
 
 Thinking control (A8.12): both `thinking_budget=0` and Gemini 3's `thinking_level` are accepted on
 this model, and `thinking_budget=0` verifiably suppresses thinking tokens. The output cap is
@@ -242,11 +284,24 @@ and under **$0.80** even if every run burned its full 12-call budget. The USD 5 
 ceiling (A8.10) therefore covers **on the order of 20+ full rounds**, development iteration included.
 **Money is not the constraint here.**
 
-**Whether a full round fits in one day depends entirely on the free tier's requests-per-day limit,
-which is M0.4 and still outstanding.** The arithmetic is: `rounds_per_day = RPD / ~294`. If RPD is
-below ~300 a single full round does not fit on the free key, and per A8.8 dev and eval fall back to
-the paid key automatically — which, at $0.15 a round, is the cheap and honest answer. What must not
-happen is spreading a round across days or trimming the call budget to fit (A7.8.3).
+**Does a full evaluation round fit in one day? On the free key: exactly one round, and not one that
+uses its budget.** With RPD 500 (§5):
+
+| Scenario | Requests | Rounds/day on free key |
+|---|---|---|
+| Measured happy path | ~294 | **1**, with ~200 requests left for development |
+| Every run at the S-6.1 12-call ceiling | ~756 | **0 — does not fit** |
+
+So the free tier cannot be relied on for scoring, which is exactly why A9.6 puts validation and test
+on the paid key unconditionally. At ~$0.15 per round (~$0.80 worst case) that is a rounding error
+against the USD 5 self-approval ceiling. A7.8.3 stands unchanged: the response to a tight quota is the
+paid key — **never** spreading a round across days, trimming the call budget, or switching model to
+fit.
+
+Development iteration stays on the free key with automatic fallback (A8.8). The practical limit on a
+development day is ~500 free requests before fallback, which at 3–4 calls per run is on the order of
+125–165 runs — comfortable, but not unlimited, so the A8.13 response cache matters more than the raw
+cost figure suggests.
 
 ## 7. Findings that change how this gets built
 
@@ -299,63 +354,84 @@ elements depending on when you look. Both operations need an explicit readiness 
   not authored and will change when the article is edited. Anchors must use the caption or the header
   set, never these ids.
 
-## 8. A8.5 — Host choice and cold start — **DEFERRED, with numbers**
+## 8. A8.5 / A9.10 — Host — **DECIDED**
 
-Cold start cannot be measured before a box exists; `run_cloud_preflight.sh` times
-process-start → browser-up → first-page-loaded and the dependency install that precedes it.
+**Production host, chosen by the product owner: Tencent Cloud, Ashburn (US) — 2 vCPU / 4 GB RAM /
+60 GB SSD / 1.5 TB transfer, USD 4/month, rented through Zeabur with Zeabur as the deployment layer.
+IPv4 `43.166.128.37`.** This supersedes the options this report originally weighed (Fly.io, GCP
+`e2-micro`, Cloud Run) and is now spec text as A9.10. It is within the S-11.9 ceiling, and it is the
+same box for M0's measurements and M1's production — it will not change.
 
-Verified pricing today, against the S-11.9 ceiling of USD 10/month fixed cost:
+4 GB against the measured 794 MiB peak removes the RAM gate as the binding constraint, which the 1 GB
+candidates would have made it. A8.4 is unchanged — cold start is accepted and is not bought away.
 
-| Option | Spec | Verified price | Notes |
-|---|---|---|---|
-| **Fly.io** `shared-cpu-1x` 1 GB | 1 shared vCPU, 1 GB | **$5.70/mo** | Fits the ceiling. 1 GB against a 794 MiB peak is thin. Volumes extra (~$0.15/GB/mo). No free allowance for new orgs. |
-| **Fly.io** `shared-cpu-1x` 2 GB | 1 shared vCPU, 2 GB | **$10.70/mo** | **Exceeds the ceiling by $0.70.** Would need product-owner approval. A 20-minute measurement run costs about $0.01. |
-| **GCP** `e2-micro` | 2 shared vCPU, 1 GB | **$0** always-free in us-central1/us-east1/us-west1 | Free, no cold start, persistent disk included. 1 GB is thin; same Google account as the Gemini key. |
-| **GCP Cloud Run** | configurable to 1–2 GB, scales to zero | $0 within the monthly free grant at demo traffic | Ephemeral filesystem — locator memory (S-8.1) and the artifact store need external persistence. Cold start includes container + browser start. |
-| Render free | 512 MB | $0 | **Ruled out** by §1: 512 MB cannot hold the measured footprint. |
+Three consequences for how we deploy, from the product owner's notes:
 
-**Recommendation, for approval at M1 rather than now:** GCP `e2-micro` if 1 GB proves sufficient on
-Linux — it is free, always-on, and has a persistent disk, which suits locator memory. If the Linux
-measurement lands above ~850 MiB, the honest options are a paid 2 GB box (needs approval, $10.70
-exceeds the ceiling) or a cheaper 2–4 GB VM elsewhere. Per A8.2, development continues over
-Cloudflare Tunnel meanwhile and no time is spent on hosting.
+1. **Reported OS is Ubuntu 22.04, not the 24.04 selected at checkout.** Nothing may assume 24.04 or
+   Python 3.12. The reachability check is stdlib-only and runs on 3.7+, so 22.04's Python 3.10 is
+   fine; Step 2 of the runbook verifies rather than assumes.
+2. **Zeabur's language auto-detection will apply a stock Python image, which cannot produce a working
+   Chromium.** Deployment must use a **custom Dockerfile based on the official Playwright image**
+   (`mcr.microsoft.com/playwright/python`), which ships the browser and its shared libraries. This
+   also means **M0.1's RAM figure must be measured inside that image**, not against a system Python,
+   or it will not describe what actually runs.
+3. **k3s and the Zeabur agent occupy ~484 MB before our process starts.** That baseline is reported on
+   its own line, separately from the app's footprint — `preflight/measure_ram.py` now records
+   `orchestration_baseline` (system used memory before launch, plus the largest processes outside our
+   tree) alongside `app_tree_peak_rss_mib`. Conflating the two would either flatter or indict the app
+   for memory that is not its own. Headroom arithmetic to check at M0.1:
+   `4096 MB − ~484 MB orchestration − app peak`.
 
-## 9. Proposed Amendment 9 — for product-owner approval
+**Cold start (A8.5) is still owed** and is measured by the same script run that closes M0.1.
 
-Not written into the spec. §16 amendments are the product owner's to approve.
+## 9. Amendment 9 — **APPROVED**, and what it obliges us to build
 
-> ### Amendment 9 — Model availability supersedes the A7.10 reference models (proposed 2026-07-26)
->
-> Extends **A7.10**, **S-11.15**, **A8.11**.
->
-> **A9.1** `gemini-2.5-flash` and `gemini-2.5-flash-lite` return `404 NOT_FOUND` for this project's
-> key ("no longer available to new users"), verified by live `generateContent` calls at M0. A7.10's
-> prices for `gemini-2.5-flash` remain correct as published and are retained as historical record;
-> they are no longer usable as configuration inputs for A7.6.
->
-> **A9.2** The pinned model for development and evaluation is **`gemini-3.1-flash-lite`** (GA, input
-> **$0.25/1M**, output **$1.50/1M**, verified 2026-07-26), the cheapest callable stable model.
-> A8.11's bounded comparison still governs the final pin and runs before M3.
->
-> **A9.3** S-11.15's startup validation MUST issue a **minimal live call**, not a `models.list()`
-> lookup. Both unavailable models are present in the list response and fail only on use, so a
-> list-based check passes and then fails at the first real call — which would surface as
-> `blocked / provider_error` mid-run rather than at startup.
->
-> **A9.4** A7.8's cost arithmetic is restated at the pinned model's prices: measured **$0.0011–$0.0036
-> per run**, ~**$0.15 per full evaluation round**, ~$0.80 per round if every run exhausted its
-> 12-call budget.
+Approved by the product owner and written into `docs/task1-spec.md` §16 as Amendment 9, with A9.1,
+A9.3 and A9.4 as proposed and five additions. The obligations that are new work, not just record:
+
+| ID | Obligation | Where it lands |
+|---|---|---|
+| **A9.2.1** | No validation or test run may execute before the pin is final | Eval harness must refuse to run a held-out split unless the pin is marked final |
+| **A9.3** | Startup validation issues a **live call**, not `models.list()` | Provider adapter startup check — M1 |
+| **A9.5** | A8.11's comparison includes `gemini-3.6-flash`; the pin is decided on locator-reasoning quality, not price | Model comparison, before M3 |
+| **A9.6** | Validation and test use `Billing_agent_API_Key` unconditionally | Credential selection keyed on run *kind*, not on remaining quota |
+| **A9.7** | Two weeks unattended: browser-lifecycle recovery, bounded storage, flat steady-state memory | Cuts across M1 (lifecycle, retention) and must be observed, not asserted |
+| **A9.8** | Declared contact `User-Agent` set at fetcher construction; its absence covered by tests | Server-side fetcher — M7, but the constructor is built at M1 |
+| **A9.9** | README describes per-origin pacing as **our own voluntary limit**, never robots compliance | M8 docs, and the pacing component's own docstring |
+
+Three of these change M1's shape rather than a later milestone's, so they are noted here rather than
+discovered later:
+
+**A9.7.1 browser-lifecycle recovery** means the browser cannot be a module-level singleton created at
+import time. It needs a supervised owner that can detect a dead or unresponsive process, relaunch it,
+and fail in-flight runs as `failed` / `blocked` instead of hanging — and "unresponsive" has to be
+detected by something other than the call that is already hung.
+
+**A9.7.2 bounded storage** interacts with the evidence bundle. A large-DOM run stores ~2 MB of
+snapshot (§1); 60 GB divided by that is generous, but unbounded growth still ends in a full disk, and
+A9.7 forbids eviction that leaves a reported result pointing at a missing artifact. So artifact
+expiry must be a **recorded state on the evidence bundle**, not a deletion — which is a schema
+decision, and schema decisions are cheap at M1 and expensive at M5.
+
+**A9.7.3 flat steady-state memory** has to be observed across a sustained multi-hour run. That is a
+measurement job with a fixture to run against, so it belongs on the M1 checklist, not at the end.
 
 ## 10. What is needed to close M0
 
-1. **Run `bash preflight/run_cloud_preflight.sh`** on a 1–2 GB Linux container or VM on a datacenter
-   IP, and return `preflight/results/cloud-host.txt`, `cloud-reachability.json`, `cloud-ram.json`,
-   `cloud-coldstart.txt`. Closes M0.1, M0.2 and the A8.5 cold-start figure. The script makes no
-   provider API calls and handles no secrets.
-2. **Paste the AI Studio rate limits** — RPM / TPM / **RPD** for `gemini-3.1-flash-lite`, and which
-   tier the project is on. Closes M0.4 and the last line of A7.8.
-3. **Approve or amend Amendment 9.**
+Two items, both measurements on `43.166.128.37`, and they are deliberately sequenced.
 
-M1 does not depend on any of the three: the walking skeleton runs against the fixture with no LLM in
-the loop (§13 M1), so it can be built while these are outstanding. It does depend on a decision about
-where it is deployed, which is item 1's other output.
+1. **M0.2 reachability — next, and on its own.** `docs/m0-runbook-reachability.md` is the
+   copy-pasteable procedure. Ten requests, standard library only, no `pip`, no provider calls, no
+   secrets. The Tencent network block is the one genuinely unknown risk in the whole plan, so nothing
+   further is built on this host until it comes back clean. Stop conditions are in the runbook: a
+   Wikipedia or books.toscrape block ends the host choice (OP-4…OP-7 all depend on them); a SEC-only
+   block is Task 2 seam scope and is reported, not worked around; no site is substituted either way.
+2. **M0.1 RAM + A8.5 cold start — after, and inside the deployment image.** Must run in a container
+   built from the Playwright base image rather than a system Python, or the number does not describe
+   what runs in production (§8). `preflight/measure_ram.py` now separates the ~484 MB k3s/agent
+   baseline from the app's own footprint.
+
+**M1 proceeds in parallel and does not wait for either.** The walking skeleton runs against the
+fixture with no LLM in the loop (§13 M1), so nothing in it depends on the reachability result or the
+RAM figure. What it does depend on is settled: the host is decided (A9.10) and the deployment image is
+Playwright-based (§8).

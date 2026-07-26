@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 # M0 gates (a), (b), (c) and the A8.5 cold-start figure, measured from the deployment box.
 #
-# Run this on a real cloud container or VM with 1-2 GB of RAM. A home network always comes
-# back green, which just moves the discovery to deployment day.
+# SUPERSEDED IN PART. M0.2 now runs on its own first, per docs/m0-runbook-reachability.md:
+# the Tencent network's treatment by the three target sites is the one unknown that can
+# end the host choice, so nothing else is measured until it comes back clean. The RAM and
+# cold-start sections below must also run inside the Playwright-based deployment image
+# rather than against a system Python, or they do not describe what production runs.
+#
+# Run this on a real cloud container or VM. A home network always comes back green, which
+# just moves the discovery to deployment day.
 #
 #   docker run --rm -m 2g -v "$PWD:/w" -w /w python:3.12-slim bash preflight/run_cloud_preflight.sh
 #
