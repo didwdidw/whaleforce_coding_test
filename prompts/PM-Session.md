@@ -273,3 +273,33 @@ Tencent Cloud / Ashburn US，2 vCPU / 4 GB / 60 GB SSD，$4 per month，透過 Z
 寫完 commit，我再讓 engineering session 往下走
 
 ==========
+
+Engineering agent 在 M1 抓到一個 robots 的實質違規，spec 要補
+
+它原本用 urllib.robotparser。那個 parser 遇到空行就結束該群組，而 sec.gov/robots.txt 的 #SEC 區塊剛好在 User-agent: * 群組內的空行之後，所以 Disallow: /cgi-bin 和 Allow: /Archives/edgar/data 整段被丟掉
+
+實測 cgi-bin/browse-edgar 是放行的
+也就是系統會一邊爬 Disallowed 路徑、一邊相信自己合規。它另外還不支援 * 和 $，而且用第一條符合而非最長符合
+
+S-2.3 現在只寫 enforce robots，這樣太鬆散了
+語意要寫死：
+- 依 RFC 9309
+- 最長符合的規則勝出
+- 同長度時 Allow 勝 Disallow
+- 支援 * 萬用字元和 $ 結尾錨點
+- 群組只在下一個 user-agent 行結束，空行不結束群組
+- robots.txt 取不到時 fail closed
+
+再加一條驗收要求：robots 的比對語意要有自己的單元測試，不能只靠 dev dataset
+另外 engineering agent 有一句話值得一起寫進去: DEV-13 本來會矇對，因為那條規則剛好落在空行之前。這一類 bug 用 eval case 抓不到
+
+順便處理第二個，也是實作跑在規格前面：
+engineering agent 把 egress guard 做了三層防呆
+1. APP_ENV 預設 production、沒設或拼錯都當 production，dev 是唯一能關掉 guard 的值
+2. 誤設直接拒絕啟動
+3. 每個 run 的 trace 第一步記錄 guard 狀態，被拒絕的 run 也記，同時掛在 /healthz
+
+這些現在只在程式碼裡。要進 spec，理由是 reviewer 是黑箱對著 spec 檢查的。沒寫進去，他就沒有依據去驗這件事
+engineering agent 那邊 32 個測試都過了，spec 這邊把要求補上就好
+
+==========

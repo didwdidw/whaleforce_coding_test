@@ -1067,3 +1067,96 @@ growth, so the RAM gate is not the binding constraint the 1 GB candidates would 
 A8.4 is unchanged: cold start is still accepted and MUST NOT be bought away. A8.5's remaining
 deliverables — the measured cold-start duration and the cloud RAM and reachability figures — are
 still owed, now measured on this host.
+
+### Amendment 10 — robots.txt matching semantics, and the egress guard's failure mode (2026-07-27)
+
+Extends **S-2.3**, **S-2.5**, **§14**. Prompted by a real defect found at M1 and by three safeguards
+the engineering session built ahead of the spec.
+
+#### Why this exists
+
+S-2.3 says `robots.txt` is binding. It does not say **how a rule is matched**, and that gap produced
+an actual violation. The M1 implementation used Python's `urllib.robotparser`, which terminates a
+user-agent group at a **blank line**. In `www.sec.gov/robots.txt` the `#SEC` block sits after a blank
+line inside the `User-agent: *` group, so `Disallow: /cgi-bin` and `Allow: /Archives/edgar/data` were
+both discarded. Measured result: `cgi-bin/browse-edgar` — explicitly out of scope in §3.4 — was
+**permitted**. The same parser also ignored `*` and `$` and applied **first-match** rather than
+longest-match.
+
+The failure mode is the one this spec penalises most heavily: the system would have crawled Disallowed
+paths **while reporting itself compliant**. A permissive robots parser produces no error, no anomaly,
+and a clean trace.
+
+**And the eval set could not have caught it.** DEV-13 (robots refusal) would have passed, because the
+rule it happens to target sits *before* the blank line. A case that passes for the wrong reason is
+indistinguishable from one that passes for the right one. **This class of defect is caught by tests of
+the matching semantics themselves, never by dataset outcomes** — which is why A10.6 is a separate
+requirement rather than a note.
+
+#### Matching semantics (replaces the unstated behaviour under S-2.3)
+
+**A10.1** robots.txt evaluation MUST follow **RFC 9309**. Specifically:
+
+1. **Longest match wins.** The applicable rule is the one whose path pattern is longest, not the first
+   one encountered.
+2. **Ties go to `Allow`.** When an `Allow` and a `Disallow` pattern of equal length both match, the
+   path is **allowed**.
+3. **Wildcards are supported.** `*` matches any sequence of characters; `$` anchors the end of the
+   path. A parser without these silently under-blocks.
+4. **A group ends only at the next `User-agent` line.** **Blank lines and comments MUST NOT terminate
+   a group.** This is the specific defect above, and it is the one most likely to recur in any
+   substitute library.
+
+**A10.2** The system MUST NOT rely on `urllib.robotparser`, which violates A10.1.1, A10.1.3 and
+A10.1.4. Whatever is used in its place — a compliant library or an implementation of the above — the
+behaviour is what is required, not the choice of component.
+
+**A10.3** **Unfetchable `robots.txt` fails closed.** If `robots.txt` cannot be retrieved (network
+error, timeout, 5xx, or an unparseable body), navigation to that origin MUST be refused as
+`blocked / robots_disallowed`. A 404 is a valid answer meaning "no restrictions" (this is
+`books.toscrape.com`, §3.4) and is not a failure to fetch. Availability of the policy file MUST NOT
+become a reason to ignore the policy.
+
+**A10.4** Every robots decision — allowed or refused — MUST record in the trace the **matched rule**
+(directive, pattern, and the group's user-agent) or explicitly that **no rule matched**. A refusal
+without a citable rule is unverifiable; an allow without one cannot be audited after the fact.
+
+**A10.5** The refusal in A10.3 and A10.1 applies to **every** origin the system touches — including
+the server-side fetcher used by the Task 2 seam (S-2.7), not only browser navigations. The defect
+above was found on SEC, which the browser tier never visits.
+
+**A10.6** **The robots matching semantics MUST have their own unit tests**, independent of the
+evaluation dataset. Coverage MUST include, at minimum: longest-match precedence, equal-length
+`Allow`/`Disallow` ties, `*` and `$` patterns, a group containing blank lines and comment lines, a
+group correctly terminating at the next `User-agent`, and the fail-closed path of A10.3. The live
+`www.sec.gov/robots.txt` body — the one that exposed the defect — MUST be one of the fixtures.
+
+#### Egress guard configuration (promoting implementation to requirement)
+
+The engineering session built three safeguards at M1 that the spec did not ask for. They belong in the
+spec because **acceptance is black-box against this document**: a reviewer who cannot read the code
+has no basis on which to verify them, and an unstated safeguard is one that can be silently removed.
+
+**A10.7** **The environment defaults to production.** The environment variable selecting the runtime
+mode MUST treat **unset, empty, or unrecognised values as production**, with the guard fully enforced.
+Exactly one explicit value enables the relaxed development mode. Any control whose *failure* mode is
+"protection off" is a control that will eventually be off.
+
+**A10.8** **Misconfiguration refuses to start.** A configuration that cannot be resolved to a valid
+mode MUST cause startup to fail loudly, not to fall back to a default and continue.
+
+**A10.9** **Guard state is recorded per run and exposed for inspection.** The first step of every run's
+trace MUST record whether the egress guard is enforcing, **including for runs that the guard itself
+refused** — those are exactly the runs whose guard state a reviewer needs. The same state MUST be
+readable from the health endpoint, so that "is the deployed system actually protected right now?" is
+answerable without a run.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-26** Submit a path that is Disallowed only by a rule appearing **after a blank line or a
+  comment** within its group (e.g. an SEC `/cgi-bin/` path) → `blocked / robots_disallowed`, with the
+  matched rule visible in the trace (A10.1.4, A10.4).
+- [ ] **A-27** Confirm the robots matching semantics carry dedicated unit tests covering A10.6's
+  listed cases, and that they are run in CI rather than by hand.
+- [ ] **A-28** Confirm the health endpoint reports the egress guard as enforcing, and that a run's
+  first trace step records the same state (A10.9).
