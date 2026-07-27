@@ -114,6 +114,7 @@ BOOK_CATEGORY_NONFICTION = f"{BOOKS}/catalogue/category/books/nonfiction_13/inde
 BOOK_CATEGORY_NONFICTION_P2 = f"{BOOKS}/catalogue/category/books/nonfiction_13/page-2.html"
 WIKI_SP500 = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 CONSTITUENTS = '//table[@id="constituents"]'
+WIKI_SPECIAL = "https://en.wikipedia.org/wiki/Special:WhatLinksHere/"
 NAVBOX_TOGGLE = ".navbox-inner.mw-collapsible .mw-collapsible-toggle"
 COLLAPSED_NAVBOX = ('//div[contains(@class,"navbox-inner") '
                     'and contains(@class,"mw-collapsed")]')
@@ -777,6 +778,7 @@ class Executor:
     # a perfectly plausible pager reading for a task that asked for something else. A
     # mis-route that still produces an answer is worse than one that fails.
     ROUTES: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("wiki_special", ("what links here", "pages that link to", "special:")),
         ("wiki_sort", ("sort the", "sorted by", "sort by", "s&p 500 table",
                        "constituents table")),
         ("wiki_expand", ("expand the", "collapsed navbox", "navbox", "collapsible")),
@@ -818,6 +820,8 @@ class Executor:
             return None
         low = self._strip_directives(task.lower())
         seed = self._seed(task.lower())
+        if name == "wiki_special":
+            return self._plan_wiki_special(low)
         if name == "wiki_sort":
             return self._plan_wiki_sort(low)
         if name == "wiki_expand":
@@ -1513,6 +1517,35 @@ class Executor:
                     entry_url=BOOK_CATEGORY_NONFICTION,
                     terms=("results", "showing", "next", "Nonfiction"),
                     read_step=read_listing)
+
+    def _plan_wiki_special(self, low: str) -> Plan:
+        """A task a person would reasonably ask, on a path a real site forbids.
+
+        `en.wikipedia.org/robots.txt` Disallows `/wiki/Special:` for the wildcard group.
+        "Which pages link to this article" is answered at `Special:WhatLinksHere`, so the
+        task is ordinary and useful and we still do not fetch it — the refusal cites the
+        matched rule and the group it came from, which is what makes it checkable by someone
+        who does not trust us.
+
+        The fixture's own Disallowed hook demonstrates the same rule against a site we
+        control. This is the version where the site is not ours and the rule is not one we
+        wrote.
+        """
+        target = f"{WIKI_SPECIAL}{WIKI_SP500.rsplit('/', 1)[-1]}"
+        pc = Postcondition(
+            goal=("List the Wikipedia pages that link to the list of S&P 500 companies, "
+                  "which the site answers at Special:WhatLinksHere."),
+            operation="OP-robots",
+            target_url=target,
+            inputs={},
+            claims=(),
+        )
+
+        async def attempt(ctx: ExecutionContext) -> None:
+            await self._navigate(ctx, target)
+
+        return Plan("OP-robots", "wikipedia Special: namespace (robots-Disallowed)",
+                    pc, (attempt,), entry_url=target)
 
     def _plan_testhook(self, seed: str) -> Plan:
         """Asking for the answer key. The fixture Disallows the hook in robots.txt, so this

@@ -241,3 +241,33 @@ def test_server_fetcher_declares_a_contact_user_agent():
     from app.fetcher import ServerFetcher
 
     assert "@" in ServerFetcher().user_agent
+
+
+# --- M4 gate: enforcement on a Disallowed path of a real site ---------------------
+
+def test_wikipedia_disallows_the_special_namespace_and_the_rule_is_quotable():
+    """The M4 gate's robots demonstration, at the level where it is deterministic.
+
+    "Which pages link to this article" is an ordinary, useful question, and Wikipedia
+    answers it at `Special:WhatLinksHere` — a path its robots.txt Disallows for the wildcard
+    group. So the refusal is not us declining something nobody wanted; it is a rule from a
+    site we do not control, applied to a task a person would actually ask, and quoted back
+    so that someone who does not trust us can check it.
+    """
+    rules = RobotsRules(WIKI)
+    blocked = rules.match(UA, "/wiki/Special:WhatLinksHere/List_of_S%26P_500_companies")
+    assert blocked.allowed is False
+    assert blocked.rule == "Disallow: /wiki/Special:"
+    assert blocked.group_user_agent == "*"
+
+    # ...and the article the promised records use is not blocked by the same file, which is
+    # the half that shows the matcher is discriminating rather than simply refusing.
+    allowed = rules.match(UA, "/wiki/List_of_S%26P_500_companies")
+    assert allowed.allowed is True
+
+
+def test_the_percent_encoded_spelling_of_the_same_namespace_is_also_disallowed():
+    """`/wiki/Special%3A` is listed separately in the file, and a matcher that decoded the
+    path before comparing would silently allow one of the two spellings."""
+    rules = RobotsRules(WIKI)
+    assert rules.match(UA, "/wiki/Special%3ARandom").allowed is False
