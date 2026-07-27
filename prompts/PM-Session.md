@@ -348,3 +348,11 @@ A9.6 要求付費金鑰的是「我們自己的 validation / test split」
 4. M8 的 analysis report 要講清楚，我們的 validation / test split 跑在同一台主機、同一份映像檔的另一個 workload，不是服務匿名流量的那個 process。這樣量測的範圍才是誠實的。
 
 ==========
+
+engineering plan 現在 M4 done
+請先重新讀一次作業原始檔案，再比對我們的spec與簡單trace一下當前的code
+確保一下我們的實作是否朝向正確的方向
+我們有沒有偏航
+最終目標是否朝著作業描述前進
+
+==========
