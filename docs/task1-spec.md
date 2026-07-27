@@ -1413,3 +1413,145 @@ of scope** — nothing in Task 1 may be built in a way that presumes it will not
   what runs, and the submit form's description of tier behaviour is true (A13.3).
 - [ ] **A-38** Run the dev split through the harness and reproduce its reported numbers, with
   provenance recorded (A13.5).
+
+### Amendment 14 — Closing the gaps an independent review found against the assignment (2026-07-28)
+
+Extends **A7.6**, **A6.3**, **§10**, **S-10.8**, **S-11.4**, **A12.2**, **§12**, **§14**. Written
+after an independent reviewer read the assignment and the full spec with no other context and judged
+a faithful implementation to land at a **strong B with an unsecured A**.
+
+#### Measurement: two of the four named analysis dimensions had no source
+
+The assignment names **runtime performance, cost, scalability, and correctness verification**. Cost
+has A7.6 and A9.4; correctness has §4 and §10. The other two had only acceptance item A-25 demanding
+numbers that no requirement produced.
+
+**A14.1 Latency MUST be instrumented exactly as cost is.** Every run records **per-step and per-run
+wall-clock duration** and **time to first result**, stored in the trace and shown in the UI, in the
+same way A7.6 requires for tokens and USD. The analysis report gives the distribution over eval runs
+(median and spread, not a single best case), broken down by declared vs experimental tier and by
+model-driven vs deterministic path (A13.4).
+
+**A14.2 Scalability MUST be measured, not asserted.** S-11.8 fixes concurrency 2 and queue depth 2
+as a design constant; that is a decision, not a measurement. The report MUST carry at least:
+throughput at full concurrency, the point at which the queue saturates and 429 begins, queue wait
+time under load, and the measured cold-start duration (A8.5). One honest number each is enough; zero
+is not.
+
+**A14.3 The refusal rate on unseen tasks MUST be measured.** S-2.1's anti-bot refusal and A10.3's
+fail-closed robots handling are both correct and both terminate before anything interesting happens.
+Their **frequency** on undeclared-site tasks MUST be reported, so a policy-shaped outcome reads as a
+characterised property rather than as a system that mostly says no.
+
+#### Breadth needs a number, not a disclosure
+
+**A14.4 An experimental-tier evaluation split MUST exist.** 8–10 public, policy-clean, read-only
+tasks on sites that appear in **no** promised record, authored by the product owner (A8.15). It is
+run through the A13.5 harness and reported as its own figure: **attempt rate, verified rate, and
+abstention rate**, with an interval per S-10.13.
+
+This split — not the declared site count — is the answer to the assignment's *"reliably executes them
+across different sites"*. It raises A13.2's bar from *abstain honestly* to *attempt and answer*, and
+it converts R-11 (*"it can read as 'doesn't work'"*) from a disclosed weakness into a measured
+property. It does **not** enter the headline declared-tier rate (S-1.3 unchanged); it is reported
+beside it. The graders' own unseen tasks land on this path, so it is the surface most likely to
+decide how the system reads.
+
+#### Evidence the graders can actually see
+
+**A14.5 The held-out splits ARE published at submission.** This supersedes A6.3's "never committed".
+The holdout exists to keep the engineering session honest (S-10.3, S-10.4), and that purpose ends the
+moment the splits are scored — S-10.6 already reclassifies them as regression suites after the first
+run. Committing them at submission, with `eval/holdout-manifest.md`'s **pre-committed hashes proving
+the content predates the scored runs**, demonstrates the discipline *and* shows the work. Unchanged:
+the engineering session never sees them before scoring, and the first run is still the reported score.
+
+**A14.6 Self-maintenance MUST be demonstrated once on markup we do not control.** Every healing
+demonstration today runs on the fixture — a site we wrote. Amendment 1 removed it from the promised
+surface but left it as the sole *evidence* surface for one of the two mechanisms the assignment names
+by name. At least one mutation case MUST therefore run against an **archived DOM of a real target
+page**, mutated the same way (S-9.2's catalogue), with the same detection → cross-family
+re-derivation → re-verification → write-back sequence. Archived, not live, so the case is
+deterministic and re-runnable.
+
+**A14.7 The gate-suite operations return to the frontend as mechanism evidence.** GS-1, GS-2 and GS-3
+(A1.2) currently appear in no public surface at all, which means the strongest shortcut-proof and
+mutation evidence in the system is invisible to a reader. They MUST be shown — in a section clearly
+separated from the support matrix, carrying A1.3's wording that the fixture is **our own evaluation
+environment, not a supported website**, and appearing in **no reliability or success-rate figure**.
+Amendment 1 is **not** reversed: a reliability number measured on a site we control is not evidence,
+and labelling does not make it one. What is being published is the *mechanism*, not a promise.
+
+**A14.8 The known-limitations list has contents.** S-11.4 requires the list to exist; nothing defined
+it. Each entry MUST carry: a **concrete task, phrased as a user would phrase it**, what the system
+actually did, why, and the resulting `terminal_status` / `failure_class`. Entries MUST be
+reproducible by a reader against the deployed system. Acceptance item **A-4's citation of `T1.9` is
+replaced by this requirement** — `T1.9` is an ID in `docs/task1-discovery.md`, which the acceptance
+reviewer does not read (§14), so as written it is unresolvable for its intended audience.
+
+**A14.9 The shortcut-refusal penalty MUST be broken out in reporting.** S-4.4 scores a correct answer
+that skipped a declared required action as `failed / required_action_skipped`. That is a
+**self-imposed** penalty nothing in the assignment asks for, and it depresses our own measured rate.
+It stays — it is what makes "substantive UI action" mean anything — but the analysis report MUST show
+it as its own category, so deliberate strictness is not read as inability.
+
+#### Credentials after scoring
+
+**A14.10 Once our own splits are scored, the public path moves to the paid credential.** A12.2's
+topology exists so that external traffic cannot consume the quota our evaluation depends on
+(S-11.11). **That reason expires when the evaluation is complete.** After the test split's first run
+(S-10.6), the public-serving deployment MUST be switched to the paid credential, bounded by A12.5's
+enforced daily ceiling — which is what makes the switch safe. The switchover date MUST be recorded.
+
+Two consequences, both improvements: grader traffic no longer exhausts a 500-request free daily limit
+against ~294 requests per round (A9.6), and A7.9's disclosure strengthens — with all traffic on the
+paid tier, **no content sent to the provider is used to improve its products**. Until the switchover,
+A12.2 holds unchanged.
+
+#### Keeping Task 2 buildable
+
+Task 2 is not assumed to be out of scope (A13.6). Three decisions are cheap now and expensive later.
+
+**A14.11 The run core is task-agnostic.** The run record, artifact store, evidence-bundle rendering,
+and the `terminal_status` taxonomy MUST NOT be browser-specific. `failure_class` (S-5.3) is a closed
+set of browser-shaped values; per-task extensions are added by amendment rather than by forking the
+model. A Task 2 build reuses the run view, the evidence bundle, and the honesty machinery unchanged.
+
+**A14.12 The eval harness is built around splits, oracles, and provenance — with a pluggable case
+schema.** A13.5's harness MUST NOT be written to the browser-shaped dev-set schema. Task 2 needs the
+same split discipline, first-run rule (S-10.6) and provenance (S-10.7) over different case fields.
+
+**A14.13 Clarification of S-12.4.** "MUST NOT import internal modules" binds the **conformance test**
+that proves the seam is consumable from the contract alone. It does **not** bind a Task 2 product,
+which may reuse the store, the run model and the frontend. Read the other way it would force a
+duplicate artifact store and UI for no benefit.
+
+#### Submission surface
+
+**A14.14 The README MUST cover what the assignment asks it to cover**: how to run, key design
+decisions, and where AI helped — in addition to the honesty disclosures scattered across S-2.6,
+S-2.12, S-3.7, S-4.3, A1.3, A4.2, A7.9, A9.9 and A12.4. The repository MUST be public, and the
+submission states the repo URL and the frontend URL.
+
+**A14.15 The prompt records need a reader's entry point.** `CLAUDE.md` requires verbatim logging of
+everything, in order — that rule is unchanged and is what makes the records evidence rather than a
+highlight reel. But the assignment asks for **key** prompts and says the graders will read them, so
+`prompts/` MUST also carry a short index naming where the substantive decisions happen (file, and
+what was decided), so a reader can find them without reading two long logs end to end.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-39** The analysis report carries measured latency (distribution, split by tier and path),
+  throughput, queue-saturation point, cold start, and the unseen-task refusal rate (A14.1–A14.3).
+- [ ] **A-40** The experimental split has been run through the harness and its attempt / verified /
+  abstention rates are reported with an interval (A14.4).
+- [ ] **A-41** The held-out splits are in the repository, and their content hashes match the
+  pre-committed values in `eval/holdout-manifest.md` (A14.5).
+- [ ] **A-42** A healing demonstration exists against an archived real-page DOM, not only the
+  fixture (A14.6).
+- [ ] **A-43** The frontend shows GS-1/GS-2/GS-3 as mechanism evidence, clearly outside the support
+  matrix and absent from every success-rate figure (A14.7).
+- [ ] **A-44** The known-limitations list entries are concrete and reproducible against the deployed
+  system (A14.8); shortcut refusals are reported as their own category (A14.9).
+- [ ] **A-45** README covers how to run, design decisions, and where AI helped; `prompts/` carries an
+  index; the repository is public (A14.14, A14.15).
