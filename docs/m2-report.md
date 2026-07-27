@@ -165,6 +165,29 @@ are where that gets measured, at M5.
 | A11.7 | Vacuous verification fails closed | `Verifier._vacuous`, plus the coverage gate and the fixture self-test |
 | A11.8 | Explicit falsy ≠ unset | `_resolve` in `app/config.py`, with provenance on `/healthz` |
 
+### 6.0 Verified on the deployed system
+
+| Check | Result |
+|---|---|
+| Volume | 10 GiB PVC bound, mounted at `/data`; `persistent: true`, `on_mounted_volume: true`, `mount_required: true` |
+| Rollout strategy | flipped to **`Recreate`**, exactly as A11.2 predicted |
+| **A-29** | A user run and its artifact created *before* the container was replaced both still resolve after it: `succeeded_verified`, artifact `stored`, HTTP 200. All five pre-executed demonstrations survived with their artifacts pinned |
+| **A-30** | Forced expiry in production: API answers **410** with `state: expired`, `expired_on`, and `source_url` / `retrieved_on` / `sha256` / `length` all intact; the run page shows "expired on 2026-07-27 … hash retained". A pinned demonstration in the same sweep stayed at HTTP 200 |
+| **A-31a** | In the production image, `DATA_DIR=/dev/null/nope` → refuses to start; `DATA_DIR=/tmp/ephemeral-demo` (writable, not a mount) → **also refuses**, naming the silent-fallback condition |
+| **A-31b** | `/healthz` reports the ceiling fraction, the pinned count, and the eviction that just happened (`reason: age, artifacts: 2, bytes: 6660`) |
+
+**The measured cost of `Recreate`: a 1.05 s visible outage**, on two samples — one pod
+replacement and one true `rollout restart`. That is *shorter* than expected, and the reason
+matters more than the number: the terminating pod kept answering for ~9 s while the
+replacement booted in ~4.8 s, so the two overlapped. There is still no readiness probe, so
+this remains a race rather than a guarantee, and the honest upper bound is the app's
+boot-to-serve time of ~5 s if the old pod's endpoint is withdrawn first.
+
+One correction to the recommendation made at M1: a health check on `/healthz` no longer buys
+zero-downtime deploys, because `Recreate` never overlaps two ready pods by design. It is
+still worth setting — it stops traffic reaching a pod that is up but not yet serving — but
+the payoff is smaller than it was before the volume.
+
 ### 6.1 The check a write probe cannot make
 
 A11.5 asks for a write probe rather than a path-existence check. Implementing it exposed
