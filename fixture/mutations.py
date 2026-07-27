@@ -29,7 +29,7 @@ MUTATIONS: dict[str, dict[str, Any]] = {
     "mu3-wrap":        {"id": "MU-3", "desc": "insert wrappers / reorder DOM",  "implemented": True},
     "mu4-decoys":      {"id": "MU-4", "desc": "two near-identical decoys",      "implemented": False},
     "mu5-delay":       {"id": "MU-5", "desc": "delayed rendering of target",    "implemented": False},
-    "mu6-overlay":     {"id": "MU-6", "desc": "overlay covering the action",    "implemented": False},
+    "mu6-overlay":     {"id": "MU-6", "desc": "overlay covering the action",    "implemented": True},
     "mu7-move-pager":  {"id": "MU-7", "desc": "move the pagination control",    "implemented": False},
     "mu8-empty":       {"id": "MU-8", "desc": "empty state (drives XB-1)",      "implemented": False},
     "mu9-malformed":   {"id": "MU-9", "desc": "malformed / broken markup",      "implemented": False},
@@ -67,6 +67,21 @@ def apply_mutations(markup: str, seed: str) -> str:
         for a, b in swaps.items():
             markup = markup.replace(a, b)
         return markup
+
+    if seed == "mu6-overlay":
+        # A banner that covers the pager and swallows the click. Markup only: the answer is
+        # unchanged, the route to it is not. This is what a diagnosed `obscured_by_overlay`
+        # and a cross-family recovery are demonstrated against.
+        banner = (
+            '<div id="mu6-cover" style="position:fixed;left:0;right:0;bottom:0;height:38%;'
+            'background:rgba(12,18,28,.55);z-index:90;display:flex;align-items:center;'
+            'justify-content:center">'
+            '<div style="background:#fff;padding:20px;border-radius:12px;text-align:center">'
+            '<p>We use cookies to improve your chandlery experience.</p>'
+            '<button type="button" id="mu6-accept">Accept and continue</button></div></div>'
+            '<script>document.getElementById("mu6-accept").addEventListener("click",'
+            'function(){document.getElementById("mu6-cover").remove();});</script>')
+        return markup.replace("</body>", banner + "</body>")
 
     if seed == "mu3-wrap":
         # Wrap every result row so structural paths that assume a direct parent break.

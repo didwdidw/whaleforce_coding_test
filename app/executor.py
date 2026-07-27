@@ -685,7 +685,11 @@ class Executor:
         exists to prevent — the routing that sent "the gated page" to the paginator was not
         a weak marker, it was the act of choosing under ambiguity.
         """
-        low = task.lower()
+        # The mutation seed and the planner request are metadata about *how* to run the
+        # task, not part of what is being asked. Left in, `seed mu6-overlay` makes every
+        # task look like an overlay task and the router abstains for a reason that has
+        # nothing to do with the request.
+        low = self._strip_directives(task.lower())
         hits: dict[str, list[str]] = {}
         for name, markers in self.ROUTES:
             matched = [m for m in markers if m in low]
@@ -697,8 +701,8 @@ class Executor:
         name, _, _ = self.route(task)
         if name is None:
             return None
-        low = task.lower()
-        seed = self._seed(low)
+        low = self._strip_directives(task.lower())
+        seed = self._seed(task.lower())
         if name == "testhook":
             return self._plan_testhook(seed)
         if name == "notes":
@@ -714,6 +718,10 @@ class Executor:
             return (self._plan_paginate_shortcut(low, seed) if SHORTCUT.search(low)
                     else self._plan_paginate(low, seed))
         return self._plan_search(low, seed)
+
+    @staticmethod
+    def _strip_directives(low: str) -> str:
+        return PLANNER_MARKER.sub(" ", re.sub(r"\bseed[: ]+[a-z0-9-]+", " ", low))
 
     @staticmethod
     def _seed(low: str) -> str:
@@ -734,7 +742,7 @@ class Executor:
         and reads like a real answer. Quoted text wins; otherwise the words after the last
         "for"; and a term is never invented.
         """
-        low = re.sub(r"\bseed[: ]+[a-z0-9-]+", "", low).strip()
+        low = Executor._strip_directives(low).strip()
         quoted = re.search(r"['\"‘“]([^'\"’”]{2,40})['\"’”]", low)
         if quoted:
             return quoted.group(1).strip()
