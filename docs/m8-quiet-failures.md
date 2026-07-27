@@ -158,7 +158,49 @@ That is the same mistake `app/coverage.py` exists to prevent for terminal status
 hard gate appeared to pass while being unreachable. The ledger covers statuses and failure
 classes. It did not cover tiers.
 
-## 6. The defect that this class already cost us once
+## 6. The one the eval harness found, which nothing else could have
+
+Every control in this system compares **the run against the plan**: the postcondition is
+frozen before browsing, the verifier re-extracts against it, the required actions are checked
+against it, the artifact URL is checked against it. All of that was working. Nothing compared
+**the plan against the task**.
+
+The promised records were implemented as fixed instances. The router matched a keyword and
+handed over a canned plan, and the canned plan then passed every check, because every check
+was asking whether the run did what the plan said.
+
+The first run of the harness (A13.5) scored 9 of 9 declared cases. Four of them were wrong:
+
+| Case asked for | What ran | Reported |
+|---|---|---|
+| sort by **CIK ascending** | sort by GICS Sector descending | `succeeded_verified` |
+| the **GDP** article, sorted by country | the S&P 500 article, sorted by GICS Sector | `succeeded_verified` |
+| expand a box on the **Apple Inc.** article | expand a navbox on the S&P 500 article | `succeeded_verified` |
+| the **last page** of a category | page two | `succeeded_verified` |
+
+Each one is a real page, really navigated, really read, with a full evidence bundle and a
+correctly bound value. They are the exact failure this project was built to refuse, sitting
+inside the mechanism built to refuse it — and the dev set had been "passing" for a milestone.
+
+Three things follow, and they are the reusable part:
+
+- **A frozen postcondition proves the run did not move the goalposts. It does not prove the
+  goalposts were in the right place.** Freezing is necessary and it is not sufficient.
+- **A score computed by the thing being scored is not evidence.** Every one of those four
+  runs was self-consistent. What broke the loop was an external harness comparing outcomes
+  against the case's own declared expectation.
+- **The parameters are the question.** Each record now derives article, column, direction,
+  category, page and box index from the task and builds no plan when the task does not say
+  — and a backstop refuses any plan whose frozen inputs the task never named. Where that
+  cannot see the problem, it fails: a proof-of-absence question routed to a listing plan
+  whose category *was* named, so a second rule was needed — a question about whether
+  anything matches requires a plan entitled to prove absence.
+
+The honest score after the fix is 9 of 10 declared cases, and the two remaining misses are
+named: a task that refers to an article without naming it resolvably, and deep pagination
+exhausting the step budget on the model-driven path.
+
+## 7. The defect that this class already cost us once
 
 Recorded in `docs/m8-credential-exposure.md` §5: arbitrary file deletion plus arbitrary file
 read, live since M2, in a product whose selling point is its safety posture. 107 tests did
