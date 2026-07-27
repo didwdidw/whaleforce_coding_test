@@ -177,8 +177,38 @@ class ProviderPolicy:
     requests_per_minute: int = field(default_factory=lambda: _int("PROVIDER_RPM", 15))
     # Held below the measured ceiling so bursts from two concurrent runs still fit.
     rpm_safety_margin: int = field(default_factory=lambda: _int("PROVIDER_RPM_MARGIN", 2))
-    free_key_path: Path = REPO_ROOT / "api_keys" / "Free_tier_agent_API_Key"
-    paid_key_path: Path = REPO_ROOT / "api_keys" / "Billing_agent_API_Key"
+
+    #: USD per 1M tokens, from ai.google.dev/gemini-api/docs/pricing — configuration, not a
+    #: constant in the code (A7.6). Verified 2026-07-26 for the pinned model.
+    price_input_usd_per_1m: float = field(
+        default_factory=lambda: _float("PRICE_INPUT_USD_PER_1M", 0.25))
+    price_output_usd_per_1m: float = field(
+        default_factory=lambda: _float("PRICE_OUTPUT_USD_PER_1M", 1.50))
+
+    #: Bounded because output is billed including thinking tokens (A8.12).
+    thinking_level: str = field(default_factory=lambda: _str("LLM_THINKING_LEVEL", "low"))
+    temperature: float = field(default_factory=lambda: _float("LLM_TEMPERATURE", 0.0))
+    json_mode: bool = field(default_factory=lambda: _bool("LLM_JSON_MODE", True))
+
+    #: Which credentials a run may use. The deployed demo is free-tier only.
+    credential_policy: str = field(
+        default_factory=lambda: _str("CREDENTIAL_POLICY", "public_demo"))
+    #: Dev-only response cache (A8.13). Off by default: every reported cost or performance
+    #: figure must come from uncached runs, so this is opt-in rather than opt-out.
+    cache_enabled: bool = field(default_factory=lambda: _bool("LLM_CACHE", False))
+
+    free_key_name: str = "Free_tier_agent_API_Key"
+    paid_key_name: str = "Billing_agent_API_Key"
+    #: Keys live on the persistent volume in the deployment and in the repo (git-ignored)
+    #: locally. Never in an environment variable: an environment dump would put one in a
+    #: trace or a prompt record.
+    key_dir: Path = field(
+        default_factory=lambda: _path("PROVIDER_KEY_DIR", "/data/task1/keys"))
+    repo_key_dir: Path = REPO_ROOT / "api_keys"
+
+    @property
+    def prices_usd_per_1m(self) -> tuple[float, float]:
+        return (self.price_input_usd_per_1m, self.price_output_usd_per_1m)
 
     @property
     def effective_rpm(self) -> int:
