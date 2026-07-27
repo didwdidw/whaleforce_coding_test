@@ -31,6 +31,7 @@ from app.coverage import CoverageLedger
 from app.demo import CHIPS, PLACEHOLDER, PRE_EXECUTED
 from app.executor import PROMISED_RECORDS, Executor
 from app.latency import summarise as latency_summary
+from app.limitations import limitations
 from app.models import Run, RunState, TerminalStatus, Tier, new_id
 from app.provider import Provider, ProviderError
 from app.queue import AdmissionRefused, RunQueue
@@ -239,6 +240,7 @@ async def support(request: Request) -> HTMLResponse:
                      "reachable": r.route in dict(Executor.ROUTES)}
                     for r in PROMISED_RECORDS],
         "gates": gate_operations(),
+        "limitations": limitations(),
         "mutations": mutation_catalogue(),
         "egress": egress.describe(),
         "robots": state.robots.describe(),

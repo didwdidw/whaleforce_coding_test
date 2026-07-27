@@ -98,7 +98,30 @@
 </div>
 
 <div class="panel">
-  <h2>Known limitations, concretely</h2>
+  <h2>Known limitations you can reproduce</h2>
+  <p class="sub">Each row is a task you can paste into the box on the home page, together
+    with what this build does with it and why. Every outcome below was observed on a live
+    run, not predicted. If one of them no longer behaves this way, this table is wrong —
+    which is the point of writing them as tasks rather than as cautions.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Task</th><th>Outcome</th><th>Why</th></tr></thead>
+    <tbody>
+      {% for l in limitations %}
+      <tr>
+        <td style="min-width:240px">{{ l.task }}</td>
+        <td style="white-space:nowrap"><code>{{ l.outcome }}</code>
+          {% if l.failure_class %}<br><code>{{ l.failure_class }}</code>{% endif %}</td>
+        <td style="min-width:280px">{{ l.what_happens }} {{ l.why }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Limitations of the design itself</h2>
   <ul style="font-size:13.5px;padding-left:20px;margin:0">
     <li><strong>This build is {{ build.milestone }}.</strong> A model plans; it does not
       judge. Every status still comes from deterministic re-extraction against the stored

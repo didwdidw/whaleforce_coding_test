@@ -2073,7 +2073,11 @@ class Executor:
                 label_anchor="results")
             counter = await ctx.page.query_selector("form.form-horizontal")
             text = norm_ws((await counter.inner_text()).strip()) if counter else ""
-            m = re.search(r"(\d+)\s+results?", text, re.I)
+            # The same parse the listing plan uses: the counter states "showing X to Y" when
+            # the category spans pages, and reporting a shape the artifact does not have
+            # fails the run on the counter instead of on the coverage question that matters.
+            m = re.search(r"(\d+)\s+results?(?:\s*[-\u2013]\s*showing\s+(\d+)\s+to\s+(\d+))?",
+                          text, re.I)
             # Read by the rule that will check it: the verifier identifies a listing entry
             # by the first nested `title`, so the run does too. Two rules that agree by
             # coincidence stop agreeing the first time either one is edited.
@@ -2089,7 +2093,10 @@ class Executor:
                               "text": text,
                               "price_gbp": float(price.group(1)) if price else None})
             ctx.candidate = {
-                "result_counter": {"count": int(m.group(1)), "term": None} if m else {},
+                "result_counter": ({"count": int(m.group(1)), "term": None,
+                                    "showing": [int(m.group(2)), int(m.group(3))]}
+                                   if m and m.group(2) else
+                                   {"count": int(m.group(1)), "term": None} if m else {}),
                 "items": items,
                 # What the run itself concluded. Stating it is what lets the verifier
                 # disagree; a plan that only ever asserts absence cannot be caught reading

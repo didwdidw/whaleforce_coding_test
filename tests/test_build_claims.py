@@ -114,3 +114,38 @@ def test_the_pre_executed_runs_need_no_provider():
         planned, _why = executor._choose_path(plan, False, False)
         assert not planned, f"pre-executed task would spend model quota: {task!r}"
         assert not plan.entry_url or settings.fixture_base_url in plan.entry_url
+
+
+# --- known limitations are tasks, not cautions (A14.8) -------------------------------
+
+def test_every_limitation_names_a_task_an_outcome_and_a_reason():
+    """A limitation a reader cannot reproduce is a disclaimer. The four fields are what
+    make it checkable against the deployed system."""
+    from app.limitations import LIMITATIONS
+
+    assert LIMITATIONS, "the list must not be empty"
+    for limit in LIMITATIONS:
+        assert len(limit.task) > 20, f"{limit.id}: the task must be one a person would type"
+        assert limit.what_happens and limit.why, f"{limit.id}: incomplete"
+
+
+def test_every_limitation_ends_in_a_declared_terminal_status():
+    """An outcome outside the closed set is a typo that would send a reader looking for a
+    status the system cannot produce."""
+    from app.limitations import LIMITATIONS
+    from app.models import FailureClass, TerminalStatus
+
+    statuses = {s.value for s in TerminalStatus}
+    classes = {f.value for f in FailureClass}
+    for limit in LIMITATIONS:
+        assert limit.outcome in statuses, f"{limit.id}: {limit.outcome}"
+        assert limit.failure_class is None or limit.failure_class in classes, limit.id
+
+
+def test_the_support_page_lists_them(pages):
+    from app.limitations import LIMITATIONS
+
+    body = pages["/support"]
+    for limit in LIMITATIONS:
+        assert limit.outcome in body
+    assert LIMITATIONS[0].task[:40] in body.replace("&#39;", "'").replace("&amp;", "&")
