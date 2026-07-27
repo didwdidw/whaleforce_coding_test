@@ -205,3 +205,41 @@ def test_keys_are_never_read_from_the_environment():
         if isinstance(node, ast.Name) and node.id in ("environ", "getenv"):
             reads.append(node.id)
     assert not reads, f"the provider adapter reads the environment: {reads}"
+
+
+# --- A12.5 / A-33: the spend ceiling refuses before the call ----------------------
+
+def test_the_spend_ceiling_refuses_before_the_call_not_after(tmp_path, monkeypatch):
+    """A8.10's limit existed as a number in someone's head while the paid key was already
+    in use. A ceiling checked after the call is a report, not a control."""
+    from app.models import FailureClass
+    from app.provider import ProviderQuotaExhausted
+    from app.store import Store
+
+    monkeypatch.setenv("REQUIRE_PERSISTENT_STORE", "false")
+    store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
+    store.record_spend("paid", 6.0, 1000, 100)          # already over the USD 5 ceiling
+
+    provider = Provider(policy=CredentialPolicy.DEVELOPMENT, ledger=store)
+    with pytest.raises(ProviderQuotaExhausted) as exc:
+        provider.complete("anything", budget=RunBudget(), purpose="exploration")
+
+    assert exc.value.failure_class is FailureClass.PROVIDER_QUOTA
+    assert "self-approval limit" in str(exc.value)
+    # ...and the state that decided it survives a restart, because it is on disk.
+    assert Store(tmp_path / "runs.sqlite3",
+                 tmp_path / "artifacts").spend()["cumulative_usd"] == 6.0
+
+
+def test_the_daily_ceiling_is_separate_from_the_cumulative_one(tmp_path, monkeypatch):
+    from app.provider import ProviderQuotaExhausted
+    from app.store import Store
+
+    monkeypatch.setenv("REQUIRE_PERSISTENT_STORE", "false")
+    store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
+    store.record_spend("paid", 1.5, 1000, 100)          # under USD 5, over the daily USD 1
+
+    provider = Provider(policy=CredentialPolicy.DEVELOPMENT, ledger=store)
+    with pytest.raises(ProviderQuotaExhausted) as exc:
+        provider.complete("anything", budget=RunBudget(), purpose="exploration")
+    assert "Today's provider spend ceiling" in str(exc.value)
