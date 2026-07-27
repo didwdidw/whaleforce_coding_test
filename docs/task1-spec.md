@@ -1160,3 +1160,85 @@ answerable without a run.
   listed cases, and that they are run in CI rather than by hand.
 - [ ] **A-28** Confirm the health endpoint reports the egress guard as enforcing, and that a run's
   first trace step records the same state (A10.9).
+
+### Amendment 11 — Persistent artifact storage, and what a volume does not fix (2026-07-27)
+
+Extends **S-11.2**, **S-11.5**, **A9.7.2**, **A10.7**, **A10.8**. Decided at M2.
+
+#### The decision
+
+**A11.1** **A persistent volume MUST be mounted for the artifact store and the run database.**
+Ephemeral storage is incompatible with the product's central claim: an evidence bundle whose artifact
+vanished on the next deploy is a dangling reference that is only discovered when someone opens it —
+which is the precise failure this spec penalises most, a result that looks sound until inspected.
+
+**A11.2** **The accepted cost is stated, not hidden.** Zeabur switches a volume-mounted service from
+`RollingUpdate` to `Recreate`, so every deployment takes a full cold start of downtime instead of an
+overlapping rollout. This is accepted: **the cost is paid during development, the benefit is paid
+during grading.** The analysis report MUST state this trade-off explicitly rather than presenting
+persistence as free. A8.4 is unchanged — this downtime MUST NOT be bought away.
+
+#### What a volume does not fix
+
+**A11.3** **Pre-executed homepage runs are exempt from retention.** The S-11.5 demonstration runs MUST
+be pinned: their artifacts are never evicted, by age or by disk pressure, and they are excluded from
+the retention sweep entirely. Without this, a grader arriving two weeks after deployment finds that
+the first screen they see is three expired links.
+
+The alternative — re-running them on expiry — is rejected. S-11.5 requires one of the demonstrations
+to be a **failure**, and a re-run reproduces neither a specific failure nor a specific verified value
+reliably; a scheduled re-run that silently breaks leaves the homepage worse than stale. Pinning is
+deterministic, and the set is small and bounded. The honesty cost of pinning is that the runs age:
+each pre-executed run MUST therefore display its `retrieved_at` date, so a two-week-old demonstration
+reads as a dated demonstration rather than as a current result.
+
+**A11.4** **Expiry MUST render as a recorded state, never as an error.** A9.7.2 requires expiry to be
+a recorded state rather than a dangling reference; in practice the bytes *will* be reclaimed, so the
+requirement lands on the presentation layer. A run detail view referencing an artifact whose bytes are
+gone MUST show **"expired on `<date>`"** — never a 404, a broken image, or an empty panel. The
+artifact's metadata (id, source URL, `retrieved_at`, content hash, byte length, and the expiry date)
+MUST survive the bytes, so the evidence bundle stays auditable in structure even when it is no longer
+re-inspectable. The same applies to the API representation, not only the HTML view. **This requirement
+is independent of the volume and would be required without it.**
+
+**A11.5** **A missing or unwritable volume MUST report unhealthy.** The health endpoint MUST verify
+the artifact store is actually mounted **and writable** — by an actual write probe, not by a path
+existence check — and report unhealthy when it is not. Under A10.7's rule, the system MUST NOT
+silently fall back to ephemeral storage: that is exactly the condition being fixed here, and it is
+invisible from outside. In production mode a store that cannot be initialised is a startup failure
+(A10.8).
+
+**A11.6** **Retention MUST be enforced, and bounded by disk, not only by age.** The host has 60 GB and
+artifacts are screenshots plus full DOM — a single large-DOM run stores ~2 MB (M0 report §1). The
+store MUST enforce both an age limit and a **total size ceiling** set as a fraction of the disk, with
+eviction oldest-first over unpinned artifacts, and MUST record each eviction. Reaching the ceiling is
+an operational event that MUST be visible (health endpoint and logs), not a silent overwrite of
+evidence. An unenforced retention policy is A9.7.2 in name only.
+
+#### Two defect classes promoted to requirements
+
+Both were found by the engineering session while writing M2 tests, and both are already fixed. They
+are recorded here because the *class* is what matters, not the two instances.
+
+**A11.7** **Vacuous verification MUST fail closed.** A postcondition with **zero claims** MUST NOT
+produce `succeeded_verified`. More generally, **any verification that passes because there was nothing
+to check is a defect, not a pass**: an empty claim set, zero evidence bundles, zero anchors resolved,
+or an all-skipped check set MUST terminate as `failed` with a diagnosed cause, never as success.
+"Nothing failed" is not "everything passed" — and this is precisely the silent-failure shape §4 exists
+to prevent, since a vacuous success is indistinguishable from a real one in every aggregate.
+
+**A11.8** **Explicit zero is not absence.** Configuration resolution MUST distinguish an
+**explicitly-set falsy value** (`0`, `false`, empty string) from an **unset** one. A `0` that is
+treated as missing and replaced by a default silently overrides an operator's explicit instruction —
+here, `retention_days=0` became the 14-day default. This is the same family as A10.7: a control whose
+misconfiguration resolves to a permissive default is a control that will eventually be off. Defaults
+MUST be applied only when a value is genuinely absent.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-29** Redeploy the service, then open a pre-executed homepage run and a completed user run
+  from before the deploy: artifacts still resolve (A11.1, A11.3).
+- [ ] **A-30** Open a run whose artifacts have passed retention: the view shows a dated expired state
+  with metadata intact — no 404, no broken image (A11.4).
+- [ ] **A-31** Confirm the health endpoint reports unhealthy when the artifact store is unwritable,
+  and that retention limits (age and size) are enforced and observable (A11.5, A11.6).

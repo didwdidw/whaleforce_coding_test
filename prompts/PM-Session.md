@@ -303,3 +303,26 @@ engineering agent 把 egress guard 做了三層防呆
 engineering agent 那邊 32 個測試都過了，spec 這邊把要求補上就好
 
 ==========
+
+M2 收了，gate 四項全過，87 個測試通過
+
+engineering agent 提報一個決定要你裁量：
+儲存是暫時的，這在 M2 從隱形變成問題：evidence bundle 是產品的核心主張，而它的 artifact 會在下次部署消失——打開才發現的懸空引用。修法是掛 volume，代價歸你：Zeabur 對掛了 volume 的服務會從 RollingUpdate 改成 Recreate，等於用上面量到的重疊 rollout 去換持久證據，每次部署要吃完整一輪開機的停機。
+
+我感覺可以掛 volume。那個代價全部付在開發期，好處付在評分期，方向是對的。
+寫成 Amendment 11。但不要只寫「掛個 volume」，有幾條是掛了 volume 也還在：
+1. S-11.5 的首頁預跑 run 也會被保存期限吃掉。grader 兩週後打開，首頁三個示範 run 全是過期連結，而那是他看到的第一個畫面...
+預跑 run 要嘛豁免於保存期限，要嘛到期自動重跑。你選一個寫進去。
+2. 掛 volume 不解決過期。A9.7.2 說過期是記錄狀態不是刪除，但實際上 bytes 一定會被回收。所以 run detail 頁遇到不存在的 artifact，必須顯示成「已於某日過期」這種被記錄下來的狀態，不能是 404、不能是破圖。這條跟 volume 完全無關，本來就該有
+3. /healthz 在 volume 沒掛上或不可寫的時候必須回不健康。不然它會靜靜退回暫時儲存，那正是我們現在要修的東西，而且從外面看不出來
+4. 保存期限要真的被執行，上限綁磁碟——機器只有 60 GB，artifact 是截圖加 DOM。
+
+順帶回報兩個 engineering agent 在寫 M2 測試時挖出來的舊 bug，都已修：沒有 claim 的 postcondition 會回報成功（「沒有失敗」被當成「全部通過」），以及 retention_days=0 因為 falsy 靜靜變成預設 14 天
+第一個我想在 M3 之前往上收一層，等你這條回來一起給 engineering agent
+
+==========
+
+改動完 給我可以直接複製貼上給 engineering agent 的 prompt
+簡述你改了什麼，spec哪裡有變，他下一步要做什麼
+
+==========
