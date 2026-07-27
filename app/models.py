@@ -220,6 +220,11 @@ class Run:
     credential_tier: str | None = None
     browser_generation: int | None = None
     pre_executed: bool = False
+    # Why this run's outcome should not be read as clean. Only ever populated for the quiet
+    # outcomes — a refusal or a verified absence — where being wrong and being right look
+    # identical from outside. Empty is the normal case and means the audit found nothing,
+    # not that it did not run.
+    suspicions: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def counts_as_success(self) -> bool:
@@ -248,6 +253,7 @@ class Run:
             "failure_class": self.failure_class.value if self.failure_class else None,
             "counts_as_success": self.counts_as_success,
             "explanation": self.explanation,
+            "suspicions": self.suspicions,
             "budget": self.budget.to_dict(),
             "claims": self.claims,
             "postcondition": self.postcondition,

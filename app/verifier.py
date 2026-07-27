@@ -114,6 +114,15 @@ class Verifier:
     def __init__(self, store: Store) -> None:
         self._store = store
 
+    def missing_actions(self, run: Run, pc: Postcondition) -> list[str]:
+        """Which declared actions the trace does not show, asked before the run has ended.
+
+        The executor needs the same answer mid-run to decide whether it may stop early, and
+        it must be the *same* answer — a loop that used a looser rule than the verifier
+        would stop on runs the verifier then fails.
+        """
+        return _missing_actions(run, pc)
+
     # ---- entry point -----------------------------------------------------------
 
     def verify(self, run: Run, *, artifact_id: str | None,

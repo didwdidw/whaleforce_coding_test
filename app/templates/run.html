@@ -15,7 +15,27 @@
     {% if not run.counts_as_success and run.terminal_status %}
       <span class="badge b-dim">does not count as success</span>
     {% endif %}
+    {% if run.suspicions %}
+      <span class="badge b-bad">not a clean {{ run.terminal_status.value }}</span>
+    {% endif %}
   </p>
+
+  {% if run.suspicions %}
+  <div style="border-left:3px solid var(--bad);padding-left:12px;margin:14px 0">
+    <p style="margin:0 0 6px"><strong>This quiet outcome is not clean.</strong></p>
+    <p class="sub" style="margin:0 0 10px">
+      A refusal and a verified absence look the same whether they are right or wrong. When
+      the trace shows that <em>we</em> may have removed the answer before anyone could act
+      on it, that is recorded here rather than left for someone who already knows the
+      expected result to notice.
+    </p>
+    {% for s in run.suspicions %}
+      <p style="margin:0 0 8px">
+        <code>{{ s.code }}</code> — {{ s.what }} <span class="sub">{{ s.why }}</span>
+      </p>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   {% if run.tier.value == 'T-EXPERIMENTAL' %}
   <p class="sub" style="border-left:3px solid var(--warn);padding-left:12px">

@@ -43,6 +43,7 @@ from app.provider import Provider, ProviderError, RunBudget
 from app.reduce import reduce_page, reduction_record
 from app.robots import RobotsCache
 from app.store import Store
+from app.suspicion import annotate
 from app.verifier import Verifier
 
 log = logging.getLogger(__name__)
@@ -183,6 +184,9 @@ class Executor:
         run.failure_class = failure
         run.explanation = explanation
         run.finished_at = time.time()
+        # Every run ends here, so this is where a quiet outcome is made to answer for what
+        # the trace says we may have removed before anyone could act on it.
+        annotate(run)
         self._store.save_run(run)
         self._coverage.record(status=status, failure=failure, run_id=run.id, task=run.task)
 
@@ -356,6 +360,7 @@ class Executor:
 
             budget = RunBudget()
             history: list[str] = []
+            already_read = False
             recovery: dict[str, Any] | None = None
             families_tried: list[str] = []
             step = 0
@@ -436,6 +441,9 @@ class Executor:
                 if outcome is None:
                     recovery = None
                     families_tried = []
+                    if await self._goal_already_met(ctx, plan):
+                        already_read = True
+                        break
                     continue
 
                 # Failed. The next call is a recovery call, from a separate reserve, and it
@@ -450,9 +458,52 @@ class Executor:
                         f"not lowered to finish: the run fails instead.")
                     return
 
-            if plan.read_step is not None:
+            if plan.read_step is not None and not already_read:
                 await plan.read_step(ctx)
             await self._verify(run, ctx)
+
+    async def _goal_already_met(self, ctx: ExecutionContext, plan: Plan) -> bool:
+        """Whether the loop can stop, decided by code against the frozen postcondition.
+
+        The model is unreliable at recognising that it is done, and unreliability here is
+        paid for in quota: on the category listing it reached the right page on its first
+        action and then spent five more calls re-extracting it. Asking the model to try
+        harder is not a fix — it is the same judgement that was wrong, phrased differently.
+
+        So the postcondition answers instead, and only on its own terms. Both conditions
+        come from the object frozen before browsing: every action it declared has been
+        observed, and the plan's own read step now yields every claim it requires. Nothing
+        the model says is consulted.
+
+        This can only end a run earlier. It cannot make a wrong answer pass: the verifier
+        still re-extracts from the stored artifact and compares against the same frozen
+        postcondition, so a premature stop produces a loud mismatch rather than a quiet
+        success.
+        """
+        if plan.read_step is None:
+            return False
+        required = [c.name for c in plan.postcondition.claims if not c.optional]
+        if not required:
+            return False
+        if self._verifier.missing_actions(ctx.run, plan.postcondition):
+            # Reading the value before the declared interaction happened is the shortcut
+            # S-4.4 exists to catch, not a reason to stop.
+            return False
+        try:
+            await plan.read_step(ctx)
+        except Exception:  # noqa: BLE001 - a probe that fails just means "not yet"
+            ctx.candidate = {}
+            return False
+        candidate = ctx.candidate or {}
+        if not all(candidate.get(name) not in (None, "", [], {}) for name in required):
+            return False
+        self._finish_step(ctx.run, self._step(
+            ctx.run, StepKind.NOTE,
+            "The frozen postcondition is satisfiable from this page: every declared action "
+            "has been observed and every required claim reads. The loop stops here rather "
+            "than spending further model calls.",
+            claims_present=required))
+        return True
 
     async def _perform(self, ctx: ExecutionContext, proposal: Proposal,
                        recovery: dict[str, Any] | None,
@@ -540,6 +591,14 @@ class Executor:
             return text
         else:
             raise RuntimeError(f"unreachable action {proposal.action!r}")
+        # An action that navigates leaves the next view — and the next snapshot — describing
+        # a document that is still arriving. A fixed pause was enough only because several
+        # more steps always followed; it stopped being enough the moment the loop learned to
+        # stop early.
+        try:
+            await page.wait_for_load_state("load", timeout=5_000)
+        except Exception:  # noqa: BLE001 - not settling is a diagnosis, not a crash
+            pass
         await page.wait_for_timeout(150)
         return ""
 
@@ -638,7 +697,17 @@ class Executor:
 
     async def _capture(self, ctx: ExecutionContext, label: str) -> str:
         """Store the full DOM. Verification re-resolves anchors in this, never in a
-        reduced view (A7.4) — which is why the whole thing is kept."""
+        reduced view (A7.4) — which is why the whole thing is kept.
+
+        The document is settled first. A snapshot taken mid-parse is a *plausible* artifact —
+        it is real markup from the real page — and everything downstream will treat it as
+        the whole page. Capturing nine of twenty listing rows and then verifying against
+        them is how an incomplete answer becomes an authoritative one.
+        """
+        try:
+            await ctx.page.wait_for_load_state("load", timeout=5_000)
+        except Exception:  # noqa: BLE001 - a page that never settles is still evidence
+            log.debug("page did not reach load state before capture: %s", ctx.page.url)
         html_text = await ctx.page.content()
         # The homepage demonstrations are pinned: a grader arriving two weeks after
         # deployment must not find that the first screen is three expired links (A11.3).
