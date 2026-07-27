@@ -30,6 +30,7 @@ from urllib.parse import urlsplit
 from lxml import html as lxml_html
 
 from app.evidence import EvidenceBundle
+from app.identity import ElementIdentity
 from app.models import FailureClass, Run, StepKind, TerminalStatus
 from app.postcondition import AbsenceMode, ClaimSpec, Postcondition, Relation, matches_frozen
 from app.store import Store
@@ -555,27 +556,19 @@ def _same_page(source_url: str | None, target_url: str) -> bool:
 def _missing_actions(run: Run, pc: Postcondition) -> list[str]:
     """Whether the trace shows each declared action happening.
 
-    The target is matched against the selector, the resolved element's id, its name and its
-    visible text, because the same action can be reached two ways: the deterministic script
-    names `#next`, and the planner names a ref that resolves to it. Matching only the script's
-    spelling would fail every planner-driven run for taking exactly the right action.
+    The same action can be reached two ways — the scripted path names `#next`, the planner
+    names a ref that resolves to it — so both are rebuilt into the shared `ElementIdentity`
+    and matched by its comparison. This function deliberately owns no list of fields of its
+    own; the last three times it did, a run that took exactly the right action was scored as
+    having skipped it.
     """
     missing = []
     for action in pc.required_actions:
-        target = action.target.lstrip("#").lower()
         seen = 0
         for t in run.trace:
             if t.kind.value != action.kind or not t.ok:
                 continue
-            element = t.detail.get("element") or {}
-            # A link's href is part of its identity: on a real site the declared target is
-            # often a path fragment, and the visible text is a human-readable title that
-            # matches nothing.
-            haystack = " ".join(str(x).lower() for x in (
-                t.detail.get("selector", ""), element.get("id") or "",
-                element.get("name") or "", element.get("href") or "",
-                element.get("title") or "", element.get("text") or "", t.summary))
-            if target in haystack:
+            if ElementIdentity.from_trace(t.detail, t.summary).matches(action.target):
                 seen += 1
         if seen < action.times:
             missing.append(f"{action.kind} on {action.target} "

@@ -30,6 +30,7 @@ from app import egress
 from app.browser import BrowserSupervisor, BrowserUnavailable
 from app.config import settings
 from app.coverage import CoverageLedger
+from app.identity import ElementIdentity, identify
 from app.models import (
     DiagnosedCause, FailureClass, Run, RunState, StepKind, TerminalStatus, Tier, TraceEntry,
 )
@@ -478,9 +479,8 @@ class Executor:
             run, _STEP_KINDS.get(proposal.action, StepKind.NOTE),
             f"{proposal.action} {proposal.args.get('ref', proposal.args.get('key', ''))}"
             f" — {proposal.why[:120]}",
-            selector=identity.get("selector") or
-            f"[data-agent-ref={proposal.args.get('ref', '')!r}]",
-            element=identity, proposed_by="planner", args=proposal.args)
+            selector=identity.selector(),
+            element=identity.to_dict(), proposed_by="planner", args=proposal.args)
         entry.family_from = family_from
         entry.family_to = family_to
         if recovery:
@@ -506,27 +506,9 @@ class Executor:
         ctx.last_observed = observed
         return None
 
-    async def _identify(self, ctx: ExecutionContext, ref: str) -> dict[str, Any]:
-        """Resolve a ref to something durable: its id, its name attribute, its text."""
-        if not ref:
-            return {}
-        try:
-            handle = await ctx.page.query_selector(f"[data-agent-ref='{ref}']")
-            if handle is None:
-                return {"ref": ref, "resolved": False}
-            info = await handle.evaluate(
-                "el => ({id: el.id || null, name: el.getAttribute('name'), "
-                "tag: el.tagName.toLowerCase(), "
-                "href: el.getAttribute('href'), title: el.getAttribute('title'), "
-                "text: (el.innerText || el.value || '').trim().slice(0, 60)})")
-        except Exception:  # noqa: BLE001 - identification must not fail the action
-            return {"ref": ref, "resolved": False}
-        info["ref"] = ref
-        info["resolved"] = True
-        info["selector"] = f"#{info['id']}" if info.get("id") else (
-            f"[name={info['name']!r}]" if info.get("name") else
-            f"[data-agent-ref='{ref}']")
-        return info
+    async def _identify(self, ctx: ExecutionContext, ref: str) -> ElementIdentity:
+        """Resolve a ref to durable identity, as `app.identity` defines it."""
+        return await identify(ctx.page, ref)
 
     async def _apply(self, ctx: ExecutionContext, proposal: Proposal) -> str:
         """The only place a proposed action touches the browser. The allow-list is closed:

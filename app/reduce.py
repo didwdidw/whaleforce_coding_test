@@ -21,17 +21,31 @@ filled field from an empty one, and the model comparison recorded a "wrong actio
 really a blind spot in what we showed it. v1.2 drops invisible anchor regions for the same
 class of reason — offering a `hidden` page block as a target produces a planner that keeps
 being told "not yet rendered" about something that will never render.
+
+v1.3 is the same class of defect a third time, and the most expensive one, because the
+symptom was silence. On a category listing the goal term matched the sidebar, every sidebar
+link inherited top rank, the element budget filled with them, and the single pagination link
+the task needed fell off the end. The model was shown a page with no pagination and said so,
+correctly. An abstention is what this system does when it is honest, which is exactly why a
+view that has already thrown the answer away can hide behind one. So: an element the goal
+itself names now outranks proximity to an anchor region, repeated identical affordances are
+capped so that unique elements are not crowded out, and elements are described by the shared
+`app.identity` fields rather than by a list this module maintains alone.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-RULE_VERSION = "reduce/v1.2"
+from app.identity import COLLECT_JS
 
-REDUCE_JS = r"""
+RULE_VERSION = "reduce/v1.3"
+
+REDUCE_TEMPLATE = r"""
 (args) => {
-  const {terms, maxInteractive, maxAnchorRegions, maxRowsPerRegion} = args;
+  const {terms, maxInteractive, maxAnchorRegions, maxRowsPerRegion,
+         maxPerAffordance} = args;
+  const identityOf = __IDENTITY__;
   const dropped = {};
   const bump = (k, n) => { dropped[k] = (dropped[k] || 0) + (n === undefined ? 1 : n); };
 
@@ -44,12 +58,8 @@ REDUCE_JS = r"""
   };
   // Visible text outranks `title`. Wikipedia's sort headers all carry
   // title="Sort ascending", so a title-first order makes every column look identical.
-  const accName = el => norm(
-    el.getAttribute('aria-label') ||
-    el.innerText ||
-    (el.labels && el.labels[0] && el.labels[0].innerText) ||
-    el.value || el.getAttribute('alt') || el.getAttribute('title') || ''
-  ).slice(0, 90);
+  const displayName = id => norm(id.label || id.text || id.title || '').slice(0, 90);
+  const words = s => ((s || '').toLowerCase().match(/[a-z0-9]+/g) || []).join(' ');
 
   let refN = 0;
   const refFor = el => { const r = 'e' + (++refN); el.setAttribute('data-agent-ref', r); return r; };
@@ -111,7 +121,19 @@ REDUCE_JS = r"""
   const MAIN = '#mw-content-text, main, [role="main"], article, #content_inner,' +
     '.product_main, .page_inner';
 
-  const rank = el => {
+  // An element the goal itself names outranks everything. Being inside an anchor region is
+  // weak evidence — a region qualifies by containing a term anywhere — and on a category
+  // listing that put twenty sidebar links ahead of the one pager link the task needed. The
+  // model was then shown a page with no pagination and correctly said so.
+  const termPhrases = lowerTerms.map(t => ' ' + words(t) + ' ').filter(t => t.trim());
+  const namesAGoalTerm = id => {
+    const hay = ' ' + words([id.id, id.name, id.label, id.text, id.href, id.title,
+                             id.testid].join(' ')) + ' ';
+    return termPhrases.some(t => hay.includes(t));
+  };
+
+  const rank = (el, id) => {
+    if (namesAGoalTerm(id)) return -1;
     if (anchorContainers.some(c => c.contains(el))) return 0;
     if (el.closest(CHROME)) return 3;
     if (el.closest(MAIN)) return 1;
@@ -121,24 +143,41 @@ REDUCE_JS = r"""
   const cands = [];
   for (const el of document.querySelectorAll(INTERACTIVE)) {
     if (!visible(el)) { bump('interactive_invisible'); continue; }
-    const name = accName(el);
+    const id = identityOf(el);
+    const name = displayName(id);
     // A bare link with no accessible name carries nothing a planner can act on.
     if (!name && el.tagName === 'A') { bump('interactive_unnamed_link'); continue; }
-    cands.push({el, name, r: rank(el)});
+    cands.push({el, id, name, r: rank(el, id)});
   }
   cands.sort((a, b) => a.r - b.r);
 
+  // Twenty identical "Add to basket" buttons are one affordance repeated, and after the
+  // first few each copy costs budget without adding anything the planner can choose
+  // between. Capping the repeats is what leaves room for the elements that are unique.
+  const perAffordance = new Map();
   const interactive = [];
-  for (const {el, name, r} of cands) {
+  for (const {el, id, name, r} of cands) {
+    const group = r + ' ' + (id.role || el.tagName) + ' ' + name;
+    const n = (perAffordance.get(group) || 0) + 1;
+    perAffordance.set(group, n);
+    if (n > maxPerAffordance) { bump('interactive_repeated_affordance'); continue; }
     if (interactive.length >= maxInteractive) {
-      bump(r === 3 ? 'interactive_chrome_over_cap' : 'interactive_over_cap');
+      bump(r === 3 ? 'interactive_chrome_over_cap' :
+           r === -1 ? 'interactive_goal_term_over_cap' : 'interactive_over_cap');
       continue;
     }
     const role = el.getAttribute('role') ||
       {A: 'link', BUTTON: 'button', INPUT: 'input', SELECT: 'select',
        TEXTAREA: 'textarea', TH: 'columnheader', SUMMARY: 'disclosure'}[el.tagName] ||
       el.tagName.toLowerCase();
-    const rec = {ref: refFor(el), role, name};
+    // The element is described by the shared identity fields, so the handle the model is
+    // shown is the same handle the required-action check will look for later. Empty fields
+    // are omitted: a view full of nulls costs tokens and says nothing.
+    const rec = {ref: refFor(el), role};
+    for (const k of ['id', 'name', 'label', 'text', 'href', 'title', 'testid']) {
+      if (id[k]) rec[k] = id[k];
+    }
+    if (r === -1) rec.names_goal_term = true;
     if (r === 0) rec.in_region = true;
     // Which table a header belongs to matters: an article can carry several sortable
     // tables whose header texts overlap.
@@ -147,11 +186,11 @@ REDUCE_JS = r"""
       rec.table = tbl ? (tbl.id || tbl.getAttribute('data-agent-ref') || null) : null;
       rec.column_index = el.cellIndex;
     }
-    if (el.tagName === 'A') rec.href = (el.getAttribute('href') || '').slice(0, 120);
     if (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
-      rec.type = el.type || null; rec.name_attr = el.name || null;
-      // Without the current value a planner cannot tell a filled field from an empty one,
-      // and will propose filling it again for as long as its budget lasts.
+      rec.type = el.type || null;
+      // The current contents are state, not identity: without them the view cannot
+      // distinguish a filled field from an empty one, and the planner refills it for as
+      // long as its budget lasts.
       rec.value = norm(el.value || '').slice(0, 60);
     }
     const st = [];
@@ -182,7 +221,12 @@ REDUCE_JS = r"""
 }
 """
 
-DEFAULTS = {"maxInteractive": 60, "maxAnchorRegions": 4, "maxRowsPerRegion": 6}
+#: The one place the shared collector is spliced in, so the reducer cannot drift into
+#: describing elements by fields the rest of the system does not know about.
+REDUCE_JS = REDUCE_TEMPLATE.replace("__IDENTITY__", COLLECT_JS.strip())
+
+DEFAULTS = {"maxInteractive": 60, "maxAnchorRegions": 4, "maxRowsPerRegion": 6,
+            "maxPerAffordance": 6}
 
 
 async def reduce_page(page, terms, **overrides) -> dict[str, Any]:
