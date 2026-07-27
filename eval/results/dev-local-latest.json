@@ -1,9 +1,9 @@
 {
  "provenance": {
-  "harness_version": "harness/1.0",
+  "harness_version": "harness/1.1",
   "split": "dev",
-  "base_url": "http://localhost:8099",
-  "git_sha": "ea125e1",
+  "base_url": "http://127.0.0.1:8099",
+  "git_sha": "427cd96",
   "model_pinned": "gemini-3.1-flash-lite",
   "eval_set_sha256": "8f584218710ec79a4b27d536a4c24f98b926cdf306a0461b8c46465b80bb9bb1",
   "eval_set_file": "dev-set.md",
@@ -21,44 +21,249 @@
    "search_path": "/etc/wf"
   },
   "session_policy": "one session per case",
-  "started_at": "2026-07-27T16:46:49Z",
-  "finished_at": "2026-07-27T16:49:23Z"
+  "started_at": "2026-07-27T18:29:27Z",
+  "case_schema": "browser_task",
+  "finished_at": "2026-07-27T18:31:28Z"
  },
  "aggregate": {
   "headline_declared": {
-   "cases": 10,
-   "passed": 9,
-   "rate": 0.9
+   "cases": 11,
+   "passed": 10,
+   "rate": 0.9091
   },
   "experimental_reported_separately": {
-   "cases": 4,
+   "cases": 3,
    "passed": 2,
-   "rate": 0.5
+   "rate": 0.6667
   },
   "all_cases": {
    "cases": 15,
-   "passed": 12,
-   "rate": 0.8
+   "passed": 13,
+   "rate": 0.8667
   },
   "failure_class_histogram": {
    "budget_exhausted": 1,
-   "internal_error": 1,
-   "none": 10,
-   "policy_refused": 3
+   "none": 11,
+   "policy_refused": 2,
+   "robots_disallowed": 1
   },
-  "evidence_findings": 0
+  "evidence_findings": 0,
+  "experimental_breadth": {
+   "cases": 3,
+   "attempted": {
+    "count": 1,
+    "rate": 0.3333,
+    "interval_95": [
+     0.0615,
+     0.7923
+    ]
+   },
+   "verified": {
+    "count": 1,
+    "rate": 0.3333,
+    "interval_95": [
+     0.0615,
+     0.7923
+    ]
+   },
+   "abstained_after_looking": {
+    "count": 0,
+    "rate": 0.0,
+    "interval_95": [
+     0.0,
+     0.5615
+    ]
+   },
+   "refused_by_policy": {
+    "count": 2,
+    "rate": 0.6667,
+    "interval_95": [
+     0.2077,
+     0.9385
+    ]
+   },
+   "failed_or_blocked": {
+    "count": 0,
+    "rate": 0.0,
+    "interval_95": [
+     0.0,
+     0.5615
+    ]
+   }
+  },
+  "shortcut_refusals": 0,
+  "latency": {
+   "all": {
+    "n": 15,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 15,
+     "median": 4.53,
+     "p90": 13.53,
+     "min": 0.0,
+     "max": 18.5
+    },
+    "time_to_first_result_seconds": {
+     "n": 12,
+     "median": 4.57,
+     "p90": 13.09,
+     "min": 2.91,
+     "max": 13.71
+    },
+    "queue_wait_seconds": {
+     "n": 15,
+     "median": 0.0,
+     "p90": 0.0,
+     "min": 0.0,
+     "max": 0.0
+    },
+    "model_seconds": {
+     "n": 15,
+     "median": 1.26,
+     "p90": 3.72,
+     "min": 0.0,
+     "max": 4.84
+    }
+   },
+   "T-DECLARED": {
+    "n": 11,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 11,
+     "median": 4.62,
+     "p90": 13.53,
+     "min": 2.95,
+     "max": 18.5
+    },
+    "time_to_first_result_seconds": {
+     "n": 11,
+     "median": 4.52,
+     "p90": 7.59,
+     "min": 2.91,
+     "max": 13.71
+    },
+    "queue_wait_seconds": {
+     "n": 11,
+     "median": 0.0,
+     "p90": 0.0,
+     "min": 0.0,
+     "max": 0.0
+    },
+    "model_seconds": {
+     "n": 11,
+     "median": 1.27,
+     "p90": 3.59,
+     "min": 1.1,
+     "max": 4.84
+    }
+   },
+   "T-EXPERIMENTAL": {
+    "n": 3,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 3,
+     "median": 0.14,
+     "p90": 0.14,
+     "min": 0.0,
+     "max": 13.1
+    },
+    "time_to_first_result_seconds": {
+     "n": 1,
+     "median": 13.09,
+     "p90": 13.09,
+     "min": 13.09,
+     "max": 13.09
+    },
+    "queue_wait_seconds": {
+     "n": 3,
+     "median": 0.0,
+     "p90": 0.0,
+     "min": 0.0,
+     "max": 0.0
+    },
+    "model_seconds": {
+     "n": 3,
+     "median": 0.0,
+     "p90": 0.0,
+     "min": 0.0,
+     "max": 3.72
+    }
+   },
+   "model_driven": {
+    "n": 12,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 12,
+     "median": 4.75,
+     "p90": 13.53,
+     "min": 2.95,
+     "max": 18.5
+    },
+    "time_to_first_result_seconds": {
+     "n": 12,
+     "median": 4.57,
+     "p90": 13.09,
+     "min": 2.91,
+     "max": 13.71
+    },
+    "queue_wait_seconds": {
+     "n": 12,
+     "median": 0.0,
+     "p90": 0.0,
+     "min": 0.0,
+     "max": 0.0
+    },
+    "model_seconds": {
+     "n": 12,
+     "median": 1.44,
+     "p90": 3.72,
+     "min": 1.1,
+     "max": 4.84
+    }
+   },
+   "scripted": {
+    "n": 1,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 1,
+     "median": 0.14,
+     "p90": 0.14,
+     "min": 0.14,
+     "max": 0.14
+    },
+    "time_to_first_result_seconds": {
+     "n": 0
+    },
+    "queue_wait_seconds": {
+     "n": 1,
+     "median": 0.0,
+     "p90": 0.0,
+     "min": 0.0,
+     "max": 0.0
+    },
+    "model_seconds": {
+     "n": 1,
+     "median": 0.0,
+     "p90": 0.0,
+     "min": 0.0,
+     "max": 0.0
+    }
+   }
+  }
  },
  "cases": [
   {
    "case": "DEV-01",
    "record": "OP-4 \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_bfccf02691f9",
+   "run_id": "run_7d7feadbfec4",
    "tier": "T-DECLARED",
    "execution_path": "model_driven",
    "terminal_status": "succeeded_verified",
    "failure_class": null,
    "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
    "expected": [
     "succeeded_verified"
    ],
@@ -72,15 +277,40 @@
      "top_row: derived value (dict), not string-checkable against the artifact"
     ]
    },
-   "duration_seconds": 8.62,
+   "duration_seconds": 7.63,
+   "latency": {
+    "queue_wait_seconds": 0.001,
+    "run_seconds": 7.626,
+    "total_seconds": 7.626,
+    "time_to_first_result_seconds": 7.59,
+    "steps_measured": 15,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 4,
+     "p90": 1630,
+     "max": 3705
+    },
+    "slowest_step": {
+     "seq": 10,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 2",
+     "ms": 3705
+    },
+    "model_seconds": 2.98,
+    "model_calls": 2,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 15,
     "llm_calls_exploration": 2,
     "llm_calls_recovery": 0,
-    "input_tokens": 10273,
-    "output_tokens": 370,
-    "usd": 0.003123,
-    "elapsed_seconds": 0.0
+    "input_tokens": 10341,
+    "output_tokens": 313,
+    "usd": 0.003055,
+    "started_at": 1785176967.2191858,
+    "ended_at": 1785176974.844745,
+    "elapsed_seconds": 7.63
    },
    "timed_out_waiting": false,
    "passed": true
@@ -89,12 +319,14 @@
    "case": "DEV-02",
    "record": "OP-4 \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_072051aa99a6",
+   "run_id": "run_1dd90eddb570",
    "tier": "T-EXPERIMENTAL",
    "execution_path": null,
    "terminal_status": "unsupported",
    "failure_class": "policy_refused",
    "counts_as_success": false,
+   "outcome_kind": "refused_by_policy",
+   "attempted": false,
    "expected": [
     "succeeded_verified"
    ],
@@ -106,6 +338,29 @@
     "notes": []
    },
    "duration_seconds": 0.0,
+   "latency": {
+    "queue_wait_seconds": 0.001,
+    "run_seconds": 0.003,
+    "total_seconds": 0.004,
+    "time_to_first_result_seconds": null,
+    "steps_measured": 2,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 1,
+     "p90": 1,
+     "max": 1
+    },
+    "slowest_step": {
+     "seq": 1,
+     "kind": "policy_check",
+     "summary": "SSRF GUARD DISABLED (development configuration)",
+     "ms": 1
+    },
+    "model_seconds": 0,
+    "model_calls": 0,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 2,
     "llm_calls_exploration": 0,
@@ -113,6 +368,8 @@
     "input_tokens": 0,
     "output_tokens": 0,
     "usd": 0.0,
+    "started_at": 1785176977.531905,
+    "ended_at": 1785176977.535022,
     "elapsed_seconds": 0.0
    },
    "timed_out_waiting": false,
@@ -122,12 +379,14 @@
    "case": "DEV-03",
    "record": "OP-4 \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_bf387401a3a3",
+   "run_id": "run_54913a4011d9",
    "tier": "T-DECLARED",
    "execution_path": "model_driven",
    "terminal_status": "succeeded_verified",
    "failure_class": null,
    "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
    "expected": [
     "succeeded_verified"
    ],
@@ -141,15 +400,40 @@
      "top_row: derived value (dict), not string-checkable against the artifact"
     ]
    },
-   "duration_seconds": 3.81,
+   "duration_seconds": 3.56,
+   "latency": {
+    "queue_wait_seconds": 0.001,
+    "run_seconds": 3.557,
+    "total_seconds": 3.558,
+    "time_to_first_result_seconds": 3.542,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 2,
+     "p90": 1324,
+     "max": 1610
+    },
+    "slowest_step": {
+     "seq": 7,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 1",
+     "ms": 1610
+    },
+    "model_seconds": 1.606,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 12,
     "llm_calls_exploration": 1,
     "llm_calls_recovery": 0,
-    "input_tokens": 5275,
+    "input_tokens": 5309,
     "output_tokens": 175,
-    "usd": 0.001581,
-    "elapsed_seconds": 0.0
+    "usd": 0.00159,
+    "started_at": 1785176977.53789,
+    "ended_at": 1785176981.094954,
+    "elapsed_seconds": 3.56
    },
    "timed_out_waiting": false,
    "passed": true
@@ -158,12 +442,14 @@
    "case": "DEV-04",
    "record": "OP-5 \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_627df27a5987",
+   "run_id": "run_09f92b26d55f",
    "tier": "T-DECLARED",
    "execution_path": "model_driven",
    "terminal_status": "succeeded_verified",
    "failure_class": null,
    "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
    "expected": [
     "succeeded_verified"
    ],
@@ -177,15 +463,40 @@
      "still_collapsed: label anchor 'collapsed marker of box 1' is a rule, not page text"
     ]
    },
-   "duration_seconds": 3.88,
+   "duration_seconds": 2.95,
+   "latency": {
+    "queue_wait_seconds": 0.002,
+    "run_seconds": 2.954,
+    "total_seconds": 2.956,
+    "time_to_first_result_seconds": 2.907,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 1,
+     "p90": 866,
+     "max": 1184
+    },
+    "slowest_step": {
+     "seq": 7,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 1",
+     "ms": 1184
+    },
+    "model_seconds": 1.18,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 12,
     "llm_calls_exploration": 1,
     "llm_calls_recovery": 0,
-    "input_tokens": 3479,
-    "output_tokens": 162,
-    "usd": 0.001113,
-    "elapsed_seconds": 0.0
+    "input_tokens": 3513,
+    "output_tokens": 142,
+    "usd": 0.001091,
+    "started_at": 1785176983.82586,
+    "ended_at": 1785176986.7801359,
+    "elapsed_seconds": 2.95
    },
    "timed_out_waiting": false,
    "passed": true
@@ -194,12 +505,14 @@
    "case": "DEV-05",
    "record": "OP-5 \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_ecf1462f8470",
+   "run_id": "run_9fb3a76fc96d",
    "tier": "T-DECLARED",
    "execution_path": "model_driven",
    "terminal_status": "succeeded_verified",
    "failure_class": null,
    "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
    "expected": [
     "succeeded_verified"
    ],
@@ -213,15 +526,40 @@
      "still_collapsed: label anchor 'collapsed marker of box 2' is a rule, not page text"
     ]
    },
-   "duration_seconds": 4.02,
+   "duration_seconds": 4.53,
+   "latency": {
+    "queue_wait_seconds": 0.001,
+    "run_seconds": 4.53,
+    "total_seconds": 4.531,
+    "time_to_first_result_seconds": 4.489,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 1,
+     "p90": 904,
+     "max": 2716
+    },
+    "slowest_step": {
+     "seq": 7,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 1",
+     "ms": 2716
+    },
+    "model_seconds": 1.192,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 12,
     "llm_calls_exploration": 1,
     "llm_calls_recovery": 0,
-    "input_tokens": 3479,
-    "output_tokens": 159,
-    "usd": 0.001108,
-    "elapsed_seconds": 0.0
+    "input_tokens": 3513,
+    "output_tokens": 143,
+    "usd": 0.001093,
+    "started_at": 1785176986.878892,
+    "ended_at": 1785176991.409013,
+    "elapsed_seconds": 4.53
    },
    "timed_out_waiting": false,
    "passed": true
@@ -230,12 +568,14 @@
    "case": "DEV-06",
    "record": "OP-6 \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_8f46a73e9dea",
+   "run_id": "run_2d501b917017",
    "tier": "T-DECLARED",
    "execution_path": "model_driven",
    "terminal_status": "succeeded_verified",
    "failure_class": null,
    "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
    "expected": [
     "succeeded_verified"
    ],
@@ -253,15 +593,40 @@
      "items: label anchor 'product listing entries' is a rule, not page text"
     ]
    },
-   "duration_seconds": 5.42,
+   "duration_seconds": 4.88,
+   "latency": {
+    "queue_wait_seconds": 0.001,
+    "run_seconds": 4.882,
+    "total_seconds": 4.883,
+    "time_to_first_result_seconds": 4.868,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 4,
+     "p90": 1274,
+     "max": 1503
+    },
+    "slowest_step": {
+     "seq": 5,
+     "kind": "navigate",
+     "summary": "Navigate to https://books.toscrape.com/index.html",
+     "ms": 1503
+    },
+    "model_seconds": 1.271,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 12,
     "llm_calls_exploration": 1,
     "llm_calls_recovery": 0,
-    "input_tokens": 3101,
-    "output_tokens": 156,
-    "usd": 0.001009,
-    "elapsed_seconds": 0.0
+    "input_tokens": 3135,
+    "output_tokens": 145,
+    "usd": 0.001001,
+    "started_at": 1785176994.024828,
+    "ended_at": 1785176998.906681,
+    "elapsed_seconds": 4.88
    },
    "timed_out_waiting": false,
    "passed": true
@@ -270,12 +635,14 @@
    "case": "DEV-07",
    "record": "OP-6 \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_f3687a3c61cc",
+   "run_id": "run_9c291d5a9293",
    "tier": "T-DECLARED",
    "execution_path": "model_driven",
    "terminal_status": "succeeded_verified",
    "failure_class": null,
    "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
    "expected": [
     "succeeded_verified"
    ],
@@ -293,15 +660,40 @@
      "items: label anchor 'product listing entries' is a rule, not page text"
     ]
    },
-   "duration_seconds": 13.84,
+   "duration_seconds": 13.53,
+   "latency": {
+    "queue_wait_seconds": 0.002,
+    "run_seconds": 13.534,
+    "total_seconds": 13.536,
+    "time_to_first_result_seconds": 13.524,
+    "steps_measured": 18,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 5,
+     "p90": 3327,
+     "max": 3397
+    },
+    "slowest_step": {
+     "seq": 10,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 2",
+     "ms": 3397
+    },
+    "model_seconds": 3.782,
+    "model_calls": 3,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 18,
     "llm_calls_exploration": 3,
     "llm_calls_recovery": 0,
-    "input_tokens": 8806,
-    "output_tokens": 489,
-    "usd": 0.002935,
-    "elapsed_seconds": 0.0
+    "input_tokens": 8908,
+    "output_tokens": 474,
+    "usd": 0.002938,
+    "started_at": 1785177000.608945,
+    "ended_at": 1785177014.1430159,
+    "elapsed_seconds": 13.53
    },
    "timed_out_waiting": false,
    "passed": true
@@ -310,12 +702,14 @@
    "case": "DEV-08",
    "record": "OP-6 \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_21cc4f29ae27",
+   "run_id": "run_8cc649f1de2c",
    "tier": "T-DECLARED",
    "execution_path": "model_driven",
    "terminal_status": "failed",
    "failure_class": "budget_exhausted",
    "counts_as_success": false,
+   "outcome_kind": "failed_or_blocked",
+   "attempted": true,
    "expected": [
     "succeeded_verified"
    ],
@@ -326,15 +720,40 @@
     "findings": [],
     "notes": []
    },
-   "duration_seconds": 19.02,
+   "duration_seconds": 18.5,
+   "latency": {
+    "queue_wait_seconds": 0.003,
+    "run_seconds": 18.499,
+    "total_seconds": 18.502,
+    "time_to_first_result_seconds": 4.524,
+    "steps_measured": 25,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 25,
+     "p90": 2836,
+     "max": 2978
+    },
+    "slowest_step": {
+     "seq": 22,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 4",
+     "ms": 2978
+    },
+    "model_seconds": 4.843,
+    "model_calls": 4,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 25,
     "llm_calls_exploration": 4,
     "llm_calls_recovery": 0,
-    "input_tokens": 12760,
-    "output_tokens": 649,
-    "usd": 0.004163,
-    "elapsed_seconds": 0.0
+    "input_tokens": 12896,
+    "output_tokens": 630,
+    "usd": 0.004169,
+    "started_at": 1785177015.8423839,
+    "ended_at": 1785177034.3413389,
+    "elapsed_seconds": 18.5
    },
    "timed_out_waiting": false,
    "passed": false
@@ -343,12 +762,14 @@
    "case": "DEV-09",
    "record": "OP-7 \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_1928a64e2933",
+   "run_id": "run_0ac246169aed",
    "tier": "T-DECLARED",
    "execution_path": "model_driven",
    "terminal_status": "succeeded_verified",
    "failure_class": null,
    "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
    "expected": [
     "succeeded_verified"
    ],
@@ -359,15 +780,40 @@
     "findings": [],
     "notes": []
    },
-   "duration_seconds": 5.06,
+   "duration_seconds": 4.62,
+   "latency": {
+    "queue_wait_seconds": 0.002,
+    "run_seconds": 4.62,
+    "total_seconds": 4.622,
+    "time_to_first_result_seconds": 4.616,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 1,
+     "p90": 1263,
+     "max": 1899
+    },
+    "slowest_step": {
+     "seq": 5,
+     "kind": "navigate",
+     "summary": "Navigate to https://books.toscrape.com/catalogue/category/books/poetry_23/index.html",
+     "ms": 1899
+    },
+    "model_seconds": 1.261,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 12,
     "llm_calls_exploration": 1,
     "llm_calls_recovery": 0,
-    "input_tokens": 2735,
-    "output_tokens": 160,
-    "usd": 0.000924,
-    "elapsed_seconds": 0.0
+    "input_tokens": 2769,
+    "output_tokens": 161,
+    "usd": 0.000934,
+    "started_at": 1785177035.632556,
+    "ended_at": 1785177040.2524228,
+    "elapsed_seconds": 4.62
    },
    "timed_out_waiting": false,
    "passed": true
@@ -376,12 +822,14 @@
    "case": "DEV-10",
    "record": "OP-7 \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_361497cc053c",
+   "run_id": "run_4fb182bc746f",
    "tier": "T-DECLARED",
    "execution_path": "model_driven",
    "terminal_status": "succeeded_verified",
    "failure_class": null,
    "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
    "expected": [
     "succeeded_verified"
    ],
@@ -392,15 +840,40 @@
     "findings": [],
     "notes": []
    },
-   "duration_seconds": 5.1,
+   "duration_seconds": 4.03,
+   "latency": {
+    "queue_wait_seconds": 0.002,
+    "run_seconds": 4.027,
+    "total_seconds": 4.029,
+    "time_to_first_result_seconds": 4.023,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 1,
+     "p90": 1251,
+     "max": 1488
+    },
+    "slowest_step": {
+     "seq": 5,
+     "kind": "navigate",
+     "summary": "Navigate to https://books.toscrape.com/catalogue/category/books/poetry_23/index.html",
+     "ms": 1488
+    },
+    "model_seconds": 1.109,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 12,
     "llm_calls_exploration": 1,
     "llm_calls_recovery": 0,
-    "input_tokens": 2735,
-    "output_tokens": 160,
-    "usd": 0.000924,
-    "elapsed_seconds": 0.0
+    "input_tokens": 2769,
+    "output_tokens": 161,
+    "usd": 0.000934,
+    "started_at": 1785177041.9447172,
+    "ended_at": 1785177045.97145,
+    "elapsed_seconds": 4.03
    },
    "timed_out_waiting": false,
    "passed": true
@@ -409,45 +882,79 @@
    "case": "DEV-11",
    "record": "XB-1 (Mode B) \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_0896041a821f",
-   "tier": "T-EXPERIMENTAL",
+   "run_id": "run_fb21b7c0e558",
+   "tier": "T-DECLARED",
    "execution_path": "model_driven",
-   "terminal_status": "failed",
-   "failure_class": "internal_error",
-   "counts_as_success": false,
+   "terminal_status": "no_result_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
    "expected": [
     "no_result_verified"
    ],
-   "status_as_expected": false,
+   "status_as_expected": true,
    "evidence": {
-    "claims": 0,
-    "independently_checked": 0,
+    "claims": 2,
+    "independently_checked": 2,
     "findings": [],
-    "notes": []
+    "notes": [
+     "result_counter: derived value (dict), not string-checkable against the artifact",
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "items: derived value (list), not string-checkable against the artifact",
+     "items: label anchor 'every product entry in the listing' is a rule, not page text"
+    ]
    },
-   "duration_seconds": 10.92,
+   "duration_seconds": 4.52,
+   "latency": {
+    "queue_wait_seconds": 0.002,
+    "run_seconds": 4.52,
+    "total_seconds": 4.522,
+    "time_to_first_result_seconds": 4.513,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 2,
+     "p90": 1601,
+     "max": 1645
+    },
+    "slowest_step": {
+     "seq": 8,
+     "kind": "click",
+     "summary": "click e1 \u2014 Navigate to the Poetry category to list the books.",
+     "ms": 1645
+    },
+    "model_seconds": 1.096,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 12,
     "llm_calls_exploration": 1,
     "llm_calls_recovery": 0,
-    "input_tokens": 3201,
-    "output_tokens": 178,
-    "usd": 0.001067,
-    "elapsed_seconds": 0.0
+    "input_tokens": 3142,
+    "output_tokens": 137,
+    "usd": 0.000991,
+    "started_at": 1785177047.983558,
+    "ended_at": 1785177052.5039868,
+    "elapsed_seconds": 4.52
    },
    "timed_out_waiting": false,
-   "passed": false
+   "passed": true
   },
   {
    "case": "DEV-12",
    "record": "XB-4 \u00b7 **tier** T-DECLARED",
    "declared_tier": "",
-   "run_id": "run_b9bd13584e2c",
+   "run_id": "run_9ecd5175a6d0",
    "tier": "T-DECLARED",
    "execution_path": "model_driven",
    "terminal_status": "succeeded_verified",
    "failure_class": null,
    "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
    "expected": [
     "failed",
     "succeeded_verified"
@@ -466,15 +973,40 @@
      "items: label anchor 'product listing entries' is a rule, not page text"
     ]
    },
-   "duration_seconds": 14.2,
+   "duration_seconds": 13.72,
+   "latency": {
+    "queue_wait_seconds": 0.002,
+    "run_seconds": 13.719,
+    "total_seconds": 13.721,
+    "time_to_first_result_seconds": 13.708,
+    "steps_measured": 18,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 5,
+     "p90": 2709,
+     "max": 3488
+    },
+    "slowest_step": {
+     "seq": 10,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 2",
+     "ms": 3488
+    },
+    "model_seconds": 3.591,
+    "model_calls": 3,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 18,
     "llm_calls_exploration": 3,
     "llm_calls_recovery": 0,
-    "input_tokens": 8806,
-    "output_tokens": 489,
-    "usd": 0.002935,
-    "elapsed_seconds": 0.0
+    "input_tokens": 8908,
+    "output_tokens": 474,
+    "usd": 0.002938,
+    "started_at": 1785177054.031005,
+    "ended_at": 1785177067.749642,
+    "elapsed_seconds": 13.72
    },
    "timed_out_waiting": false,
    "passed": true
@@ -483,12 +1015,14 @@
    "case": "DEV-13",
    "record": "XB-5 \u00b7 **tier** T-REFUSED",
    "declared_tier": "",
-   "run_id": "run_796b2dc86417",
+   "run_id": "run_3d9cfef2eda4",
    "tier": "T-EXPERIMENTAL",
    "execution_path": "scripted",
    "terminal_status": "blocked",
-   "failure_class": "policy_refused",
+   "failure_class": "robots_disallowed",
    "counts_as_success": false,
+   "outcome_kind": "refused_by_policy",
+   "attempted": false,
    "expected": [
     "blocked"
    ],
@@ -499,7 +1033,30 @@
     "findings": [],
     "notes": []
    },
-   "duration_seconds": 0.09,
+   "duration_seconds": 0.14,
+   "latency": {
+    "queue_wait_seconds": 0.002,
+    "run_seconds": 0.138,
+    "total_seconds": 0.14,
+    "time_to_first_result_seconds": null,
+    "steps_measured": 4,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 1,
+     "p90": 69,
+     "max": 69
+    },
+    "slowest_step": {
+     "seq": 4,
+     "kind": "policy_check",
+     "summary": "Policy check for https://en.wikipedia.org/wiki/Special:Search?search=convertible%20arbitrage",
+     "ms": 69
+    },
+    "model_seconds": 0,
+    "model_calls": 0,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 4,
     "llm_calls_exploration": 0,
@@ -507,7 +1064,9 @@
     "input_tokens": 0,
     "output_tokens": 0,
     "usd": 0.0,
-    "elapsed_seconds": 0.0
+    "started_at": 1785177069.0383759,
+    "ended_at": 1785177069.176182,
+    "elapsed_seconds": 0.14
    },
    "timed_out_waiting": false,
    "passed": true
@@ -516,12 +1075,14 @@
    "case": "DEV-14",
    "record": "XB-5 \u00b7 **tier** T-REFUSED",
    "declared_tier": "",
-   "run_id": "run_92dbf18ce39e",
+   "run_id": "run_b4a2f3c84718",
    "tier": "T-REFUSED",
    "execution_path": null,
    "terminal_status": "unsupported",
    "failure_class": "policy_refused",
    "counts_as_success": false,
+   "outcome_kind": "refused_by_policy",
+   "attempted": false,
    "expected": [
     "unsupported"
    ],
@@ -533,6 +1094,29 @@
     "notes": []
    },
    "duration_seconds": 0.0,
+   "latency": {
+    "queue_wait_seconds": 0.002,
+    "run_seconds": 0.003,
+    "total_seconds": 0.006,
+    "time_to_first_result_seconds": null,
+    "steps_measured": 2,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 1,
+     "p90": 1,
+     "max": 1
+    },
+    "slowest_step": {
+     "seq": 1,
+     "kind": "policy_check",
+     "summary": "SSRF GUARD DISABLED (development configuration)",
+     "ms": 1
+    },
+    "model_seconds": 0,
+    "model_calls": 0,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
     "steps": 2,
     "llm_calls_exploration": 0,
@@ -540,6 +1124,8 @@
     "input_tokens": 0,
     "output_tokens": 0,
     "usd": 0.0,
+    "started_at": 1785177072.073601,
+    "ended_at": 1785177072.077043,
     "elapsed_seconds": 0.0
    },
    "timed_out_waiting": false,
@@ -549,12 +1135,14 @@
    "case": "DEV-15",
    "record": "XB-5 \u00b7 **tier** T-EXPERIMENTAL",
    "declared_tier": "",
-   "run_id": "run_63a4edf1878e",
+   "run_id": "run_c3ee573ef12b",
    "tier": "T-EXPERIMENTAL",
    "execution_path": "model_driven",
    "terminal_status": "succeeded_verified",
    "failure_class": null,
    "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
    "expected": [
     "blocked",
     "succeeded_verified",
@@ -568,15 +1156,40 @@
     "findings": [],
     "notes": []
    },
-   "duration_seconds": 35.85,
+   "duration_seconds": 13.1,
+   "latency": {
+    "queue_wait_seconds": 0.001,
+    "run_seconds": 13.099,
+    "total_seconds": 13.1,
+    "time_to_first_result_seconds": 13.09,
+    "steps_measured": 16,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 86,
+     "p90": 3190,
+     "max": 3853
+    },
+    "slowest_step": {
+     "seq": 10,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 2",
+     "ms": 3853
+    },
+    "model_seconds": 3.721,
+    "model_calls": 3,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
    "budget": {
-    "steps": 28,
-    "llm_calls_exploration": 7,
+    "steps": 16,
+    "llm_calls_exploration": 3,
     "llm_calls_recovery": 0,
-    "input_tokens": 25002,
-    "output_tokens": 1879,
-    "usd": 0.009069,
-    "elapsed_seconds": 0.0
+    "input_tokens": 10830,
+    "output_tokens": 495,
+    "usd": 0.00345,
+    "started_at": 1785177072.082357,
+    "ended_at": 1785177085.181314,
+    "elapsed_seconds": 13.1
    },
    "timed_out_waiting": false,
    "passed": true

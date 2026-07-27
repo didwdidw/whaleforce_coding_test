@@ -152,3 +152,58 @@ def test_the_boundary_is_the_boundary(op, price, matches):
 
     assert _predicate_holds({"price_gbp": price},
                             {"field": "price_gbp", "op": op, "value": 60.0}) is matches
+
+
+# ---- a task about someone else's site must never reach ours ----------------------
+
+@pytest.mark.parametrize("task,expected_host", [
+    ("Use Wikipedia's search page to find articles mentioning 'convertible arbitrage'",
+     "en.wikipedia.org"),
+    ("On the Wikipedia article for Apple Inc., expand the first collapsed box",
+     "en.wikipedia.org"),
+    ("Open the Poetry category on books.toscrape.com", "books.toscrape.com"),
+])
+def test_a_site_named_in_words_is_a_named_site(task, expected_host):
+    """Nobody writes `en.wikipedia.org` in a sentence. Matching only hostnames made a task
+    that named a real site look like a task that named none."""
+    assert Executor.named_site(task) == expected_host
+
+
+def test_a_task_about_wikipedia_search_cannot_be_answered_by_our_own_fixture():
+    """The regression this exists for: 'Use Wikipedia's search page to find X' routed to the
+    fixture's search plan, searched a site we wrote, found nothing, and reported
+    `no_result_verified`. Everything about that run was correct except which site it was on
+    — which is precisely the confident wrong answer the whole system is built to refuse."""
+    executor = Executor.__new__(Executor)
+    task = "Use Wikipedia's search page to find articles mentioning 'convertible arbitrage'"
+    # It reaches Wikipedia's robots-disallowed namespace, where it is refused with the rule
+    # quoted. The fixture's own routes are not among the candidates at all.
+    assert executor.route(task)[0] == "wiki_special"
+    assert "search" not in {r[0] for r in Executor.routes_for(task)}
+
+
+def test_the_refused_url_is_the_one_the_task_asked_for():
+    """Refusing `Special:WhatLinksHere` for a task about the search page would be correct
+    about robots and wrong about the question."""
+    executor = Executor.__new__(Executor)
+    plan = executor._select_plan(
+        "Use Wikipedia's search page to find articles mentioning 'convertible arbitrage'")
+    assert plan.postcondition.target_url.startswith(
+        "https://en.wikipedia.org/wiki/Special:Search")
+    assert "convertible%20arbitrage" in plan.postcondition.target_url
+
+    other = executor._select_plan("Which Wikipedia pages link to the S&P 500 list?")
+    assert "Special:WhatLinksHere" in other.postcondition.target_url
+
+
+def test_a_site_we_do_not_serve_gets_no_site_specific_operation():
+    executor = Executor.__new__(Executor)
+    task = "On www.gutenberg.org, find the 'Science Fiction' bookshelf and count the ebooks"
+    assert executor.route(task)[0] is None
+
+
+def test_the_fixtures_own_tasks_still_reach_the_fixture():
+    """The rule must not close the door on the demonstrations it was written around."""
+    executor = Executor.__new__(Executor)
+    assert executor.route("Search the fixture catalogue for lantern")[0] == "search"
+    assert executor.route("Is any product priced over £100?")[0] == "absence"

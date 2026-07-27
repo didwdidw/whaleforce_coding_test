@@ -94,6 +94,14 @@ PROMISED_RECORDS: tuple[PromisedRecord, ...] = (
                    "Open a product page and extract a labelled field", "book_detail"),
 )
 
+#: Routes that are not capabilities but policy demonstrations on a promised site. They must
+#: stay reachable there: a robots refusal that can only be shown on a site we wrote is not a
+#: demonstration of anything, and restricting a named site to its promised operations alone
+#: made the refusal unreachable on the site whose rule it is.
+POLICY_ROUTES: dict[str, tuple[str, ...]] = {
+    "en.wikipedia.org": ("wiki_special",),
+}
+
 RECORD_BY_ROUTE: dict[str, PromisedRecord] = {
     route: record for record in PROMISED_RECORDS
     for route in (record.route, *record.extra_routes)
@@ -215,7 +223,7 @@ BOOK_CATEGORY_NONFICTION_P2 = f"{BOOKS}/catalogue/category/books/nonfiction_13/p
 WIKI_ARTICLE_BASE = "https://en.wikipedia.org/wiki/"
 WIKI_SP500 = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 CONSTITUENTS = '//table[@id="constituents"]'
-WIKI_SPECIAL = "https://en.wikipedia.org/wiki/Special:WhatLinksHere/"
+WIKI_SPECIAL = "https://en.wikipedia.org/wiki/Special:"
 NAVBOX_TOGGLE = ".navbox-inner.mw-collapsible .mw-collapsible-toggle"
 COLLAPSED_NAVBOX = ('//div[contains(@class,"navbox-inner") '
                     'and contains(@class,"mw-collapsed")]')
@@ -1049,7 +1057,9 @@ class Executor:
     # a perfectly plausible pager reading for a task that asked for something else. A
     # mis-route that still produces an answer is worse than one that fails.
     ROUTES: tuple[tuple[str, tuple[str, ...]], ...] = (
-        ("wiki_special", ("what links here", "pages that link to", "special:")),
+        ("wiki_special", ("what links here", "pages that link to", "pages link to",
+                          "special:",
+                          "search page", "find articles", "wikipedia's search")),
         ("wiki_sort", ("sort the", "sorted by", "sort by", "s&p 500 table",
                        "constituents table")),
         ("wiki_expand", ("expand the", "collapsed navbox", "navbox", "collapsible")),
@@ -2311,10 +2321,34 @@ class Executor:
         return ""
 
     @classmethod
+    @classmethod
+    def site_aliases(cls) -> dict[str, str]:
+        """The bare names people use for the sites we serve.
+
+        Nobody writes "en.wikipedia.org" in a sentence; they write "Wikipedia". Matching
+        only hostnames meant a task naming a real site by name looked like a task naming no
+        site at all, and a task naming no site is free to reach the fixture's own routes.
+        """
+        aliases: dict[str, str] = {}
+        for record in PROMISED_RECORDS:
+            host = record.site.lower().removeprefix("www.")
+            aliases[host] = host
+            labels = host.split(".")
+            if len(labels) >= 2:
+                aliases[labels[-2]] = host
+        return aliases
+
+    @classmethod
     def named_site(cls, task: str) -> str:
         """The host the task names, normalised, or "" if it names none."""
         entry = cls.resolve_entry(task)
-        return urlsplit(entry).netloc.lower().removeprefix("www.") if entry else ""
+        if entry:
+            return urlsplit(entry).netloc.lower().removeprefix("www.")
+        low = task.lower()
+        for alias, host in cls.site_aliases().items():
+            if re.search(rf"\b{re.escape(alias)}\b", low):
+                return host
+        return ""
 
     @classmethod
     def names_a_site_we_do_not_serve(cls, task: str) -> str:
@@ -2350,7 +2384,17 @@ class Executor:
         allowed = {route for r in PROMISED_RECORDS
                    if r.site.lower().removeprefix("www.") == host
                    for route in (r.route, *r.extra_routes)}
-        return tuple(r for r in cls.ROUTES if r[0] in allowed) if allowed else cls.ROUTES
+        allowed |= set(POLICY_ROUTES.get(host, ()))
+        if allowed:
+            return tuple(r for r in cls.ROUTES if r[0] in allowed)
+        if host == urlsplit(settings.fixture_base_url).netloc.lower().removeprefix("www."):
+            return cls.ROUTES
+        # A named site that is neither promised nor the fixture has no site-specific
+        # operation here, and falling back to the whole table let the fixture's own routes
+        # claim it: "Use Wikipedia's search page to find X" was answered by searching our
+        # fixture, finding nothing, and reporting a verified absence. Nothing in that run
+        # was wrong except which site it was on.
+        return ()
 
     @staticmethod
     def goal_terms(task: str) -> tuple[str, ...]:
@@ -2450,20 +2494,37 @@ class Executor:
         control. This is the version where the site is not ours and the rule is not one we
         wrote.
         """
-        target = f"{WIKI_SPECIAL}{WIKI_SP500.rsplit('/', 1)[-1]}"
+        # Which Special: page the task actually asks for. Refusing a different URL than the
+        # one requested would be correct about robots and wrong about the question, which is
+        # the same defect as answering one.
+        if re.search(r"search page|find articles|search for|wikipedia's search", low):
+            # The opening quote must not be an apostrophe inside a word, or "Wikipedia's
+            # search page ... 'convertible arbitrage'" yields everything after the `'` in
+            # "Wikipedia's" as the search term.
+            term = re.search(r"(?<!\w)[\"'\u2018\u201c]([^\"'\u2019\u201d]{3,})[\"'\u2019\u201d]",
+                             low)
+            page = "Search"
+            target = (f"{WIKI_SPECIAL}Search?search="
+                      f"{quote(term.group(1))}" if term else f"{WIKI_SPECIAL}Search")
+            goal = ("Find Wikipedia articles matching a search term, which the site answers "
+                    "at Special:Search.")
+        else:
+            page = "WhatLinksHere"
+            target = f"{WIKI_SPECIAL}WhatLinksHere/{WIKI_SP500.rsplit('/', 1)[-1]}"
+            goal = ("List the Wikipedia pages that link to the list of S&P 500 companies, "
+                    "which the site answers at Special:WhatLinksHere.")
         pc = Postcondition(
-            goal=("List the Wikipedia pages that link to the list of S&P 500 companies, "
-                  "which the site answers at Special:WhatLinksHere."),
+            goal=goal,
             operation="OP-robots",
             target_url=target,
-            inputs={},
+            inputs={"special_page": page},
             claims=(),
         )
 
         async def attempt(ctx: ExecutionContext) -> None:
             await self._navigate(ctx, target)
 
-        return Plan("OP-robots", "wikipedia Special: namespace (robots-Disallowed)",
+        return Plan("OP-robots", f"wikipedia Special:{page} (robots-Disallowed)",
                     pc, (attempt,), entry_url=target)
 
     def _plan_testhook(self, seed: str) -> Plan:
