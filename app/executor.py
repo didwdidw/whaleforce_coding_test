@@ -302,10 +302,11 @@ class Executor:
                  f"answer to a question that may not have been asked, so the run stopped "
                  f"before browsing. Rephrase to name a single operation."
                  if ambiguous else
-                 "This build runs scripted operations against the fixture with no model in "
-                 "the loop, so it cannot plan for an arbitrary task. It stopped before "
-                 "browsing rather than guessing. Recognised inputs are listed on the "
-                 "submit form."))
+                 "This task does not map to any operation this build can plan for, so it "
+                 "stopped before browsing rather than guessing. This is a gap in the "
+                 "build, not a policy decision about the task: attempting an arbitrary "
+                 "read-only site through the generic loop is not in this milestone. "
+                 "Recognised inputs are listed on the submit form."))
             return
 
         planned = bool(PLANNER_MARKER.search(run.task.lower())) or settings.planner_forced

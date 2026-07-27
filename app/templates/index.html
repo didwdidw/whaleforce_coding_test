@@ -5,9 +5,12 @@
 
 <div class="panel">
   <h2>Submit a task</h2>
-  <p class="sub">Tier is decided before execution starts and is shown on the result.
-    Anything outside the declared surface is attempted as <code>T-EXPERIMENTAL</code> or
-    refused as <code>T-REFUSED</code> with an explanation — never answered by guessing.</p>
+  <p class="sub">Tier is decided before execution starts and is shown on the result. A task
+    matching one of the promised records runs as <code>T-DECLARED</code>; one that asks for
+    something outside policy is refused as <code>T-REFUSED</code> before any browsing.
+    <strong>In this build a task that matches neither stops before browsing</strong> rather
+    than being attempted — a gap in the build, stated as one, not a judgement about the
+    task. Nothing is ever answered by guessing.</p>
   <form class="submit" method="post" action="/api/runs" id="submit-form">
     <input type="text" name="task" id="task" required
            placeholder="e.g. Search the fixture catalogue for lantern">
