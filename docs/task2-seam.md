@@ -11,8 +11,46 @@ the bytes mean.
 document — any proposal or design note elsewhere in the repository is an input to it, not a second
 source of truth.
 
-**Version:** `acquisition-bundle/1.1`, profile `sec-10k/1.1`. See §11 for the changelog and for what
+**Version:** `acquisition-bundle/1.1`, profile `sec-10k/1.1`. See §13 for the changelog and for what
 was deliberately deferred.
+
+---
+
+## 0. If you are starting Task 2, read this first
+
+This document is sufficient on its own. You do not need the Task 1 spec, its code, or its history.
+
+**What you are inheriting.** Task 1 hands you an immutable, hashed bundle: the filing is already
+resolved to one registrant and one accession, the primary document and the complete submission text
+are already fetched byte-for-byte, the resolution evidence is preserved, and everything that was
+*not* fetched says so explicitly. You never search SEC, and you never re-fetch from SEC.
+
+**What is yours.** Everything about what the bytes mean: Item 1–16 segmentation, Part I–IV mapping,
+format-variance handling, extraction confidence, your own evaluation set, and your own frontend.
+Task 2 carries the same submission obligations Task 1 does — a publicly operable web frontend, a
+self-built evaluation set, an honest list of what works and what does not with concrete examples, and
+an analysis of performance, cost, scalability and correctness verification.
+
+**Three things that will shape your design more than anything else here:**
+
+1. **A missing Item is often correct, not a failure.** Items 10–14 are routinely incorporated by
+   reference from a proxy statement; Item 6 is reserved; Item 16 is optional. Plan for an Item status
+   of at least `present` | `reserved` | `optional_absent` | `incorporated_by_reference`, and treat
+   emitting text for an Item that is not there as the worst outcome available to you. Task 1
+   guarantees the inventory and relationships are complete enough that you can reach
+   `incorporated_by_reference` **without guessing** (§4.7) — but Task 1 will never tell you an Item
+   *is* incorporated, because reading incorporation language is document structure, which is yours.
+2. **The complete submission text is your recovery path.** When the primary document is malformed,
+   truncated by its own filer, or structured unusually, the complete submission file contains the
+   disseminated package including headers. It is always fetched (§5.1) for exactly this reason.
+3. **Bytes are not permanent, identity is.** Retention is governed by the Task 1 deployment policy,
+   not by this contract. Expiry is a **recorded, dated state** that keeps all metadata (§9), so a
+   bundle stays auditable after its bytes are gone — but if you need the bytes long-term, copy them
+   into your own content-addressed store. Reacquisition produces **new** identifiers and hashes; a
+   deleted artifact is never silently rebuilt under its old ID.
+
+**What you must not do:** import Task 1 internals (§11), fetch from SEC yourself (§10), alter Task 1's
+hashes or identifiers (§13), or treat any bundle that is not `verified` as usable input (§7.1).
 
 ---
 
@@ -507,7 +545,9 @@ Task 1 side.
 - **Not that a `10-K/A` replaces the original filing** (§3.3).
 - **Not that every Item appears in the primary document.** Items 10–14 are legitimately incorporated
   by reference; Item 6 is reserved; Item 16 is optional; sub-items such as 1A–1C and 9A–9C exist. The
-  form is not a contiguous 1-through-16 list.
+  form is not a contiguous 1-through-16 list. An extractor that treats "Item 10 not found" as a
+  failure will report failures on correct filings; an extractor that fills it in from elsewhere will
+  report a confident wrong answer, which is worse.
 - **Not that bytes are text**, or that the primary document is HTML. `media_type` is what the source
   served; encoding detection is Task 2's problem.
 - **Not that `inventory_only` means content is available.**
@@ -555,8 +595,9 @@ byte retrieval. These are Task 2 decisions and are not pre-empted here.
 
 ### v1.1 (2026-07-28)
 
-Adopted from the product owner's `Q1_Q2_SEC_FILING_CONTRACT.md` proposal, recorded as Amendment 16 of
-the Task 1 spec. Every change fixes a case where v1.0 would have produced a **confident wrong
+Adopted from the product owner's earlier `Q1_Q2_SEC_FILING_CONTRACT.md` proposal — since removed from
+the repository, because two documents that both look binding is a trap. **This file is the only
+contract.** The decision record is Amendment 16 of the Task 1 spec. Every change fixes a case where v1.0 would have produced a **confident wrong
 answer**, not a missing convenience:
 
 - **§2.2** three CIK forms preserved separately; the target registrant is the identity; an accession
