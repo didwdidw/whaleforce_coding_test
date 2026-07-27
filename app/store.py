@@ -602,14 +602,17 @@ class Store:
                 # the store loses its bytes-column and keeps its file.
                 if self.contains(path):
                     path.unlink(missing_ok=True)
+                    freed += ref["length"]
                 else:
+                    # The row is disowned, but nothing was reclaimed — reporting bytes we
+                    # did not free would be a small lie in exactly the field an operator
+                    # uses to decide whether retention is working.
                     log.error("refusing to expire %s: its path %s is outside the store",
                               row["id"], path)
             self._conn.execute(
                 "UPDATE artifacts SET state='expired', expired_at=?, path=NULL WHERE id=?",
                 (time.time(), row["id"]))
             n += 1
-            freed += ref["length"] if ref else 0
         if n:
             self._conn.commit()
         return n, freed

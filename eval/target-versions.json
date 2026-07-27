@@ -1,0 +1,109 @@
+{
+ "pinned_at": 1785158855.6095061,
+ "pinned_on": "2026-07-27 13:27:35Z",
+ "note": "The page version each OP-4\u2026OP-7 expected answer was taken from. When a case starts failing, compare against this first: a changed revision id or content hash means the site moved, and that is a different problem from a regression.",
+ "targets": [
+  {
+   "operation_id": "OP-4",
+   "url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+   "operation": "sort a sortable wikitable by a named column, read the top row",
+   "why_this_page": "several sortable tables with overlapping header text, and the constituent list changes often enough to matter",
+   "final_url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+   "http_status": 200,
+   "retrieved_at": 1785158852.492081,
+   "retrieved_on": "2026-07-27 13:27:32Z",
+   "sha256": "1ab5f689b34ae1a305d06d6bdc8de21b1addf69b8a14ca461e35946ea6d10624",
+   "length": 1509483,
+   "robots": {
+    "allowed": true,
+    "directive": null,
+    "pattern": null,
+    "group_user_agent": "*",
+    "rule": "no rule matched",
+    "source": "matched"
+   },
+   "version": {
+    "kind": "mediawiki_revision",
+    "revision_id": "1365256480",
+    "page_name": "List_of_S\\u0026P_500_companies",
+    "revision_timestamp": null,
+    "permalink": "https://en.wikipedia.org/w/index.php?oldid=1365256480"
+   }
+  },
+  {
+   "operation_id": "OP-5",
+   "url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+   "operation": "expand a collapsed section or navbox and read a value from it",
+   "why_this_page": "carries collapsible navboxes; S-3.4's fallback applies if none is stable",
+   "final_url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+   "http_status": 200,
+   "retrieved_at": 1785158853.0741491,
+   "retrieved_on": "2026-07-27 13:27:33Z",
+   "sha256": "1ab5f689b34ae1a305d06d6bdc8de21b1addf69b8a14ca461e35946ea6d10624",
+   "length": 1509483,
+   "robots": {
+    "allowed": true,
+    "directive": null,
+    "pattern": null,
+    "group_user_agent": "*",
+    "rule": "no rule matched",
+    "source": "matched"
+   },
+   "version": {
+    "kind": "mediawiki_revision",
+    "revision_id": "1365256480",
+    "page_name": "List_of_S\\u0026P_500_companies",
+    "revision_timestamp": null,
+    "permalink": "https://en.wikipedia.org/w/index.php?oldid=1365256480"
+   }
+  },
+  {
+   "operation_id": "OP-6",
+   "url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html",
+   "operation": "navigate to a category, page through the listing, extract list facts",
+   "why_this_page": "multi-page category with the site's own result counter as a coverage anchor",
+   "final_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html",
+   "http_status": 200,
+   "retrieved_at": 1785158854.941955,
+   "retrieved_on": "2026-07-27 13:27:34Z",
+   "sha256": "be69d3a5293343cf9c27062b7819af219233cfe02e98ac0d36eb3a739d94c0d2",
+   "length": 52725,
+   "robots": {
+    "allowed": true,
+    "directive": null,
+    "pattern": null,
+    "group_user_agent": null,
+    "rule": "no robots.txt published (HTTP 404): the origin declares no restrictions",
+    "source": "no_robots_txt"
+   },
+   "version": {
+    "kind": "content_hash",
+    "note": "This site publishes no version identifier. A hash cannot say what changed, only that something did \u2014 which is still the difference between 'the site moved' and 'we got worse'."
+   }
+  },
+  {
+   "operation_id": "OP-7",
+   "url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html",
+   "operation": "open a product detail page and extract a labelled field",
+   "why_this_page": "a labelled product-information table, which is what label\u2192value binding is verified against",
+   "final_url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html",
+   "http_status": 200,
+   "retrieved_at": 1785158855.6081789,
+   "retrieved_on": "2026-07-27 13:27:35Z",
+   "sha256": "a6e572bec156bf80ff3149b89b6d218cdcf8866ccc26ccf69a5431db8e142c6a",
+   "length": 9279,
+   "robots": {
+    "allowed": true,
+    "directive": null,
+    "pattern": null,
+    "group_user_agent": null,
+    "rule": "no robots.txt published (HTTP 404): the origin declares no restrictions",
+    "source": "no_robots_txt"
+   },
+   "version": {
+    "kind": "content_hash",
+    "note": "This site publishes no version identifier. A hash cannot say what changed, only that something did \u2014 which is still the difference between 'the site moved' and 'we got worse'."
+   }
+  }
+ ]
+}
