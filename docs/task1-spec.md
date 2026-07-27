@@ -1317,3 +1317,99 @@ class of dishonesty the evidence requirements exist to prevent.
   and is reported on the health endpoint; exhaustion produces `blocked / provider_quota` (A12.5).
 - [ ] **A-34** Attempt to read and to delete an artifact whose recorded path resolves outside the
   artifact root: both are refused and logged (A12.7).
+
+### Amendment 13 — The tiers must be real: declared runs, an experimental path that browses (2026-07-27)
+
+Extends **S-1.3**, **S-1.4**, **S-1.5**, **S-11.4**, **A2.2**, **§10**. Written after a
+direction review at M4 against the original assignment.
+
+#### Why this exists
+
+Three things drifted, and all three point the same way: **the product currently claims a shape it
+does not have.**
+
+1. `classify()` returns `T-EXPERIMENTAL` for every task that is not refused. **`T-DECLARED` is never
+   assigned to anything.** Every OP-4…OP-7 run — the four promised records — therefore renders with
+   the experimental banner telling the reader it is best-effort and *excluded from the reported
+   success rate*. The system disowns its own promised surface, and S-1.3's headline rate has no
+   numerator.
+2. A task the keyword router does not recognise terminates as `unsupported / policy_refused`
+   **before a browser is opened**. The experimental tier is a refusal label, not an execution path.
+   S-1.4 requires a generic agent loop as the fallback, and A2.2 requires an abstention to name the
+   step it stopped at and the last observed page state — neither is possible without browsing.
+3. The frontend states that tasks outside the declared surface *are attempted*, and the support
+   matrix still marks OP-4…OP-7 "not yet implemented". Both are now false. This is the one place
+   where the documentation over-claims relative to the build, which is the wrong direction for the
+   only surface the honesty requirements are graded on.
+
+Amendment 2 answered "across different sites" with the experimental tier on the assumption that the
+tier **actually attempts the task**. As built, breadth is answered by site count, and the count is
+two.
+
+#### Requirements
+
+**A13.1 `T-DECLARED` MUST be assigned when a task maps to a promised record.** Tier assignment is a
+real classification with all three outcomes reachable, decided before execution (S-1.3). The
+experimental banner (S-1.5) MUST appear only on genuinely experimental runs, and declared runs MUST
+be the ones counted in the headline success rate. A run's tier MUST be visible in the API response
+and the UI, and MUST match what the run actually did.
+
+**A13.2 The experimental tier MUST execute.** A public, policy-clean, read-only task that matches no
+promised record MUST be attempted by the generic model-driven loop (S-1.4), not refused before
+browsing. Specifically:
+
+1. An entry point is resolved from the task (an explicit URL, or a site named in the task); if none
+   can be resolved, *that* is the abstention reason and it MUST say so.
+2. All §2 policy applies unchanged — robots (A10.1), egress (S-2.5), out-of-scope refusal (S-2.1).
+   Policy refusals still happen before browsing; **"we do not have a script for this" is not a policy
+   refusal** and MUST NOT be reported as `unsupported / policy_refused`.
+3. A postcondition is still frozen before browsing and still owned by code. For an undeclared task
+   it will be a weaker one — that a claim is bound to a located label, or that a named state
+   transition was observed — but a weak postcondition that is checked is not the same as none, and
+   a run that cannot verify its weak postcondition abstains rather than answering.
+4. **Abstention MUST satisfy A2.2 with real observations**: the step it stopped at, the last
+   observed page state, and why the postcondition could not be verified. Generic text is not an
+   abstention; it is a refusal wearing one's clothes.
+5. Experimental results remain excluded from the headline rate and visually distinct (S-1.5). Their
+   value is that the attempt is real and the failure is inspectable.
+
+**A13.3 User-facing copy MUST describe the build that is running.** The submit form, the support
+matrix, the tier explanations, and every terminal explanation string MUST match current behaviour.
+Two specific defects to clear: the claim that out-of-surface tasks are attempted (true only once
+A13.2 ships) and the support matrix's "not yet implemented" on shipped records. **A string describing
+the state of the build is a claim, and a stale claim is a false one** — build-state text MUST be
+derived from what the system can do, or reviewed at every milestone gate.
+
+**A13.4 The model-driven path is the default for real-site operations.** Requiring a magic phrase to
+engage the planner means a reviewer submitting a promised task in plain English sees a scripted run
+and never sees the mechanism that is being graded. The deterministic scripts remain — as the fallback
+when the provider is unavailable, as the fixture demonstration path (which must not depend on a
+provider), and as the comparison baseline — but they MUST NOT be what a natural-language task on a
+real site gets by default. **The trace MUST record which path executed**, so the two are never
+confused in reporting, and the analysis report MUST give success rates for each path separately.
+
+**A13.5 The evaluation set MUST be executable by a harness, not only readable.** `eval/dev-set.md` is
+prose today and nothing runs it. A harness MUST execute a split against the deployed system, compare
+against each case's oracle, and emit per-case terminal status, failure class, evidence coverage, and
+the provenance of S-10.7 (git SHA, pinned model ID, eval-set hash). The same harness runs the
+held-out splits under A9.6 and A12.3. Without it there is no hard gate (§10.3), no first-run score,
+and no source for the analysis report.
+
+**A13.6 No milestone is assumed to be sacrificed.** S-13.1's cut order exists for a calendar that has
+actually broken; it MUST NOT be used as a planning default. M5 (locator memory and the mutation gate)
+and M6 (safety suite) are the evidence for self-maintenance and for the security claims, both named
+in the assignment. M7 (the Task 2 seam) stays in scope, and **Task 2 itself is not assumed to be out
+of scope** — nothing in Task 1 may be built in a way that presumes it will not be done.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-35** Submit a promised-record task in plain natural language, with no special phrasing:
+  the run is `T-DECLARED`, the model-driven path executes, and no experimental banner appears
+  (A13.1, A13.4).
+- [ ] **A-36** Submit a read-only task on a public site outside the promised set: a browser opens,
+  the trace shows real steps, and the outcome is either a verified result marked experimental or an
+  abstention naming the step, the observed state, and the unmet postcondition (A13.2).
+- [ ] **A-37** Confirm no user-facing string misdescribes the build: support matrix statuses match
+  what runs, and the submit form's description of tier behaviour is true (A13.3).
+- [ ] **A-38** Run the dev split through the harness and reproduce its reported numbers, with
+  provenance recorded (A13.5).
