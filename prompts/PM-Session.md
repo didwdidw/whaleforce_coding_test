@@ -383,3 +383,9 @@ on your call bro
 請針對這點稍微跟我報告一下
 
 ==========
+
+我不太懂為什麼公開服務後要default走billing
+model不是一樣嗎
+照我們原本的作法，default free tire, run out of quota 再 fall back to billing tier 不是很好嗎
+
+==========

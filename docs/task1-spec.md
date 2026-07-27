@@ -1555,3 +1555,40 @@ what was decided), so a reader can find them without reading two long logs end t
   system (A14.8); shortcut refusals are reported as their own category (A14.9).
 - [ ] **A-45** README covers how to run, design decisions, and where AI helped; `prompts/` carries an
   index; the repository is public (A14.14, A14.15).
+
+### Amendment 15 — Free-first with fallback on the public path (2026-07-28)
+
+**Supersedes A14.10.** Extends **A8.8**, **A12.5**, **A7.9**. Raised by the product owner against
+A14.10 and accepted: A14.10 was over-specified.
+
+**A15.1 After scoring, the public path runs free-first with automatic fallback to the paid
+credential** — not paid-only as A14.10 required. The model is the same pinned ID either way (A9.2);
+the tiers differ in quota and billing, **not in model or output quality**. Paid-only therefore
+discards a free daily allowance for no gain.
+
+The prohibition in A8.8 rested on two reasons and **both have since expired**: the quota wall
+(S-11.11) protected an evaluation that is complete by then, and "nothing at runtime enforces the
+spend ceiling" was answered by A12.5. A restriction whose reasons are gone is no longer a control; it
+is a cost.
+
+**A15.2 Fallback MUST trigger on rate-limit responses, not only on daily exhaustion.** The free tier
+is RPM 15 (A9.6). Two concurrent runs during a grader burst can hit that ceiling **mid-run**, and a
+run that fails as `blocked / provider_quota` for a limit the paid key would have absorbed is a
+self-inflicted failure in front of the person grading it. Any provider quota or rate-limit signal —
+daily exhaustion, RPM throttling, `RESOURCE_EXHAUSTED` — MUST fall through to the paid credential.
+Genuine exhaustion of **both** tiers, or the A12.5 daily ceiling, remains `blocked / provider_quota`.
+
+**A15.3 What still holds.** The A12.5 daily USD ceiling is what makes this safe and MUST be enforced
+before every call regardless of tier; it is the only backstop once fallback is automatic. A8.9's
+per-run record of which credential tier was used stays mandatory, and it is now load-bearing rather
+than informational. The session cap (S-11.12) and queue depth (S-11.8) are unchanged.
+
+**A15.4 Disclosure.** With fallback automatic, some public-demo traffic runs on the free tier, whose
+content the provider uses to improve its products (A7.9). Page content is public by policy (P2), but
+**the task text is written by whoever submitted it** — including a grader's unseen test wording. The
+README MUST state this plainly rather than implying every request is on the paid tier.
+
+**A15.5 Before the switchover, nothing changes.** Until the test split's first run is complete
+(S-10.6), A12.2's topology and A8.8's prohibition hold exactly as written: no paid credential on the
+public-serving container, no fallback on that path. The switchover date is still recorded (A14.10's
+one surviving clause).
