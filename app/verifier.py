@@ -22,6 +22,7 @@ re-extraction against a frozen question does.
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -167,7 +168,21 @@ class Verifier:
         # of an unseen site holds the answer, so demanding the entry page would fail every
         # honest run that navigated once. It is a weaker constraint that still catches the
         # failure it exists for — evidence produced somewhere the task never named.
-        site_scope = (pc.inputs or {}).get("url_scope") == "site"
+        scope = (pc.inputs or {}).get("url_scope")
+        if scope == "prefix":
+            # The operation names a section of a site, not one page: which page inside it
+            # holds the answer is what the run is for. Still a real constraint — evidence
+            # from outside the section is still rejected.
+            inside = (ref.source_url or "").startswith(pc.target_url)
+            checks.append(Check("artifact_source_matches_plan", inside,
+                                {"artifact_source_url": ref.source_url,
+                                 "plan_target_prefix": pc.target_url, "scope": "prefix"}))
+            if not inside:
+                return Verdict(
+                    TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
+                    f"The evidence was captured on {ref.source_url}, which is not inside "
+                    f"{pc.target_url}.", checks)
+        site_scope = scope == "site"
         if site_scope and not _same_site(ref.source_url, pc.target_url):
             checks.append(Check("artifact_source_matches_plan", False,
                                 {"artifact_source_url": ref.source_url,
@@ -176,7 +191,15 @@ class Verifier:
                 TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
                 f"The evidence was captured on {ref.source_url}, which is not on the site "
                 f"the task named ({pc.target_url}).", checks)
-        if not site_scope and not _same_page(ref.source_url, pc.target_url):
+        redirect = _followed_redirect(run, ref.source_url, pc.target_url)
+        if scope is None and redirect:
+            # The run asked for the frozen URL and the site sent it somewhere else. That is
+            # the site's decision, recorded in the trace with both URLs, and rejecting it
+            # would fail every correct run on an article title that redirects.
+            checks.append(Check("artifact_source_matches_plan", True,
+                                {"requested": pc.target_url, "redirected_to": redirect,
+                                 "source_url": ref.source_url}))
+        elif scope is None and not _same_page(ref.source_url, pc.target_url):
             checks.append(Check("artifact_source_matches_plan", False,
                                 {"artifact_source_url": ref.source_url,
                                  "plan_target_url": pc.target_url}))
@@ -249,7 +272,7 @@ class Verifier:
         # real results page with a real count, and every structural property of the run is
         # correct. Only the page's own echo of the query, compared against the frozen input,
         # separates "no matches" from "we asked something else".
-        drift = _frozen_input_drift(spec, value, pc)
+        drift = frozen_input_drift(spec, value, pc)
         if drift:
             return ClaimResult(spec.name, False, FailureClass.VERIFICATION_MISMATCH,
                                drift, bundle), None
@@ -289,6 +312,8 @@ class Verifier:
             return _table_column_cell(tree, spec)
         if spec.relation is Relation.SORT_STATE:
             return _sort_state(tree, spec)
+        if spec.relation is Relation.TABLE_TOP_ROW:
+            return _table_top_row(tree, spec)
         raise AnchorNotFound(f"No extractor for relation {spec.relation}")
 
     # ---- status decision -------------------------------------------------------
@@ -531,6 +556,21 @@ def _header_cells(tree, spec: ClaimSpec) -> list[Any]:
         found.extend(th for th in node.xpath(".//tr/th")
                      if norm(th.text_content()) == spec.label)
     if not found:
+        # A person writes "by country"; the header reads "Country/Territory". A unique
+        # prefix is the same column named shorter — more than one is a choice we refuse to
+        # make, which is the existing rule for an ambiguous anchor.
+        prefixed = {}
+        for node in scope:
+            for th in node.xpath(".//tr/th"):
+                text = norm(th.text_content())
+                if text.lower().startswith(spec.label.lower()) and spec.label:
+                    prefixed.setdefault(text, []).append(th)
+        if len(prefixed) == 1:
+            return next(iter(prefixed.values()))
+        if len(prefixed) > 1:
+            raise AnchorAmbiguous(
+                f"{spec.label!r} is the start of {len(prefixed)} different column headers "
+                f"({sorted(prefixed)}). Choosing one would be a guess.")
         raise AnchorNotFound(
             f"No column header reads {spec.label!r} inside {spec.container or 'the page'}")
     return found
@@ -577,6 +617,42 @@ def _table_column_cell(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
     span = next(iter(values))
     return (_coerce(span, spec.value_type), span,
             f"{spec.container or '//table'}//tr[td][1]/td[column={spec.label!r}]")
+
+
+def _table_top_row(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
+    """The first data row of the table carrying the named header, cell by cell, each one
+    bound to its own column header.
+
+    Reporting the row rather than one column of it is what lets an operation answer a
+    question about a column nobody declared in advance — and every cell is still bound
+    structurally, so it is a wider answer, not a looser one.
+    """
+    headers = _header_cells(tree, spec)
+    rows_by_table = {}
+    for header in headers:
+        table = header.xpath("ancestor::table[1]")
+        if not table:
+            continue
+        data_rows = table[0].xpath(".//tr[td]")
+        if not data_rows:
+            continue
+        names = [norm(c.text_content())
+                 for c in table[0].xpath(".//tr[th]")[0].xpath("./th|./td")]
+        cells = data_rows[0].xpath("./th|./td")
+        row = {name: norm(cell.text_content())
+               for name, cell in zip(names, cells) if name}
+        if row:
+            rows_by_table[json.dumps(row, sort_keys=True)] = row
+    if not rows_by_table:
+        raise AnchorNotFound(
+            f"The column {spec.label!r} was found but its table has no readable data row")
+    if len(rows_by_table) > 1:
+        raise AnchorAmbiguous(
+            f"The column header {spec.label!r} appears in more than one table with "
+            f"different top rows. Choosing one would be a guess.")
+    row = next(iter(rows_by_table.values()))
+    span = " | ".join(f"{k}: {v}" for k, v in row.items())
+    return row, span[:400], f"table with header {spec.label!r} → first data row"
 
 
 def _sort_state(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
@@ -737,6 +813,12 @@ def _coerce(value: Any, value_type: str) -> Any:
             return [norm(str(v.get("text") if isinstance(v, dict) else v)).casefold()
                     for v in value if v]
         return value
+    if value_type == "row":
+        # A header→cell mapping, compared cell by cell after whitespace normalisation. Both
+        # readings come from the same table; what differs is when and by which code.
+        if isinstance(value, dict):
+            return {norm(str(k)): norm(str(v)) for k, v in value.items()}
+        return value
     if value_type == "sku_list":
         # Compared as a set of identifiers: the run reports which items it saw, and order
         # is a property of the page rather than of the answer.
@@ -747,7 +829,7 @@ def _coerce(value: Any, value_type: str) -> Any:
     return value
 
 
-def _frozen_input_drift(spec: ClaimSpec, value: Any, pc: Postcondition) -> str:
+def frozen_input_drift(spec: ClaimSpec, value: Any, pc: Postcondition) -> str:
     """Empty string when the page answered the frozen question, a reason when it did not."""
     if spec.relation is Relation.COUNTER_ECHO and "term" in pc.inputs:
         frozen = norm(str(pc.inputs["term"] or "")).casefold()
@@ -758,6 +840,13 @@ def _frozen_input_drift(spec: ClaimSpec, value: Any, pc: Postcondition) -> str:
                     f"different question.")
     if spec.relation is Relation.PAGER_POSITION and "page" in pc.inputs:
         frozen_page = pc.inputs["page"]
+        if frozen_page == "last":
+            # "The last page" is a position the listing states, not a number the task can
+            # give. The pager's own total is what settles whether the run got there.
+            if value.get("page") != value.get("total"):
+                return (f"The task asked for the last page; the pager states page "
+                        f"{value.get('page')} of {value.get('total')}.")
+            return ""
         if frozen_page is not None and value.get("page") != frozen_page:
             return (f"The plan froze page {frozen_page}, but the artifact shows page "
                     f"{value.get('page')} as the visible one.")
@@ -786,6 +875,26 @@ def _same_page(source_url: str | None, target_url: str) -> bool:
     a, b = urlsplit(source_url), urlsplit(target_url)
     return ((a.scheme, a.netloc, unquote(a.path).rstrip("/"))
             == (b.scheme, b.netloc, unquote(b.path).rstrip("/")))
+
+
+def _followed_redirect(run: Run, source_url: str | None, target_url: str) -> str:
+    """The URL the site sent the run to after it asked for the frozen one, or "".
+
+    Both are recorded on the navigation step, so this is the trace answering rather than an
+    assumption that a difference must be benign. A run that navigated somewhere it was
+    never sent still fails.
+    """
+    if not source_url or _same_page(source_url, target_url):
+        return ""
+    for entry in run.trace:
+        if entry.kind is not StepKind.NAVIGATE:
+            continue
+        requested = str(entry.detail.get("url") or "")
+        final = str(entry.detail.get("final_url") or "")
+        if requested and final and _same_page(requested, target_url) \
+                and _same_page(final, source_url):
+            return final
+    return ""
 
 
 def _same_site(source_url: str | None, target_url: str) -> bool:

@@ -53,6 +53,10 @@ class Relation(str, enum.Enum):
     #: — on a site nobody has declared, the label cannot be known in advance. Weaker than
     #: naming the anchor at plan time, and not the same thing as no check at all.
     LOCATED_LABEL = "located_label"
+    #: The whole first data row of a table, each cell bound to its own column header.
+    #: Which cell an undeclared task wants is not knowable at plan time, and picking one
+    #: column in advance is how a plan answers a neighbouring question.
+    TABLE_TOP_ROW = "table_top_row"
     #: A table's own statement of how it is currently ordered. The counterpart of
     #: PAGER_POSITION for sorting: the page says what it did, and that is what gets compared
     #: against the frozen input — not the order we assumed a click would produce.

@@ -227,13 +227,26 @@ def test_the_structural_checks_both_defects_passed_still_pass(store):
 
 # ---- OP-4: the sort that ran one click short -----------------------------------
 
+#: The top row of the artifact a genuine one-click run produced, read cell by cell. It is
+#: correct — that is the point of the case.
+ONE_CLICK_TOP_ROW = {
+    "Symbol": "GOOGL", "Security": "Alphabet Inc. (Class A)",
+    "GICS Sector": "Communication Services",
+    "GICS Sub-Industry": "Interactive Media & Services",
+    "Headquarters Location": "Mountain View, California",
+    "Date added": "2006-04-03", "CIK": "0001652044", "hideFounded": "1998",
+}
+
 def _op4_postcondition() -> Postcondition:
     """The same object `Executor._plan_wiki_sort` freezes, built here so the replay is
     judged by the postcondition the product actually ships."""
     from app.executor import Executor
 
-    return Executor.__dict__["_plan_wiki_sort"](
-        Executor(supervisor=None, store=None), "").postcondition
+    plan = Executor.__dict__["_plan_wiki_sort"](
+        Executor.__new__(Executor),
+        "On the Wikipedia list of S&P 500 companies, sort the constituents table by "
+        "'GICS Sector' descending and read the top row")
+    return plan.postcondition
 
 
 def test_a_sort_that_stopped_one_click_short_cannot_pass_as_the_sort_that_was_asked_for(
@@ -266,8 +279,7 @@ def test_a_sort_that_stopped_one_click_short_cannot_pass_as_the_sort_that_was_as
     candidate = {
         "sort_state": {"column": "GICS Sector", "direction": "ascending",
                        "column_index": 2},
-        "top_symbol": "GOOGL",
-        "top_sector": "Communication Services",
+        "top_row": ONE_CLICK_TOP_ROW,
     }
     verdict = Verifier(store).verify(run, artifact_id=artifact, candidate=candidate)
 
@@ -297,12 +309,11 @@ def test_the_top_row_value_itself_still_verifies_against_the_artifact(store):
     verdict = Verifier(store).verify(run, artifact_id=artifact, candidate={
         "sort_state": {"column": "GICS Sector", "direction": "ascending",
                        "column_index": 2},
-        "top_symbol": "GOOGL",
-        "top_sector": "Communication Services",
+        "top_row": ONE_CLICK_TOP_ROW,
     })
 
     by_name = {c.name: c for c in verdict.claims}
-    assert by_name["top_symbol"].ok and by_name["top_sector"].ok
+    assert by_name["top_row"].ok
     assert not by_name["sort_state"].ok
 
 

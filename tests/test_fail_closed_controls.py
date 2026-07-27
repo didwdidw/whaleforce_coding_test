@@ -299,8 +299,41 @@ AGREEING_DEFINITIONS = """
 </body></html>
 """
 
+DISAGREEING_TOP_ROWS = """
+<html><body>
+  <table><tr><th>Symbol</th><th>Sector</th></tr><tr><td>AAPL</td><td>Tech</td></tr></table>
+  <table><tr><th>Symbol</th><th>Sector</th></tr><tr><td>MSFT</td><td>Tech</td></tr></table>
+</body></html>
+"""
+
+AGREEING_TOP_ROWS = """
+<html><body>
+  <table><tr><th>Symbol</th><th>Sector</th></tr><tr><td>AAPL</td><td>Tech</td></tr></table>
+  <table><tr><th>Symbol</th><th>Sector</th></tr><tr><td>AAPL</td><td>Tech</td></tr></table>
+</body></html>
+"""
+
+#: The shorter name a person uses for a column resolves only while it names one column.
+AMBIGUOUS_PREFIX = """
+<html><body><table>
+  <tr><th>Country/Territory</th><th>Country code</th></tr>
+  <tr><td>Albania</td><td>AL</td></tr>
+</table></body></html>
+"""
+
+UNIQUE_PREFIX = """
+<html><body><table>
+  <tr><th>Country/Territory</th><th>Region</th></tr>
+  <tr><td>Albania</td><td>Europe</td></tr>
+</table></body></html>
+"""
+
 #: (extractor, html that must raise, html that must resolve, label, relation)
 AMBIGUITY_CASES = (
+    ("_table_top_row", DISAGREEING_TOP_ROWS, AGREEING_TOP_ROWS, "Symbol",
+     Relation.TABLE_TOP_ROW),
+    ("_header_cells", AMBIGUOUS_PREFIX, UNIQUE_PREFIX, "Country",
+     Relation.TABLE_COLUMN_CELL),
     ("_table_row_cell", AMBIGUOUS_TABLE, AGREEING_TABLE, "UPC", Relation.TABLE_ROW_CELL),
     ("_table_column_cell", DISAGREEING_COLUMNS, AGREEING_COLUMNS, "Symbol",
      Relation.TABLE_COLUMN_CELL),
@@ -320,6 +353,10 @@ def _call(name: str, html_text: str, label: str, relation: Relation):
     spec = _spec("" if relation is Relation.LOCATED_LABEL else label, relation)
     if relation is Relation.LOCATED_LABEL:
         return verifier._located_label(tree, spec, {"v_anchor": label})
+    if name == "_header_cells":
+        # Returns the cells rather than a value; wrapped so the shared assertions hold.
+        cells = verifier._header_cells(tree, spec)
+        return cells, verifier.norm(cells[0].text_content()), "header"
     return getattr(verifier, name)(tree, spec)
 
 

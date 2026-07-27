@@ -22,7 +22,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 from lxml import html as lxml_html
 from playwright.async_api import BrowserContext, Page
@@ -31,7 +31,7 @@ from app import egress
 from app.browser import BrowserSupervisor, BrowserUnavailable
 from app.config import settings
 from app.coverage import CoverageLedger
-from app.identity import COLLECT_JS, ElementIdentity, identify
+from app.identity import COLLECT_JS, ElementIdentity, identify, normalise
 from app.models import (
     DiagnosedCause, FailureClass, Run, RunState, StepKind, TerminalStatus, Tier, TraceEntry,
 )
@@ -41,6 +41,7 @@ from app.postcondition import (
     AbsenceMode, ClaimSpec, Postcondition, Relation, RequiredAction,
 )
 from app.provider import Provider, ProviderError, RunBudget
+from app.verifier import frozen_input_drift
 from app.reduce import reduce_page, reduction_record
 from app.robots import RobotsCache
 from app.store import Store
@@ -167,6 +168,7 @@ BOOK_CATEGORY_POETRY = f"{BOOKS}/catalogue/category/books/poetry_23/index.html"
 BOOK_DETAIL_URL = f"{BOOKS}/catalogue/a-light-in-the-attic_1000/index.html"
 BOOK_CATEGORY_NONFICTION = f"{BOOKS}/catalogue/category/books/nonfiction_13/index.html"
 BOOK_CATEGORY_NONFICTION_P2 = f"{BOOKS}/catalogue/category/books/nonfiction_13/page-2.html"
+WIKI_ARTICLE_BASE = "https://en.wikipedia.org/wiki/"
 WIKI_SP500 = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
 CONSTITUENTS = '//table[@id="constituents"]'
 WIKI_SPECIAL = "https://en.wikipedia.org/wiki/Special:WhatLinksHere/"
@@ -249,7 +251,12 @@ class Executor:
         operation, _, _ = self.route(task)
         record = RECORD_BY_ROUTE.get(operation or "")
         if record is not None:
-            return Tier.DECLARED, record.id
+            # Matching an operation's keywords is not the same as being the instance of it
+            # we can execute. A13.1 requires the tier to match what the run actually does,
+            # and a task we will send down the generic path is not a declared run.
+            plan = self._select_plan(task)
+            if plan is not None and not self.plan_answers_task(task, plan.postcondition):
+                return Tier.DECLARED, record.id
         return Tier.EXPERIMENTAL, None
 
     # ---- trace helpers ---------------------------------------------------------
@@ -316,6 +323,15 @@ class Executor:
         operation, candidates, hits = ("generic", [], {}) if foreign else self.route(run.task)
         plan = (self._plan_generic(run.task) if foreign else
                 self._select_plan(run.task) if operation else None)
+
+        mismatch = self.plan_answers_task(run.task, plan.postcondition) if plan else ""
+        if mismatch:
+            entry = self._step(run, StepKind.NOTE,
+                               f"The {plan.operation} plan does not answer this task",
+                               operation=plan.operation, reason=mismatch)
+            self._finish_step(run, entry, ok=False)
+            plan, operation, candidates, hits = None, None, [], {}
+            run.explanation = mismatch
         if plan is None and len(candidates) > 1:
             # Two promised operations match, so which one was asked for is genuinely
             # unanswerable. Refusing to choose is the decision; it is not "no script".
@@ -345,11 +361,17 @@ class Executor:
             if plan is None:
                 self._terminate(
                     run, TerminalStatus.UNSUPPORTED, FailureClass.POLICY_REFUSED,
-                    "This task names no page or site to start from, and no promised "
-                    "operation recognises it, so there is nowhere to begin. Picking a "
-                    "starting page the task never named would answer a question nobody "
-                    "asked. Name a URL or a site — for example \"on example.org, …\" — and "
-                    "it will be attempted best-effort as an experimental run.")
+                    (f"This task resembles a promised operation, but {mismatch}. Running "
+                     f"it anyway would answer a neighbouring question and report it as "
+                     f"verified. The task also names no URL to attempt generically, so "
+                     f"there is nowhere else to begin — name one and it will be attempted "
+                     f"best-effort as an experimental run."
+                     if mismatch else
+                     "This task names no page or site to start from, and no promised "
+                     "operation recognises it, so there is nowhere to begin. Picking a "
+                     "starting page the task never named would answer a question nobody "
+                     "asked. Name a URL or a site — for example \"on example.org, …\" — and "
+                     "it will be attempted best-effort as an experimental run."))
                 return
             if not self._provider.configured():
                 self._terminate(
@@ -682,6 +704,14 @@ class Executor:
         candidate = ctx.candidate or {}
         if not all(candidate.get(name) not in (None, "", [], {}) for name in required):
             return False
+        # Present is not the same as right. Every required claim reads on page 1 of a
+        # listing, so "read the last page" stopped on the first one and failed for a
+        # reason the loop had already been told: the frozen inputs disagreed with what was
+        # on screen. The same drift check the verifier runs decides it here too.
+        for spec in plan.postcondition.claims:
+            value = candidate.get(spec.name)
+            if value is not None and frozen_input_drift(spec, value, plan.postcondition):
+                return False
         self._finish_step(ctx.run, self._step(
             ctx.run, StepKind.NOTE,
             "The frozen postcondition is satisfiable from this page: every declared action "
@@ -908,6 +938,13 @@ class Executor:
             self._terminate(run, TerminalStatus.BLOCKED, FailureClass.SITE_UNAVAILABLE,
                             f"The page could not be loaded: {type(exc).__name__}: {exc}")
             return False
+        # After the document settles, not before: a title that redirects still reports the
+        # requested URL at `domcontentloaded`, and the trace then shows no redirect while
+        # every artifact carries the canonical URL — which reads as a run that wandered.
+        try:
+            await ctx.page.wait_for_load_state("load", timeout=5_000)
+        except Exception:  # noqa: BLE001 - a page that never settles is still a page
+            pass
         self._finish_step(run, nav, status=response.status if response else None,
                           final_url=ctx.page.url)
         return True
@@ -951,7 +988,8 @@ class Executor:
                        "constituents table")),
         ("wiki_expand", ("expand the", "collapsed navbox", "navbox", "collapsible")),
         ("book_detail", ("light in the attic", "upc", "product detail")),
-        ("book_category", ("nonfiction", "category listing", "second page of results")),
+        ("book_category", ("nonfiction", "category", "page of results",
+                           "pages of results")),
         ("testhook", ("ground truth", "test hook", "testhook", "answer key")),
         ("notes", ("injection", "customer note", "notes page")),
         ("overlay", ("overlay", "dismiss", "modal", "gated", "reference code")),
@@ -976,11 +1014,30 @@ class Executor:
         # nothing to do with the request.
         low = self._strip_directives(task.lower())
         hits: dict[str, list[str]] = {}
-        for name, markers in self.ROUTES:
+        for name, markers in self.routes_for(task):
             matched = [m for m in markers if m in low]
             if matched:
                 hits[name] = matched
+        if len(hits) > 1:
+            hits = self._apply_precedence(hits)
         return (next(iter(hits)) if len(hits) == 1 else None), list(hits), hits
+
+    #: Pairs that legitimately co-occur, with the reason one reading is the question and
+    #: the other is only the route to it. This is not a tiebreak for guessing: an
+    #: undeclared pair still abstains, which is what routing does when it does not know.
+    PRECEDENCE: tuple[tuple[str, str, str], ...] = (
+        ("book_detail", "book_category",
+         "a task naming a specific product asks about that product; the category it sits "
+         "in is how the product is reached, not what is being asked"),
+    )
+
+    @classmethod
+    def _apply_precedence(cls, hits: dict[str, list[str]]) -> dict[str, list[str]]:
+        remaining = dict(hits)
+        for winner, loser, _why in cls.PRECEDENCE:
+            if winner in remaining and loser in remaining:
+                remaining.pop(loser)
+        return remaining
 
     def _select_plan(self, task: str) -> Plan | None:
         name, _, _ = self.route(task)
@@ -991,9 +1048,11 @@ class Executor:
         if name == "wiki_special":
             return self._plan_wiki_special(low)
         if name == "wiki_sort":
-            return self._plan_wiki_sort(low)
+            # The original casing, not `low`: the column header and the article title are
+            # matched against the page, which spells them the way the page spells them.
+            return self._plan_wiki_sort(self._strip_directives(task))
         if name == "wiki_expand":
-            return self._plan_wiki_expand(low)
+            return self._plan_wiki_expand(self._strip_directives(task))
         if name == "book_detail":
             return self._plan_book_detail(low)
         if name == "book_category":
@@ -1443,7 +1502,94 @@ class Executor:
     # that lives in the frozen postcondition, where it is visible and hashed, rather than in
     # the reducer or the planner where it would be quietly deciding answers.
 
-    def _plan_wiki_sort(self, low: str) -> Plan:
+    #: How a person names a Wikipedia article in a sentence.
+    ARTICLE_PHRASE = (
+        re.compile(r"wikipedia (?:article|page) (?:for|on|about) ['\"]?([^,.'\"]+)"),
+        re.compile(r"wikipedia (list of [^,.'\"]+)"),
+        re.compile(r"(list of [^,.'\"]+?) (?:on |from )?wikipedia"),
+        re.compile(r"([\w&'()-]+(?:[.\s]+[\w&'()-]+)*?\.?)\s+"
+                   r"wikipedia\s+(?:article|page)"),
+    )
+
+    #: The sort key, as the task names it. A quoted phrase wins: it is the one spelling the
+    #: user has told us is exact.
+    SORT_COLUMN = (
+        re.compile(r"sort(?:ed)?\s+(?:the\s+\w+\s+table\s+)?by\s+['\"]([^'\"]+)['\"]"),
+        re.compile(r"by\s+(?:the\s+)?['\"]([^'\"]+)['\"]\s+column"),
+        re.compile(r"by\s+(?:the\s+)?([A-Za-z][\w ]*?)\s+column"),
+        re.compile(r"sort(?:ed)?\s+(?:the\s+[\w ]+?\s+table\s+)?by\s+([A-Za-z][\w ]*?)"
+                   r"(?=\s+(?:ascending|descending|newest|oldest|alphabetically|"
+                   r"largest|smallest|and|,|$))"),
+        # "sort alphabetically by country" — the ordering word comes first as often as not.
+        re.compile(r"(?:alphabetically|numerically|ascending|descending)\s+by\s+"
+                   r"(?:the\s+)?([A-Za-z][\w /]*?)(?=\s*(?:,|\.|and|$))"),
+    )
+
+    #: Ordering words, each mapped to the direction the *table* will report.
+    DIRECTION_WORDS: tuple[tuple[str, str], ...] = (
+        ("descending", "descending"), ("newest first", "descending"),
+        ("largest first", "descending"), ("highest first", "descending"),
+        ("z to a", "descending"), ("reverse alphabetical", "descending"),
+        ("ascending", "ascending"), ("alphabetically", "ascending"),
+        ("oldest first", "ascending"), ("smallest first", "ascending"),
+        ("lowest first", "ascending"), ("a to z", "ascending"),
+    )
+
+    @classmethod
+    def wikipedia_article(cls, task: str) -> str:
+        """The article the task names, as a URL, or "" if it names none resolvably.
+
+        A phrase, not a search: `Special:Search` is robots-Disallowed and guessing an
+        article we were not given is how a run answers a question nobody asked. When the
+        task names no article this returns "", the plan is not built, and the run says so.
+        """
+        explicit = cls.resolve_entry(task)
+        if "wikipedia.org/wiki/" in explicit:
+            return explicit
+        low = task.lower()
+        for pattern in cls.ARTICLE_PHRASE:
+            match = pattern.search(low)
+            if not match:
+                continue
+            start, end = match.span(1)
+            phrase = norm_ws(task[start:end]).strip()
+            # "On the Apple Inc. Wikipedia page" — the leading words belong to the
+            # sentence, not to the title, and an article called "On the Apple Inc." does
+            # not exist. Wrong is better than approximately right here: the run would
+            # navigate somewhere real and answer about it.
+            while True:
+                head = phrase.split(" ", 1)
+                if len(head) == 2 and head[0].lower() in (
+                        "on", "in", "from", "the", "a", "an", "open", "at", "for", "about"):
+                    phrase = head[1]
+                    continue
+                break
+            if not phrase or len(phrase) < 3:
+                continue
+            title = phrase[0].upper() + phrase[1:]
+            return f"{WIKI_ARTICLE_BASE}{quote(title.replace(' ', '_'), safe='_()')}"
+        return ""
+
+    @classmethod
+    def sort_parameters(cls, task: str) -> tuple[str, str]:
+        """(column, direction) as the task states them; either may be "" if it does not.
+
+        Matching is case-insensitive but the column keeps the casing the task gave it: it
+        is compared against a header the page renders, and lowercasing it first meant no
+        header ever matched.
+        """
+        column = ""
+        for pattern in cls.SORT_COLUMN:
+            match = pattern.search(task.lower())
+            if match:
+                start, end = match.span(1)
+                column = norm_ws(task[start:end]).strip()
+                break
+        low = task.lower()
+        direction = next((d for word, d in cls.DIRECTION_WORDS if word in low), "")
+        return column, direction
+
+    def _plan_wiki_sort(self, low: str) -> Plan | None:
         """OP-4: sort a sortable wikitable by a named column, read the resulting top row.
 
         The trap this operation exists for: descending order takes *two* clicks on the
@@ -1452,133 +1598,227 @@ class Executor:
         read. So the postcondition does not assume what a click produces. It freezes the
         direction it wants and compares it against the table's own statement of how it is
         ordered, which is the only reading that is not our own assumption echoed back.
+
+        Article, column and direction all come from the task. They were constants, and the
+        first harness run showed what that cost: "sort by CIK ascending" and "sort the GDP
+        table alphabetically by country" both executed the canned S&P/GICS-descending plan
+        and came back verified.
         """
-        column = "GICS Sector"
+        article = self.wikipedia_article(low)
+        column, direction = self.sort_parameters(low)
+        if not article or not column or not direction:
+            return None
+
+        # Which cell of the top row is wanted is not knowable in advance on an article
+        # nobody declared, so the whole row is reported, each cell bound to its own column
+        # header. That is a stronger binding than picking one column and hoping.
         pc = Postcondition(
-            goal=("On the Wikipedia list of S&P 500 companies, sort the constituents table "
-                  "by GICS Sector in descending order, then report the symbol and the "
-                  "sector of the row that ends up at the top."),
+            goal=(f"On {article}, sort the table by {column!r} in {direction} order, then "
+                  f"report the row that ends up at the top with each cell bound to its "
+                  f"column header."),
             operation="OP-4",
-            target_url=WIKI_SP500,
-            inputs={"sort_column": column, "direction": "descending"},
+            target_url=article,
+            inputs={"sort_column": column, "direction": direction},
             required_actions=(
                 RequiredAction("click", column,
                                "the ordering is produced client-side; there is no URL that "
                                "reaches it, so the interaction is the capability being "
-                               "claimed", times=2),
+                               "claimed", times=2 if direction == "descending" else 1),
             ),
             claims=(
-                ClaimSpec("sort_state", column, Relation.SORT_STATE, "sort_state",
-                          container=CONSTITUENTS),
-                ClaimSpec("top_symbol", "Symbol", Relation.TABLE_COLUMN_CELL, "code",
-                          container=CONSTITUENTS),
-                ClaimSpec("top_sector", column, Relation.TABLE_COLUMN_CELL, "text",
-                          container=CONSTITUENTS),
+                ClaimSpec("sort_state", column, Relation.SORT_STATE, "sort_state"),
+                ClaimSpec("top_row", column, Relation.TABLE_TOP_ROW, "row"),
             ),
         )
 
-        async def open_article(ctx: ExecutionContext) -> None:
-            await self._navigate(ctx, WIKI_SP500)
-            await ctx.page.wait_for_selector("#constituents th.headerSort", timeout=15_000)
+        clicks = 2 if direction == "descending" else 1
 
-        async def sort_descending(ctx: ExecutionContext) -> None:
-            selector = f'{CONSTITUENTS}//th[normalize-space(.)="{column}"]'
-            for ordinal in ("first", "second"):
+        async def open_article(ctx: ExecutionContext) -> None:
+            await self._navigate(ctx, article)
+            try:
+                await ctx.page.wait_for_selector("table.sortable th", timeout=15_000)
+            except Exception:  # noqa: BLE001 - no sortable table is an answer, not a crash
+                self._terminate(
+                    ctx.run, TerminalStatus.UNSUPPORTED, FailureClass.POSTCONDITION_UNMET,
+                    f"{article} has no sortable table, so there is nothing to sort by "
+                    f"{column!r}. That is a fact about the article, not a failure to look.")
+
+        async def sort_column(ctx: ExecutionContext) -> None:
+            selector = (f'xpath=//table[contains(@class,"sortable")]'
+                        f'//th[normalize-space(.)="{column}"]')
+            if await ctx.page.query_selector(selector) is None:
+                self._terminate(
+                    ctx.run, TerminalStatus.UNSUPPORTED, FailureClass.POSTCONDITION_UNMET,
+                    f"No sortable column on {article} is headed {column!r}. Sorting by a "
+                    f"neighbouring column would answer a different question.")
+                return
+            for ordinal in range(clicks):
                 await self._click(ctx, selector,
-                                  f"Click the {column!r} header ({ordinal} click)")
+                                  f"Click the {column!r} header (click {ordinal + 1} of "
+                                  f"{clicks}, for {direction} order)")
                 await ctx.page.wait_for_timeout(400)
 
         async def read_top_row(ctx: ExecutionContext) -> None:
-            await self._capture(ctx, "constituents-sorted")
+            await self._capture(ctx, "table-sorted")
             entry = self._step(ctx.run, StepKind.EXTRACT,
                                "Read the top row of the sorted table", label_anchor=column)
             values = await ctx.page.evaluate(
                 r"""(column) => {
                     const norm = s => (s || '').replace(/\s+/g, ' ').trim();
-                    const table = document.querySelector('#constituents');
+                    // The same rule the verifier uses: an exact header, or the single
+                    // header the named one is a prefix of. A person writes "country"; the
+                    // table says "Country/Territory". Reading it by a different rule than
+                    // the one that will check it produces a mismatch about nothing.
+                    const hit = (text, name) => text === name ||
+                        text.toLowerCase().startsWith(name.toLowerCase());
+                    const tables = [...document.querySelectorAll('table')];
+                    const table = tables.find(t => [...t.querySelectorAll('tr th')]
+                        .some(h => hit(norm(h.textContent), column)));
+                    if (!table) return {};
                     const heads = [...table.querySelectorAll('tr th')];
-                    const at = name => heads.findIndex(
-                      h => h.textContent.replace(/\s+/g, ' ').trim() === name);
+                    const at = name => {
+                      const exact = heads.findIndex(h => norm(h.textContent) === name);
+                      if (exact >= 0) return exact;
+                      const starts = heads.filter(
+                        h => norm(h.textContent).toLowerCase()
+                               .startsWith(name.toLowerCase()));
+                      const unique = new Set(starts.map(h => norm(h.textContent)));
+                      return unique.size === 1 ? heads.indexOf(starts[0]) : -1;
+                    };
                     const head = heads[at(column)];
-                    const row = table.querySelector('tr:has(td)');
-                    const cell = i => (row.cells[i] || {}).textContent || '';
                     const cls = (head.className || '').toLowerCase();
+                    const row = table.querySelector('tr:has(td)');
+                    const cells = row ? [...row.cells] : [];
+                    const top = {};
+                    heads.forEach((h, i) => {
+                      if (cells[i]) top[norm(h.textContent)] = norm(cells[i].textContent);
+                    });
                     return {
                       sort_state: {column,
                         direction: head.getAttribute('aria-sort') ||
                           (cls.includes('headersortdown') ? 'descending' :
                            cls.includes('headersortup') ? 'ascending' : 'unsorted'),
                         column_index: at(column)},
-                      top_symbol: norm(cell(at('Symbol'))),
-                      top_sector: norm(cell(at(column)))};
+                      top_row: top};
                 }""", column)
             ctx.candidate = values
-            self._finish_step(ctx.run, entry, **{k: str(v)[:120] for k, v in values.items()})
+            self._finish_step(ctx.run, entry, **{k: str(v)[:200] for k, v in values.items()})
 
-        return Plan("OP-4", "wikipedia sortable table, descending sort", pc,
-                    (open_article, sort_descending, read_top_row),
-                    entry_url=WIKI_SP500,
-                    terms=(column, "Symbol", "Security", "constituents"),
+        return Plan("OP-4", f"wikipedia sortable table, {column} {direction}", pc,
+                    (open_article, sort_column, read_top_row),
+                    entry_url=article,
+                    terms=(column, "sortable", "table"),
                     read_step=read_top_row)
 
-    def _plan_wiki_expand(self, low: str) -> Plan:
-        """OP-5: expand a collapsed navbox and read a value out of it.
+    #: "the first collapsed box", "the second collapsible". Absent means the first one.
+    NTH_COLLAPSIBLE = re.compile(r"\b(first|second|third|fourth|fifth)\b")
+
+    #: The group inside an expanded box the task asks about, when it names one.
+    GROUP_PHRASE = (
+        re.compile(r"(?:the\s+)?['\"]([^'\"]+)['\"]\s+(?:row\s+)?group"),
+        re.compile(r"(?:the\s+)?([A-Z][\w&. ]*?)\s+(?:row\s+)?group\b"),
+    )
+
+    def _plan_wiki_expand(self, task: str) -> Plan | None:
+        """OP-5: expand a collapsed box on an article and read a value out of it.
 
         A4.2 applies and is not glossed over: the collapsed content is present in the DOM
         beforehand, so this is not shortcut-proof by construction. What is verified is the
-        state transition — the collapsed marker must be gone from the stored artifact — plus
-        a value bound to its label inside the expanded box. The claim is "declared and
+        state transition — that box's collapsed marker must be gone from the stored
+        artifact — plus a value bound to its label inside it. The claim is "declared and
         trace-verified", not "impossible to bypass".
+
+        Which article and which box come from the task. They were constants, so "expand the
+        first collapsed box on the Apple Inc. article" expanded a navbox on the S&P 500
+        article instead and reported it as verified.
         """
-        group = "Energy"
+        low = task.lower()
+        article = self.wikipedia_article(task)
+        if not article:
+            return None
+        nth = self.NTH_COLLAPSIBLE.search(low)
+        index = {"first": 1, "second": 2, "third": 3, "fourth": 4,
+                 "fifth": 5}.get(nth.group(1) if nth else "", 1)
+        group = ""
+        for pattern in self.GROUP_PHRASE:
+            match = pattern.search(task)
+            if match:
+                group = norm_ws(match.group(1)).strip()
+                break
+
+        # The box's own collapsed marker, scoped to the one that was opened. Scoping
+        # matters: an article with three collapsibles keeps two of them collapsed, and a
+        # page-wide "no collapsed marker anywhere" check would fail every honest run.
+        # Indexed among the *collapsible* boxes, not among the collapsed ones. Counting
+        # collapsed boxes renumbers them the moment one opens, so box 1's marker check
+        # started reading box 2 — which is still collapsed, correctly — and the state
+        # transition it had just performed looked like it had not happened.
+        collapsed_marker = (f'(//*[contains(@class,"mw-collapsible")])[{index}]'
+                            f'[contains(@class,"mw-collapsed")]')
+
+        claims = [ClaimSpec("still_collapsed", f"collapsed marker of box {index}",
+                            Relation.ELEMENT_ABSENT, "boolean",
+                            container=collapsed_marker)]
+        if group:
+            claims.append(ClaimSpec("group", group, Relation.TABLE_ROW_CELL, "text"))
+
         pc = Postcondition(
-            goal=("On the Wikipedia list of S&P 500 companies, expand the collapsed S&P 500 "
-                  "companies navbox at the foot of the article and report the constituents "
-                  "listed under its Energy group."),
+            goal=(f"On {article}, expand collapsed box {index} and report "
+                  + (f"the entries listed under its {group!r} group."
+                     if group else "that it is no longer collapsed.")),
             operation="OP-5",
-            target_url=WIKI_SP500,
-            inputs={"group": group},
+            target_url=article,
+            # The index is frozen as a parameter only when the task named one; box 1 is
+            # where we start, not something the task asked for.
+            inputs={**({"collapsible_index": index} if nth else {}),
+                    **({"group": group} if group else {})},
             required_actions=(
                 RequiredAction("click", "show",
-                               "the navbox is collapsed on load and its toggle is the only "
+                               "the box is collapsed on load and its toggle is the only "
                                "way to open it"),
             ),
-            claims=(
-                ClaimSpec("still_collapsed", "the navbox's collapsed marker",
-                          Relation.ELEMENT_ABSENT, "boolean",
-                          container=COLLAPSED_NAVBOX),
-                ClaimSpec("energy_group", group, Relation.TABLE_ROW_CELL, "text"),
-            ),
+            claims=tuple(claims),
         )
 
+        toggle = (f'xpath=(//*[contains(@class,"mw-collapsible")]'
+                  f'//*[contains(@class,"mw-collapsible-toggle")])[{index}]')
+
         async def open_article(ctx: ExecutionContext) -> None:
-            await self._navigate(ctx, WIKI_SP500)
-            await ctx.page.wait_for_selector(NAVBOX_TOGGLE, timeout=15_000)
+            await self._navigate(ctx, article)
+            try:
+                await ctx.page.wait_for_selector(toggle, timeout=15_000)
+            except Exception:  # noqa: BLE001 - no such box is an answer about the article
+                self._terminate(
+                    ctx.run, TerminalStatus.UNSUPPORTED, FailureClass.POSTCONDITION_UNMET,
+                    f"{article} has no collapsed box number {index} to expand. That is a "
+                    f"fact about the article, not a failure to look.")
 
         async def expand(ctx: ExecutionContext) -> None:
-            await self._click(ctx, NAVBOX_TOGGLE, "Expand the collapsed navbox")
+            await self._click(ctx, toggle, f"Expand collapsed box {index}")
             await ctx.page.wait_for_timeout(500)
 
         async def read_group(ctx: ExecutionContext) -> None:
-            await self._capture(ctx, "navbox-expanded")
+            await self._capture(ctx, f"collapsible-{index}-expanded")
             entry = self._step(ctx.run, StepKind.EXTRACT,
-                               "Read the labelled group from the expanded navbox",
-                               label_anchor=group)
-            # `textContent`, not `innerText`. Verification re-reads the stored artifact with
-            # lxml, which has no layout and therefore no rendered text; a cell holding a
-            # list of inline links renders with no separators and parses with them. Reading
-            # it the way the verifier will is the difference between a real mismatch and a
-            # mismatch about whitespace.
-            cell = await ctx.page.query_selector(
-                f"//tr[th[normalize-space(.)='{group}']]/td[1]")
-            text = norm_ws(await cell.evaluate("el => el.textContent")) if cell else None
-            ctx.candidate = {"still_collapsed": True, "energy_group": text}
-            self._finish_step(ctx.run, entry, energy_group=(text or "")[:120])
+                               "Read the expanded box", label_anchor=group or "expanded")
+            values: dict[str, Any] = {"still_collapsed": True}
+            if group:
+                # `textContent`, not `innerText`. Verification re-reads the stored artifact
+                # with lxml, which has no layout and therefore no rendered text; a cell of
+                # inline links renders with no separators and parses with them. Reading it
+                # the way the verifier will is the difference between a real mismatch and a
+                # mismatch about whitespace.
+                cell = await ctx.page.query_selector(
+                    f"//tr[th[normalize-space(.)='{group}']]/td[1]")
+                values["group"] = (norm_ws(await cell.evaluate("el => el.textContent"))
+                                   if cell else None)
+            ctx.candidate = values
+            self._finish_step(ctx.run, entry, **{k: str(v)[:120] for k, v in values.items()})
 
-        return Plan("OP-5", "wikipedia collapsed navbox, expanded", pc,
+        return Plan("OP-5", f"wikipedia collapsed box {index}, expanded", pc,
                     (open_article, expand, read_group),
-                    entry_url=WIKI_SP500,
-                    terms=(group, "show", "S&P 500 companies", "navbox"),
+                    entry_url=article,
+                    terms=tuple(t for t in (group, "show", "navbox", "collapsible") if t),
                     read_step=read_group)
 
     def _plan_book_detail(self, low: str) -> Plan:
@@ -1631,45 +1871,123 @@ class Executor:
                            "A Light in the Attic"),
                     read_step=read_detail)
 
+    #: Categories the sidebar offers. The listing names them; we do not invent any.
+    CATEGORY_WORD = re.compile(
+        r"\b(travel|mystery|historical fiction|fiction|nonfiction|non-fiction|romance|"
+        r"humor|humour|childrens|children's|classics|poetry|science fiction|science|"
+        r"philosophy|history|horror|music|business|thriller|biography|health|art|"
+        r"food and drink|sequential art|young adult|new adult|fantasy|self help|"
+        r"academic|autobiography|crime|psychology|politics|cultural|erotica|womens "
+        r"fiction|sports and games|christian|spirituality|contemporary|paranormal|"
+        r"suspense|default|add a comment|novels|short stories)\b")
+
+    #: "the third page", "page 3", "the last page". Absent means the first page.
+    PAGE_WORD = re.compile(r"\b(?:page\s+(\d+)|(\d+)(?:st|nd|rd|th)\s+page|"
+                           r"(first|second|third|fourth|fifth|last)\s+page)\b")
+
+    @classmethod
+    def target_page(cls, low: str) -> int | str:
+        """Which page of a listing the task asks for. A named page nobody asked for is the
+        defect this whole gate exists for, so absence means the first page, not page two."""
+        match = cls.PAGE_WORD.search(low)
+        if not match:
+            return 1
+        if match.group(1) or match.group(2):
+            return int(match.group(1) or match.group(2))
+        word = match.group(3)
+        return "last" if word == "last" else {
+            "first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5}[word]
+
     def _plan_book_category(self, low: str) -> Plan:
-        """OP-6: page through a category listing and report list-level facts."""
+        """OP-6: reach a named category, page to the page the task asked for, and report
+        that page's list-level facts.
+
+        Every parameter here used to be a constant. The task named a category and a page and
+        the plan ignored both, so "the last page of Nonfiction" was answered with page two
+        and marked verified. What is frozen now is what the task said, and reaching a page
+        it did not ask for shows up as the pager contradicting the frozen input.
+        """
+        category = (self.CATEGORY_WORD.search(low) or [None])[0]
+        category = category.title() if isinstance(category, str) else "Nonfiction"
+        page = self.target_page(low)
+        # A page the task did not name is our landing page, not its request, and freezing
+        # it would make the plan-answers-task gate demand the task say "first".
+        named_page = bool(self.PAGE_WORD.search(low))
+
+        required = [RequiredAction("click", category,
+                                   "the category listing is reached from the sidebar, and "
+                                   "the navigation is the capability being claimed")]
+        if isinstance(page, int) and page > 1:
+            required.append(RequiredAction(
+                "click", "next", "each page beyond the first is reached by paging, and "
+                                 "paging is the capability being claimed", times=page - 1))
+
         pc = Postcondition(
-            goal=("On the books.toscrape Nonfiction category listing, go to the second "
-                  "page of results and report the titles shown there, together with the "
-                  "listing's own result count."),
+            goal=(f"On books.toscrape, open the {category} category listing, reach "
+                  f"{'the last page' if page == 'last' else f'page {page}'} of results, and "
+                  f"report the titles shown there together with the listing's own result "
+                  f"count and pager position."),
             operation="OP-6",
-            target_url=BOOK_CATEGORY_NONFICTION_P2,
-            inputs={"page": 2},
-            required_actions=(
-                RequiredAction("click", "next",
-                               "the second page is reached by paging, and paging is the "
-                               "capability being claimed"),
-            ),
+            target_url=f"{BOOKS}/catalogue/category/books/",
+            inputs={"category": category, "url_scope": "prefix",
+                    **({"page": page} if named_page else {})},
+            required_actions=tuple(required),
             claims=(
                 ClaimSpec("result_counter", "N results - showing X to Y",
                           Relation.COUNTER_ECHO, "counter"),
+                # A category with a single page has no pager, and demanding one would fail
+                # a correct run for a fact about the category.
+                ClaimSpec("pager", "Page N of M", Relation.PAGER_POSITION, "pager",
+                          optional=(page == 1)),
                 ClaimSpec("items", "product listing entries", Relation.LIST_ENUMERATION,
                           "text_list",
                           container='//article[contains(@class,"product_pod")]//h3/a'),
             ),
         )
 
-        async def open_category(ctx: ExecutionContext) -> None:
-            await self._navigate(ctx, BOOK_CATEGORY_NONFICTION)
+        async def open_home(ctx: ExecutionContext) -> None:
+            await self._navigate(ctx, f"{BOOKS}/index.html")
 
-        async def page_forward(ctx: ExecutionContext) -> None:
-            await self._click(ctx, "li.next a", "Click 'next' to the second page",
+        async def open_category(ctx: ExecutionContext) -> None:
+            selector = (f'xpath=//div[contains(@class,"side_categories")]//a'
+                        f'[normalize-space(.)="{category}"]')
+            await self._click(ctx, selector, f"Click the {category} category link",
                               navigates=True)
 
+        async def page_forward(ctx: ExecutionContext) -> None:
+            clicked = 0
+            while True:
+                if isinstance(page, int) and clicked >= page - 1:
+                    return
+                if ctx.deadline_exceeded():
+                    return
+                nxt = await ctx.page.query_selector("li.next a")
+                if nxt is None:
+                    if isinstance(page, int) and clicked < page - 1:
+                        self._terminate(
+                            ctx.run, TerminalStatus.UNSUPPORTED,
+                            FailureClass.POSTCONDITION_UNMET,
+                            f"The {category} listing ends before page {page}: paging "
+                            f"stopped after {clicked + 1} page(s) because no 'next' control "
+                            f"remains. The page asked for does not exist, which is an "
+                            f"answer about the site, not a failure to look.")
+                    return
+                await self._click(ctx, "li.next a",
+                                  f"Click 'next' to page {clicked + 2}", navigates=True)
+                clicked += 1
+
         async def read_listing(ctx: ExecutionContext) -> None:
-            await self._capture(ctx, "category-page-2")
+            await self._capture(ctx, f"category-{category.lower()}")
             entry = self._step(ctx.run, StepKind.EXTRACT,
-                               "Read the listing counter and the titles on this page",
+                               "Read the listing counter, the pager and the titles",
                                label_anchor="results")
             counter = await ctx.page.query_selector("form.form-horizontal")
             text = norm_ws((await counter.inner_text()).strip()) if counter else ""
             m = re.search(r"(\d+)\s+results?(?:\s*[-\u2013]\s*showing\s+(\d+)\s+to\s+(\d+))?",
                           text, re.I)
+            pager_el = await ctx.page.query_selector("li.current")
+            pager_text = norm_ws((await pager_el.inner_text()).strip()) if pager_el else ""
+            pm = re.search(r"page\s+(\d+)\s+of\s+(\d+)", pager_text, re.I)
             titles = await ctx.page.eval_on_selector_all(
                 "article.product_pod h3 a", "els => els.map(e => e.getAttribute('title'))")
             ctx.candidate = {
@@ -1677,15 +1995,78 @@ class Executor:
                                     "showing": [int(m.group(2)), int(m.group(3))]}
                                    if m and m.group(2) else
                                    {"count": int(m.group(1)), "term": None} if m else {}),
+                "pager": ({"page": int(pm.group(1)), "total": int(pm.group(2)),
+                           "items": None} if pm else None),
                 "items": titles,
             }
-            self._finish_step(ctx.run, entry, counter_text=text, titles=titles)
+            self._finish_step(ctx.run, entry, counter_text=text, pager=pager_text,
+                              titles=titles)
 
-        return Plan("OP-6", "books.toscrape category listing, paged", pc,
-                    (open_category, page_forward, read_listing),
-                    entry_url=BOOK_CATEGORY_NONFICTION,
-                    terms=("results", "showing", "next", "Nonfiction"),
+        return Plan("OP-6", f"books.toscrape {category} listing, page {page}", pc,
+                    (open_home, open_category, page_forward, read_listing),
+                    entry_url=f"{BOOKS}/index.html",
+                    terms=("results", "showing", "next", category, "Page", "of"),
                     read_step=read_listing)
+
+    # ---- does this plan answer the question that was asked? ---------------------
+
+    #: Frozen inputs that describe *how* a run is executed rather than what was asked.
+    INTERNAL_INPUTS = frozenset({"seed", "entry_url", "url_scope", "binding"})
+
+    #: A person writes "the second page"; a postcondition freezes `2`.
+    ORDINALS: dict[int, tuple[str, ...]] = {
+        1: ("first", "1st"), 2: ("second", "2nd"), 3: ("third", "3rd"),
+        4: ("fourth", "4th"), 5: ("fifth", "5th"),
+    }
+
+    @classmethod
+    def _input_synonyms(cls) -> dict[str, dict[str, tuple[str, ...]]]:
+        """Task wordings that legitimately produce a frozen value it does not contain.
+
+        A frozen input is not always a quotation: "newest first" is frozen as `descending`
+        because that is what the table will say about itself. Built from the same table the
+        parser uses, so a new wording cannot be accepted by one and rejected by the other.
+        """
+        directions: dict[str, list[str]] = {}
+        for word, direction in cls.DIRECTION_WORDS:
+            directions.setdefault(direction, []).append(word)
+        return {"direction": {k: tuple(v) for k, v in directions.items()}}
+
+    @classmethod
+    def plan_answers_task(cls, task: str, pc: Postcondition) -> str:
+        """"" if the plan's frozen parameters are ones the task actually named.
+
+        The gap this closes was found by the first harness run and it is the exact failure
+        this system exists to prevent. A task asking to sort by **CIK ascending** matched
+        the sort operation's keywords, was handed the canned plan for **GICS Sector
+        descending**, executed it perfectly, verified it against its own frozen
+        postcondition, and came back `succeeded_verified`. Every structural check passed,
+        because every structural check compares the run against the plan — and the plan was
+        never compared against the task. Four dev cases were being answered that way.
+
+        So: a frozen input the task does not name is an assumption, and an assumption
+        presented as an answer is the whole problem. Not naming one is not a refusal of the
+        task; it means this canned instance is not the one being asked for, and the run
+        goes to the generic path or stops and says which parameter it could not honour.
+        """
+        haystack = f" {normalise(task)} "
+        for key, value in (pc.inputs or {}).items():
+            # Scalars only. A structure is something the plan derived from the task with
+            # its own parser — the absence predicate is built from the threshold the task
+            # gave — and demanding its serialisation appear in the sentence is nonsense.
+            if (key in cls.INTERNAL_INPUTS or isinstance(value, bool)
+                    or not isinstance(value, (str, int, float))):
+                continue
+            spellings = [str(value)]
+            spellings += list(cls._input_synonyms().get(key, {}).get(str(value), ()))
+            if isinstance(value, float) and value.is_integer():
+                spellings.append(str(int(value)))
+            if isinstance(value, int):
+                spellings += list(cls.ORDINALS.get(value, ()))
+            if not any(f" {normalise(s)} " in haystack for s in spellings if normalise(s)):
+                return (f"the plan is fixed to {key}={value!r}, which this task does not "
+                        f"ask for")
+        return ""
 
     # ---- the undeclared path (A13.2) -------------------------------------------
 
@@ -1706,6 +2087,12 @@ class Executor:
         return ""
 
     @classmethod
+    def named_site(cls, task: str) -> str:
+        """The host the task names, normalised, or "" if it names none."""
+        entry = cls.resolve_entry(task)
+        return urlsplit(entry).netloc.lower().removeprefix("www.") if entry else ""
+
+    @classmethod
     def names_a_site_we_do_not_serve(cls, task: str) -> str:
         """The task points at a host that is neither the fixture nor a promised record's.
 
@@ -1716,13 +2103,29 @@ class Executor:
         search term, on a site the plan had never heard of. Where the task says to go
         settles it before any keyword does.
         """
-        entry = cls.resolve_entry(task)
-        if not entry:
+        host = cls.named_site(task)
+        if not host:
             return ""
-        host = urlsplit(entry).netloc.lower().removeprefix("www.")
         ours = {urlsplit(settings.fixture_base_url).netloc.lower().removeprefix("www.")}
         ours |= {r.site.lower().removeprefix("www.") for r in PROMISED_RECORDS}
-        return "" if host in ours else entry
+        return "" if host in ours else cls.resolve_entry(task)
+
+    @classmethod
+    def routes_for(cls, task: str) -> tuple[tuple[str, tuple[str, ...]], ...]:
+        """Which operations may match, given where the task says it is.
+
+        A task naming a promised site may only reach that site's promised operations. The
+        fixture's markers are broad on purpose — it is our own test site and its tasks are
+        phrased however we phrase them — and left unrestricted they swallowed real ones:
+        "page forward to the third page" on books.toscrape reached the *fixture* paginator,
+        which then failed on a site the task never mentioned.
+        """
+        host = cls.named_site(task)
+        if not host:
+            return cls.ROUTES
+        allowed = {r.route for r in PROMISED_RECORDS
+                   if r.site.lower().removeprefix("www.") == host}
+        return tuple(r for r in cls.ROUTES if r[0] in allowed) if allowed else cls.ROUTES
 
     @staticmethod
     def goal_terms(task: str) -> tuple[str, ...]:
