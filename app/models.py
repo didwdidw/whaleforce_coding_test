@@ -177,10 +177,13 @@ class BudgetUse:
     output_tokens: int = 0
     usd: float = 0.0
     started_at: float = field(default_factory=time.time)
+    # Stamped when the run ends. Without it the elapsed figure keeps counting after the run
+    # is over, so a stored run reports a wall clock that grows every time it is read.
+    ended_at: float | None = None
 
     @property
     def elapsed_seconds(self) -> float:
-        return time.time() - self.started_at
+        return (self.ended_at or time.time()) - self.started_at
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -190,6 +193,8 @@ class BudgetUse:
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
             "usd": round(self.usd, 6),
+            "started_at": self.started_at,
+            "ended_at": self.ended_at,
             "elapsed_seconds": round(self.elapsed_seconds, 2),
         }
 
@@ -243,6 +248,8 @@ class Run:
         return len(self.trace) + 1
 
     def to_dict(self, *, include_trace: bool = True) -> dict[str, Any]:
+        from app.latency import summarise  # imported here; latency reads these types
+
         d: dict[str, Any] = {
             "id": self.id,
             "task": self.task,
@@ -259,6 +266,7 @@ class Run:
             "explanation": self.explanation,
             "suspicions": self.suspicions,
             "budget": self.budget.to_dict(),
+            "latency": summarise(self),
             "claims": self.claims,
             "postcondition": self.postcondition,
             "postcondition_hash": self.postcondition_hash,

@@ -287,6 +287,7 @@ class Executor:
         run.failure_class = failure
         run.explanation = explanation
         run.finished_at = time.time()
+        run.budget.ended_at = run.finished_at
         # Every run ends here, so this is where a quiet outcome is made to answer for what
         # the trace says we may have removed before anyone could act on it.
         annotate(run)

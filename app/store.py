@@ -374,6 +374,8 @@ class Store:
             budget.input_tokens = data.get("input_tokens", 0)
             budget.output_tokens = data.get("output_tokens", 0)
             budget.usd = data.get("usd", 0.0)
+            budget.started_at = data.get("started_at") or row["started_at"] or budget.started_at
+            budget.ended_at = data.get("ended_at")
         return Run(
             id=row["id"], task=row["task"], tier=Tier(row["tier"]),
             state=RunState(row["state"]), session_id=row["session_id"] or "",

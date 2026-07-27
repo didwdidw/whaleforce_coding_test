@@ -29,6 +29,7 @@ from app.config import config_provenance, settings
 from app.coverage import CoverageLedger
 from app.demo import CHIPS, PLACEHOLDER, PRE_EXECUTED
 from app.executor import PROMISED_RECORDS, Executor
+from app.latency import summarise as latency_summary
 from app.models import Run, TerminalStatus, Tier, new_id
 from app.provider import Provider, ProviderError
 from app.queue import AdmissionRefused, RunQueue
@@ -205,6 +206,7 @@ async def run_detail(request: Request, run_id: str) -> Response:
     return TEMPLATES.TemplateResponse(request, "run.html", {
         "run": run,
         "artifacts": artifacts,
+        "latency": latency_summary(run),
         "position": state.queue.position_of(run_id),
         "verdict": verdict,
         # An evidence bundle stores the artifact's state as it was at verification time. Two
@@ -257,6 +259,7 @@ async def submit(request: Request, task: str = Form(...)) -> Response:
         run.failure_class = refusal.failure_class
         run.explanation = refusal.message
         run.finished_at = time.time()
+        run.budget.ended_at = run.finished_at
         state.store.save_run(run)
         state.coverage.record(status=run.terminal_status, failure=refusal.failure_class,
                               run_id=run.id, task=run.task)

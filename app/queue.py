@@ -143,6 +143,7 @@ class RunQueue:
             self._running[run.id] = run
             run.state = RunState.RUNNING
             run.started_at = time.time()
+            run.budget.started_at = run.started_at
             try:
                 await self._executor(run)
             except asyncio.CancelledError:
@@ -152,6 +153,7 @@ class RunQueue:
                 run.failure_class = FailureClass.SITE_UNAVAILABLE
                 run.explanation = "The service stopped while this run was executing."
                 run.finished_at = time.time()
+                run.budget.ended_at = run.finished_at
                 raise
             except Exception as exc:  # noqa: BLE001 - a defect must not kill the worker
                 log.exception("worker %d: run %s raised", index, run.id)
@@ -160,6 +162,7 @@ class RunQueue:
                 run.failure_class = FailureClass.INTERNAL_ERROR
                 run.explanation = f"Unhandled defect in the executor: {type(exc).__name__}: {exc}"
                 run.finished_at = time.time()
+                run.budget.ended_at = run.finished_at
             finally:
                 self._running.pop(run.id, None)
                 self.completed += 1

@@ -37,46 +37,103 @@ import hashlib
 import json
 import pathlib
 import re
+import statistics
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from dataclasses import dataclass
 from typing import Any
 
-HARNESS_VERSION = "harness/1.0"
+HARNESS_VERSION = "harness/1.1"
 REPO = pathlib.Path(__file__).parent.parent
-DEFAULT_CASES = {"dev": REPO / "eval" / "dev-set.md"}
+DEFAULT_CASES = {"dev": REPO / "eval" / "dev-set.md",
+                 "experimental": REPO / "eval" / "experimental-set.md"}
 POLL_SECONDS = 3.0
+
+TERMINAL_STATUSES = {"succeeded_verified", "no_result_verified", "partial", "unverified",
+                     "failed", "blocked", "unsupported"}
 
 
 # ---- the split ------------------------------------------------------------------
 
-def parse_cases(path: pathlib.Path) -> list[dict[str, str]]:
+@dataclass(frozen=True)
+class CaseSchema:
+    """What one split's cases look like.
+
+    The harness needs exactly three things from a case: something to identify it by,
+    something to submit, and the outcomes the case will accept. Everything else is carried
+    through untouched. Task 2's cases will name a company and a fiscal year rather than a
+    browser task; they fill the same three roles, so they get a schema here rather than a
+    second harness (A14.12).
+    """
+
+    name: str
+    fields: tuple[str, ...]
+    request_field: str
+    expectation_field: str
+
+
+BROWSER_TASK = CaseSchema(
+    name="browser_task",
+    fields=("record", "tier", "task", "entry_point", "expected_terminal_status"),
+    request_field="task",
+    expectation_field="expected_terminal_status",
+)
+
+SCHEMAS: dict[str, CaseSchema] = {BROWSER_TASK.name: BROWSER_TASK}
+
+
+def parse_cases(path: pathlib.Path,
+                schema: CaseSchema = BROWSER_TASK) -> list[dict[str, str]]:
     """Cases as the split file declares them. Fields are read, never inferred."""
     text = path.read_text(encoding="utf-8")
     cases = []
     for block in re.split(r"^### ", text, flags=re.M)[1:]:
         case: dict[str, str] = {"id": block.split()[0].strip()}
-        for field in ("record", "tier", "task", "entry_point",
-                      "expected_terminal_status"):
+        for field in schema.fields:
             found = re.search(rf"^- \*\*{field}\*\*\s*(.*)$", block, re.M)
             if found:
                 case[field] = found.group(1).strip()
-        task = re.search(r'^- \*\*task\*\*\s+"(.+?)"\s*$', block, re.M)
-        if task:
-            case["task"] = task.group(1)
-        if case.get("task"):
+        quoted = re.search(rf'^- \*\*{schema.request_field}\*\*\s+"(.+?)"\s*$', block, re.M)
+        if quoted:
+            case[schema.request_field] = quoted.group(1)
+        if case.get(schema.request_field):
             cases.append(case)
     return cases
 
 
-def accepted_statuses(case: dict[str, str]) -> set[str]:
+def accepted_statuses(case: dict[str, str],
+                      schema: CaseSchema = BROWSER_TASK) -> set[str]:
     """Every status the case names as acceptable. A case may allow more than one."""
-    declared = case.get("expected_terminal_status", "")
-    return {s for s in re.findall(r"[a-z_]+", declared)
-            if s in {"succeeded_verified", "no_result_verified", "partial", "unverified",
-                     "failed", "blocked", "unsupported"}}
+    declared = case.get(schema.expectation_field, "")
+    return {s for s in re.findall(r"[a-z_]+", declared) if s in TERMINAL_STATUSES}
+
+
+def outcome_kind(run: dict[str, Any]) -> str:
+    """How this run ended, in the four categories a breadth figure needs.
+
+    Kept in one place and named, because "attempt rate" and "abstention rate" (A14.4) are
+    only meaningful if the boundary between refusing before looking and giving up after
+    looking is drawn the same way for every case.
+    """
+    status = run.get("terminal_status")
+    failure = run.get("failure_class")
+    if failure in {"policy_refused", "robots_disallowed"}:
+        return "refused_by_policy"
+    if run.get("counts_as_success"):
+        return "verified"
+    if status == "unsupported":
+        return "abstained_after_looking"
+    return "failed_or_blocked"
+
+
+def attempted(run: dict[str, Any]) -> bool:
+    """Whether the run actually went to a page. Read from the trace rather than from the
+    status, because a refusal and a failed attempt can share a terminal status."""
+    return any(entry.get("kind") == "navigate" and entry.get("ok")
+               for entry in (run.get("trace") or []))
 
 
 # ---- the deployment -------------------------------------------------------------
@@ -235,9 +292,9 @@ def _collapse(text: str) -> str:
 
 # ---- scoring ---------------------------------------------------------------------
 
-def score_case(case: dict[str, str], run: dict[str, Any],
-               evidence: dict[str, Any]) -> dict[str, Any]:
-    accepted = accepted_statuses(case)
+def score_case(case: dict[str, str], run: dict[str, Any], evidence: dict[str, Any],
+               schema: CaseSchema = BROWSER_TASK) -> dict[str, Any]:
+    accepted = accepted_statuses(case, schema)
     produced = run.get("terminal_status")
     status_ok = produced in accepted if accepted else None
     return {
@@ -250,13 +307,105 @@ def score_case(case: dict[str, str], run: dict[str, Any],
         "terminal_status": produced,
         "failure_class": run.get("failure_class"),
         "counts_as_success": bool(run.get("counts_as_success")),
+        "outcome_kind": outcome_kind(run),
+        "attempted": attempted(run),
         "expected": sorted(accepted),
         "status_as_expected": status_ok,
         "evidence": evidence,
         "duration_seconds": run.get("duration_seconds"),
+        "latency": run.get("latency"),
         "budget": run.get("budget"),
         "timed_out_waiting": bool(run.get("harness_timeout")),
         "passed": bool(status_ok) and not evidence["findings"],
+    }
+
+
+def breadth(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Attempt, verified and abstention rates (A14.4), plus the policy-refusal rate (A14.3).
+
+    A system that says no is not the same as a system that cannot. These four numbers say
+    which one a reader is looking at, and they are reported for the experimental tier where
+    the graders' own unseen tasks land.
+    """
+    if not rows:
+        return {"cases": 0}
+    n = len(rows)
+    kinds = [r["outcome_kind"] for r in rows]
+
+    def share(count: int) -> dict[str, Any]:
+        return {"count": count, "rate": round(count / n, 4),
+                "interval_95": _wilson(count, n)}
+
+    return {
+        "cases": n,
+        "attempted": share(sum(1 for r in rows if r["attempted"])),
+        "verified": share(sum(1 for k in kinds if k == "verified")),
+        "abstained_after_looking": share(sum(1 for k in kinds
+                                             if k == "abstained_after_looking")),
+        "refused_by_policy": share(sum(1 for k in kinds if k == "refused_by_policy")),
+        "failed_or_blocked": share(sum(1 for k in kinds if k == "failed_or_blocked")),
+    }
+
+
+def _wilson(successes: int, n: int) -> list[float] | None:
+    """A 95% Wilson interval (S-10.13). At these sample sizes a bare percentage implies a
+    precision the split does not have."""
+    if n == 0:
+        return None
+    z = 1.96
+    p = successes / n
+    denominator = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / denominator
+    margin = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / denominator
+    return [round(max(0.0, centre - margin), 4), round(min(1.0, centre + margin), 4)]
+
+
+def latency_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Latency broken down the way A14.1 requires it to be read: by tier and by execution
+    path. A single median over both paths describes neither — a deterministic run has no
+    provider in it at all."""
+    summaries = [r["latency"] for r in rows if isinstance(r.get("latency"), dict)]
+
+    def by(key: str, value: str) -> list[dict[str, Any]]:
+        return [r["latency"] for r in rows
+                if isinstance(r.get("latency"), dict) and r.get(key) == value]
+
+    report: dict[str, Any] = {"all": _aggregate_latency(summaries)}
+    for tier in ("T-DECLARED", "T-EXPERIMENTAL"):
+        report[tier] = _aggregate_latency(by("tier", tier))
+    for path in ("model_driven", "scripted"):
+        report[path] = _aggregate_latency(by("execution_path", path))
+    return report
+
+
+def _aggregate_latency(summaries: list[dict[str, Any]]) -> dict[str, Any]:
+    """The same computation the product uses, restated here so the harness stays free of
+    `app/` imports (S-12.4's discipline applied to the scorer)."""
+    usable = [s for s in summaries
+              if s.get("reportable") and s.get("run_seconds") is not None]
+    excluded = len(summaries) - len(usable)
+    if not usable:
+        return {"n": 0, "excluded_unreportable": excluded}
+
+    def spread(values: list[float]) -> dict[str, Any]:
+        if not values:
+            return {"n": 0}
+        ordered = sorted(values)
+        p90 = ordered[min(len(ordered) - 1, int(-(-0.9 * len(ordered)) // 1) - 1)]
+        return {"n": len(values), "median": round(statistics.median(ordered), 2),
+                "p90": round(p90, 2), "min": round(ordered[0], 2),
+                "max": round(ordered[-1], 2)}
+
+    def field(name: str) -> list[float]:
+        return [float(s[name]) for s in usable if s.get(name) is not None]
+
+    return {
+        "n": len(usable),
+        "excluded_unreportable": excluded,
+        "run_seconds": spread(field("run_seconds")),
+        "time_to_first_result_seconds": spread(field("time_to_first_result_seconds")),
+        "queue_wait_seconds": spread(field("queue_wait_seconds")),
+        "model_seconds": spread(field("model_seconds")),
     }
 
 
@@ -281,6 +430,12 @@ def aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
         "all_cases": rate(results),
         "failure_class_histogram": dict(sorted(histogram.items())),
         "evidence_findings": sum(len(r["evidence"]["findings"]) for r in results),
+        # What the system did when it was not on ground it had declared: the surface the
+        # graders' unseen tasks land on (A14.3, A14.4).
+        "experimental_breadth": breadth(experimental),
+        "shortcut_refusals": sum(1 for r in results
+                                 if r["failure_class"] == "required_action_skipped"),
+        "latency": latency_report(results),
     }
 
 
@@ -309,19 +464,22 @@ def provenance(deployment: Deployment, cases_path: pathlib.Path,
 # ---- entry point -----------------------------------------------------------------
 
 def run_split(base_url: str, split: str, cases_path: pathlib.Path,
-              deadline_seconds: float, verbose: bool) -> dict[str, Any]:
+              deadline_seconds: float, verbose: bool,
+              schema: CaseSchema = BROWSER_TASK) -> dict[str, Any]:
     # Before touching the deployment: a split that parses to nothing would otherwise score
     # 100% of nothing, and the run would look like a clean pass.
-    cases = parse_cases(cases_path)
+    cases = parse_cases(cases_path, schema)
     if not cases:
         raise SystemExit(f"No cases parsed from {cases_path}. A split that parses to "
                          f"nothing scores 100% of nothing.")
     deployment = Deployment(base_url)
     meta = provenance(deployment, cases_path, split)
+    meta["case_schema"] = schema.name
 
     results = []
     for case in cases:
-        submitted = deployment.submit(case["task"], deadline_seconds=deadline_seconds)
+        submitted = deployment.submit(case[schema.request_field],
+                                      deadline_seconds=deadline_seconds)
         run_id = submitted.get("run_id")
         if not run_id:
             results.append({
@@ -329,17 +487,19 @@ def run_split(base_url: str, split: str, cases_path: pathlib.Path,
                 "declared_tier": case.get("tier", ""), "run_id": None, "tier": None,
                 "execution_path": None, "terminal_status": None,
                 "failure_class": submitted.get("failure_class") or "admission_refused",
-                "counts_as_success": False, "expected": sorted(accepted_statuses(case)),
+                "counts_as_success": False,
+                "outcome_kind": "failed_or_blocked", "attempted": False,
+                "expected": sorted(accepted_statuses(case, schema)),
                 "status_as_expected": False,
                 "evidence": {"claims": 0, "independently_checked": 0,
                              "findings": [f"not admitted: {submitted.get('explanation')}"]},
-                "duration_seconds": None, "budget": None, "timed_out_waiting": False,
-                "passed": False})
+                "duration_seconds": None, "latency": None, "budget": None,
+                "timed_out_waiting": False, "passed": False})
             if verbose:
                 print(f"  {case['id']}: refused at admission")
             continue
         run = deployment.await_run(run_id, deadline_seconds)
-        result = score_case(case, run, check_evidence(deployment, run))
+        result = score_case(case, run, check_evidence(deployment, run), schema)
         results.append(result)
         if verbose:
             print(f"  {result['case']:8} {result['tier'] or '-':15} "
@@ -349,9 +509,9 @@ def run_split(base_url: str, split: str, cases_path: pathlib.Path,
 
     meta["finished_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     report = {"provenance": meta, "aggregate": aggregate(results)}
-    # Per-case detail is dev-only. A held-out split returns the score and the histogram;
-    # anything more would put case content in front of the session that must not see it.
-    if split == "dev":
+    # Per-case detail is withheld for the held-out splits only: their content must not reach
+    # the session that must not see it. Dev and experimental are visible splits.
+    if split in {"dev", "experimental"}:
         report["cases"] = results
     else:
         report["note"] = ("Per-case detail is withheld for a held-out split (S-10.4). The "
@@ -364,8 +524,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--split", default="dev",
-                        choices=("dev", "validation", "test"))
+                        choices=("dev", "experimental", "validation", "test"))
     parser.add_argument("--cases", type=pathlib.Path)
+    parser.add_argument("--case-schema", default=BROWSER_TASK.name, choices=sorted(SCHEMAS))
     parser.add_argument("--out", type=pathlib.Path)
     parser.add_argument("--deadline", type=float, default=300.0,
                         help="seconds to wait for one run, including queueing")
@@ -375,8 +536,9 @@ def main(argv: list[str] | None = None) -> int:
     if cases_path is None:
         raise SystemExit(f"--cases is required for the {args.split} split: its content is "
                          f"deliberately not in this repository (eval/holdout-manifest.md)")
-    verbose = args.split == "dev"
-    report = run_split(args.base_url, args.split, cases_path, args.deadline, verbose)
+    verbose = args.split in {"dev", "experimental"}
+    report = run_split(args.base_url, args.split, cases_path, args.deadline, verbose,
+                       SCHEMAS[args.case_schema])
 
     out = args.out or (REPO / "eval" / "results" /
                        f"{args.split}-{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}.json")

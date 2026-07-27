@@ -204,10 +204,49 @@
 </div>
 
 <div class="panel">
+  <h2>Timing</h2>
+  <p class="sub">Measured while the run executed and read back from the record, not
+    recomputed on view. Latency is instrumented the same way cost is: a number here is worth
+    exactly what the token and USD figures below are worth.</p>
+  <dl class="kv">
+    <dt>Queue wait</dt>
+      <dd>{% if latency.queue_wait_seconds is not none %}{{ latency.queue_wait_seconds }}s
+          before a browser context was free{% else %}—{% endif %}</dd>
+    <dt>Execution</dt>
+      <dd>{% if latency.run_seconds is not none %}{{ latency.run_seconds }}s of the 180s
+          budget{% else %}still running{% endif %}</dd>
+    <dt>Time to first result</dt>
+      <dd>{% if latency.time_to_first_result_seconds is not none %}
+            {{ latency.time_to_first_result_seconds }}s — when the first value was read
+          {% else %}no value was ever read, so there is no first result to time{% endif %}</dd>
+    <dt>Waiting on the model</dt>
+      <dd>{{ latency.model_seconds }}s across {{ latency.model_calls }} call{{ '' if latency.model_calls == 1 else 's' }}
+        {%- if latency.model_calls_cached %}, of which {{ latency.model_calls_cached }} were
+          served from the development cache{% endif %}</dd>
+    <dt>Per step</dt>
+      <dd>{% if latency.step_ms.median is not none %}median {{ latency.step_ms.median }} ms ·
+            p90 {{ latency.step_ms.p90 }} ms · max {{ latency.step_ms.max }} ms
+          {% else %}no completed steps{% endif %}</dd>
+    <dt>Slowest step</dt>
+      <dd>{% if latency.slowest_step %}#{{ latency.slowest_step.seq }}
+            {{ latency.slowest_step.summary }} — {{ latency.slowest_step.ms }} ms
+          {% else %}—{% endif %}</dd>
+    {% if not latency.reportable %}
+    <dt>Reportable</dt>
+      <dd>No. This run used the development model cache, so its timings are faster than any
+        run a user would see and are excluded from every reported figure.</dd>
+    {% endif %}
+    {% if latency.steps_unmeasured %}
+    <dt>Unmeasured</dt>
+      <dd>{{ latency.steps_unmeasured }} step(s) recorded no finish time; the per-step
+        figures above cover the rest.</dd>
+    {% endif %}
+  </dl>
+</div>
+
+<div class="panel">
   <h2>Budget and provenance</h2>
   <dl class="kv">
-    <dt>Wall clock</dt><dd>{{ run.budget.to_dict().elapsed_seconds }}s of
-      {{ run.budget.to_dict().elapsed_seconds and '' }}180s</dd>
     <dt>Steps</dt><dd>{{ run.budget.steps }} of 25</dd>
     <dt>Model calls</dt><dd>{{ run.budget.llm_calls_exploration }} exploration /
       {{ run.budget.llm_calls_recovery }} recovery</dd>

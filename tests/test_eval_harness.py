@@ -165,3 +165,130 @@ def test_a_held_out_split_returns_no_case_detail(monkeypatch, tmp_path):
     assert set(report) == {"provenance", "aggregate", "note"}
     serialised = str(report)
     assert "do a thing" not in serialised and "V-1" not in serialised
+
+
+# --- breadth: what the system did when it was off declared ground -------------------
+
+def _run_json(status: str, failure: str | None = None, navigated: bool = True,
+              tier: str = "T-EXPERIMENTAL") -> dict:
+    return {"id": "run_1", "tier": tier, "terminal_status": status,
+            "failure_class": failure, "execution_path": "model_driven",
+            "counts_as_success": status in ("succeeded_verified", "no_result_verified"),
+            "trace": [{"kind": "navigate", "ok": True}] if navigated else []}
+
+
+@pytest.mark.parametrize("status,failure,expected", [
+    ("unsupported", "policy_refused", "refused_by_policy"),
+    ("blocked", "robots_disallowed", "refused_by_policy"),
+    ("unsupported", "postcondition_unmet", "abstained_after_looking"),
+    ("succeeded_verified", None, "verified"),
+    ("no_result_verified", None, "verified"),
+    ("failed", "verification_mismatch", "failed_or_blocked"),
+    ("unverified", None, "failed_or_blocked"),
+])
+def test_refusing_before_looking_is_not_the_same_outcome_as_giving_up_after(
+        status, failure, expected):
+    """A14.3 and A14.4 both turn on this boundary. Collapsing them would let a system that
+    never opens a browser report the same abstention rate as one that tries and stops."""
+    from eval.harness import outcome_kind
+
+    assert outcome_kind(_run_json(status, failure)) == expected
+
+
+def test_a_success_status_is_never_read_as_a_refusal():
+    """`policy_refused` is checked first, so a defect that set both would have hidden a
+    success behind a refusal label. It cannot happen, and this is why."""
+    from eval.harness import outcome_kind
+
+    run = _run_json("succeeded_verified", None)
+    assert outcome_kind(run) == "verified"
+
+
+def test_attempt_is_read_from_the_trace_not_from_the_status():
+    """A refusal and a failed attempt can share a terminal status; only the trace says
+    whether a page was ever opened."""
+    from eval.harness import attempted
+
+    assert attempted(_run_json("failed", navigated=True))
+    assert not attempted(_run_json("failed", navigated=False))
+
+
+def test_breadth_reports_attempt_verified_and_abstention_with_an_interval():
+    from eval.harness import breadth
+
+    rows = [score_case(_case("`succeeded_verified`", "T-EXPERIMENTAL"),
+                       _run_json("succeeded_verified"), _evidence()),
+            score_case(_case("`unsupported`", "T-EXPERIMENTAL"),
+                       _run_json("unsupported", "postcondition_unmet"), _evidence()),
+            score_case(_case("`unsupported`", "T-EXPERIMENTAL"),
+                       _run_json("unsupported", "policy_refused", navigated=False),
+                       _evidence())]
+    report = breadth(rows)
+    assert report["cases"] == 3
+    assert report["verified"]["count"] == 1
+    assert report["abstained_after_looking"]["count"] == 1
+    assert report["refused_by_policy"]["count"] == 1
+    assert report["attempted"]["count"] == 2
+    low, high = report["verified"]["interval_95"]
+    assert low < report["verified"]["rate"] < high
+
+
+def _evidence() -> dict:
+    return {"claims": 0, "independently_checked": 0, "findings": []}
+
+
+# --- latency reporting ---------------------------------------------------------------
+
+def _latency(seconds: float, reportable: bool = True) -> dict:
+    return {"run_seconds": seconds, "time_to_first_result_seconds": seconds / 2,
+            "queue_wait_seconds": 0.5, "model_seconds": seconds / 4,
+            "reportable": reportable}
+
+
+def test_latency_is_reported_per_tier_and_per_path_not_only_pooled():
+    """A pooled median describes neither path: a deterministic run has no provider in it."""
+    from eval.harness import latency_report
+
+    rows = [{"tier": "T-DECLARED", "execution_path": "model_driven",
+             "latency": _latency(30.0)},
+            {"tier": "T-EXPERIMENTAL", "execution_path": "scripted",
+             "latency": _latency(6.0)}]
+    report = latency_report(rows)
+    assert report["all"]["n"] == 2
+    assert report["T-DECLARED"]["run_seconds"]["median"] == 30.0
+    assert report["scripted"]["run_seconds"]["median"] == 6.0
+    assert report["model_driven"]["n"] == 1
+
+
+def test_a_run_served_from_the_development_cache_is_kept_out_of_the_figures():
+    from eval.harness import latency_report
+
+    rows = [{"tier": "T-DECLARED", "execution_path": "model_driven",
+             "latency": _latency(30.0)},
+            {"tier": "T-DECLARED", "execution_path": "model_driven",
+             "latency": _latency(0.4, reportable=False)}]
+    report = latency_report(rows)
+    assert report["all"]["n"] == 1
+    assert report["all"]["excluded_unreportable"] == 1
+    assert report["all"]["run_seconds"]["median"] == 30.0
+
+
+# --- the case schema is pluggable (A14.12) -------------------------------------------
+
+def test_a_split_with_different_fields_needs_a_schema_not_a_second_harness(tmp_path):
+    """Task 2's cases name a company and a fiscal year. Same three roles — identify,
+    submit, expect — so they parse here."""
+    from eval.harness import CaseSchema, parse_cases as parse
+
+    schema = CaseSchema(name="filing_lookup",
+                        fields=("company", "fiscal_year", "request", "expected_status"),
+                        request_field="request", expectation_field="expected_status")
+    path = tmp_path / "filing-set.md"
+    path.write_text('### Q2-1\n- **company** Apple Inc.\n- **fiscal_year** 2024\n'
+                    '- **request** "the FY2024 10-K"\n'
+                    '- **expected_status** `succeeded_verified`\n', encoding="utf-8")
+    cases = parse(path, schema)
+    assert cases == [{"id": "Q2-1", "company": "Apple Inc.", "fiscal_year": "2024",
+                      "request": "the FY2024 10-K",
+                      "expected_status": "`succeeded_verified`"}]
+    assert accepted_statuses(cases[0], schema) == {"succeeded_verified"}

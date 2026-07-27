@@ -683,3 +683,143 @@ Task 1 的任何實作都不得建立在「Task 2 不會做」這個假設上。
 建議順序：A13.1 與 A13.3 是小改動大後果，先清掉；接著 A13.4，因為它會改變 A13.2 要接的形狀；
 然後 A13.2 的 generic 路徑；再來 A13.5 的 harness，之後 M5 一路往下走。
 照慣例做完回報，有爭議或需要改 spec 就停下來問。
+
+==========
+
+Spec 更新三條：Amendment 14、15、16（docs/task1-spec.md §16），以及 docs/task2-seam.md 升到 v1.1。
+commits: fd7273e、8e5a63b、157fc30。先完整讀 A14.1–A14.15、A15.1–A15.5、A16.1–A16.11
+與新增的驗收項 A-39…A-48。以下是導讀與理由。
+
+═══ Amendment 14 — 一位無前文的獨立審查者拿作業原文逐條對 spec 後的結果 ═══
+他的判斷：忠實實作會落在強 B，A 有機會但沒鎖住。缺口如下。
+
+一、四個分析維度只做到兩個（A14.1–A14.3）
+作業點名 runtime performance / cost / scalability / correctness 四項並列，
+A 級定義是「performance/cost/scalability analysis is concrete」，那是連言。
+cost 有 A7.6 與 A9.4、correctness 有 §4 與 §10，
+但延遲與擴展性只有驗收項 A-25 在要求數字，沒有任何條文產生那些數字。
+S-6.1 的 180 秒是預算不是量測，S-11.8 的 concurrency 2 是設計常數不是飽和點。
+→ A14.1：延遲照 cost 的規格鏡射 —— per-step 與 per-run wall clock、time to first result，
+  進 trace 也進 UI；報告給分佈（中位數與離散度，不是最佳單例），
+  按 tier 與 model-driven / deterministic 兩條路徑分開。
+→ A14.2：擴展性要實測 —— 滿併發吞吐、佇列開始 429 的飽和點、負載下排隊等待、cold start。
+  每項一個誠實數字就夠，零個不行。
+→ A14.3：未宣告站點任務的政策拒絕比例要量出來並回報，
+  否則政策形狀的結果讀起來像一個大多時候說不的系統。
+
+二、廣度需要數字不是揭露（A14.4）
+grader 用他們自己的 unseen tasks，那些百分之百落在實驗層，
+而我們目前對實驗層訂的成功標準是「放棄得夠清楚」。R-11 是我們自己寫的：
+「it can read as 'doesn't work'」。
+→ 新增 experimental split：8–10 條公開、政策乾淨、read-only、不在任何承
+  由 PM 出題，走 A13.5 的 harness，回報 attempt / verified / abstention
+  不進 headline 成功率，與它並列。這把 A13.2 的標準從「誠實放棄」提高到
+
+三、grader 看得到的證據（A14.5–A14.9）
+→ A14.5：held-out split 在提交時公開，取代 A6.3 的「never committed」。
+  holdout 的目的是讓 engineering session 保持誠實，計分的那一刻就結束
+  （S-10.6 自己說計分後變回歸套件）。用 eval/holdout-manifest.md 預先 co
+  證明內容早於計分。不變：你在計分前永遠拿不到，first run 仍是回報的分數
+→ A14.6：自我維護至少要有一次在「我們無法控制的 markup」上示範。
+  目前所有 healing 證據都在自己寫的 fixture 上，而自我維護是作業點名的兩
+  用真實目標頁的封存 DOM（不是 live，要可重跑），套 S-9.2 的同一組 mutation，
+  跑完整的 偵測 → 跨家族重新推導 → 重新驗證 → write-back。
+→ A14.7：GS-1/2/3 回到前端當機制證據 —— 它們現在在任何公開介面都看不到，
+  等於系統裡最強的 anti-shortcut 與 mutation 證據對讀者隱形。
+  放在與支援矩陣明確分離的區塊，帶 A1.3 措辭，不得進任何成功率數字。
+  Amendment 1 沒被推翻：自己控制的站上量到的可靠度不是證據，貼標籤不會改
+→ A14.8：known-limitations 清單終於有內容定義 —— 使用者會怎麼講的具體任務、
+  系統實際做了什麼、為什麼、最終的 terminal_status / failure_class，且讀
+  A-4 原本引用 T1.9，那是 discovery 文件的編號，而 §14 的驗收者只讀 spec 與已部署系統，
+  對他而言是懸空引用 —— 現在改引 A14.8。
+→ A14.9：S-4.4 的「答案對但跳過必要動作 = fail」是我們自找的懲罰，作業沒要求，
+  會壓低自己的成功率。它留著，但分析報告要切成獨立類別，
+  否則刻意的嚴格會被讀成能力不足。
+
+四、讓 Task 2 保持可建（A14.11–A14.13）
+→ A14.11：run record、artifact store、evidence bundle 呈現與 terminal_st
+  必須 task-agnostic；S-5.3 的 failure_class 目前是瀏覽器口味的封閉集合，
+  per-task 擴充用 amendment 加，不要 fork 模型。
+→ A14.12：A13.5 的 harness 繞著 split / oracle / provenance 建，case schema 可插拔。
+→ A14.13：S-12.4 的「不得 import 內部模組」只約束證明 seam 可獨立消費的
+  不約束 Task 2 產品本身 —— 反過來讀會逼出重複的 store 與 UI。
+
+五、提交面（A14.14–A14.15）
+→ A14.14：README 要涵蓋作業點名的三件事：怎麼跑、關鍵設計決策、AI 幫了哪
+  repo 必須公開，提交要給 repo URL 與 frontend URL。
+→ A14.15：prompts/ 要有讀者入口。CLAUDE.md 的逐字全記規則不變（那才使它
+  但作業要的是 "key prompts" 且明說會讀，所以加一份短索引指出實質決策在哪、決定了什麼。
+
+═══ Amendment 15 — 取代 A14.10，公開路徑 free-first ═══
+A14.10 原本要求計分後公開路徑「只走付費」，那條寫過頭了，已作廢。
+pinned model 兩層一模一樣（A9.2），差別在額度與計費、不在模型或輸出品質
+只走付費等於白白丟掉每天 500 個免費 request。
+A8.8 當初禁止公開路徑自動 fallback 的兩個理由現在都失效：
+額度牆保護的是屆時已完成的評估，而「runtime 沒東西擋花費上限」已由 A12.5
+理由消失的限制不再是控制，只是成本。
+→ A15.1：計分完成後，公開路徑 free-first、自動 fallback 到付費。
+→ A15.2（實作重點）：fallback 不能只掛在「每日額度耗盡」。免費層 RPM 15，
+  grader 連送任務、concurrency 2 時會在 run 中途撞到每分鐘節流，
+  那個 run 會在評審面前以 blocked / provider_quota 收場，而付費金鑰本來
+  任何額度或速率訊號都要往下掉：每日耗盡、RPM 節流、RESOURCE_EXHAUSTED。
+  只有兩層都真的用盡、或撞到 A12.5 的每日上限，才是 blocked / provider_quota。
+→ A15.3：A12.5 的每日上限每次呼叫前檢查、不分層級 —— 自動 fallback 後它是唯一兜底。
+  每日上限設 USD 1（約 430 runs/day，遠高於 grader 需要）。
+  A8.9 的「記錄用了哪一層」從資訊升級為承重，A7.9 的揭露完全靠它才準確。
+→ A15.4：新增揭露 —— 部分公開流量跑在免費層，而免費層內容會被 provider
+  頁面內容依 P2 是公開的，但任務文字是送出者寫的，包括 grader 自己的測試
+  README 要照實說明，不得寫得像每個請求都在付費層。
+→ A15.5：切換之前完全不變 —— test split 的 first run 完成前，
+  A12.2 拓樸與 A8.8 禁令原封不動。切換日期要記錄。
+成本已算過：每 run $0.0011–$0.0036，一輪評估約 $0.15，
+grader 視窗即使一千個 run 也只有約 $2.3，累計在 A8.10 的 USD 5 內。
+
+═══ Amendment 16 — seam 收下 SEC 的身分與時間語意，升到 v1.1 ═══
+來源是 PM 平行研究的提案。語意收下，表面積不收。
+被收下的每一條，都是我們現行 seam 會產生「有信心的錯誤答案」的地方，不是缺少便利。
+→ A16.2：三個 CIK 不是同一個東西。accession 前十碼是申報者、可能是代辦；
+  archive 路徑是第三種寫法；還可能有共同註冊人。三者分開保存、互相對帳，
+  以 target registrant 為 filing 的身分；accession 無法唯一解析出註冊人
+  我們 v1.0 寫的「cik = the CIK of the filer」對代辦與多註冊人案子就是錯
+→ A16.3：查詢必須帶 as_of 不可變截止時間與明確的 revision policy。
+  「FY2025 的 10-K」會在 10-K/A 被接受那天改變意思。10-K/A 是 overlay，
+  這跟 S-4.12 凍結 postcondition 是同一個紀律。
+→ A16.4：四個日期分開，不得互推：report_period_end / filing_date / accepted_at / retrieved_at。
+  fiscal year 是報告期間的年份，不是送件年份。
+→ A16.5：解析用的 submissions JSON、filing index、directory index 要存下並雜湊。
+  沒有它們，「為什麼是這個 accession」事後無法回答 ——
+  照我們自己 §4 的標準，那個解析就是 unverified。
+→ A16.6：raw 與 derived representation 分離，raw 不可覆寫；
+  derived 要指名來源 representation 與 transform 的名稱與版本；
+  同一 URL 之後給出不同 bytes 就是新的 representation 與新雜湊。URL 是來
+→ A16.7：中繼資料看得到不等於檔案拿得到。有界重試可以，
+  但必要 artifact 缺席時不得只憑中繼資料宣告完成，要收在 partial / faile
+→ A16.8（我否決了提案的一條）：incorporates_by_reference 不是 Task 1 的職責。
+  要偵測 Part III 從 proxy 併入，就得讀 filing 內的併入語句 —— 那是文件結構，S-12.1 禁止。
+  Task 1 只從 SEC 中繼資料記 amends / amended_by / related_filing。
+  Task 1 保證的是清單與關係完整到讓 Task 2 能說「併入」而不是「缺失」。
+→ A16.9 明確不採納（是決定不是遺漏）：2 rps（維持我們的 ≤1 rps）；
+  capability token / 簽名 URL / 401-403-410 / 另一套 7 天保存期
+  （沒有 auth 系統，且保存期由 A11.6 管，seam 再放一條衝突規則就是陷阱）
+  q2_extended（貼近 S-2.17 禁止列舉與大量下載，對第一版 Task 2 沒價值）
+  Q1 產出 evidence/locator 物件（10-K 裡的 text offset 是 Task 2 的座標系，
+  Task 1 保證穩定識別碼與雜湊，Task 2 在上面建）。18 條驗收縮到觸及新語
+→ A16.10：新增 seam 專用 failure_class，不動 terminal_status：
+  ambiguous_identity、filing_not_found_as_of、identity_mismatch、hash_mismatch、
+  pending_source_publication。
+→ A16.11：docs/task2-seam.md v1.1 是唯一具規範性的那份。
+  Q1_Q2_SEC_FILING_CONTRACT.md 是提案輸入，不是第二份契約，
+  repo 不得同時存在兩份看起來都具約束力的文件。
+
+═══ 順序建議 ═══
+1. A14.1–A14.3 的量測先做 —— 要嵌進 run 生命週期，越晚做越要重跑數據。
+2. 手上 Amendment 13 的工作收尾。
+3. A14.4 的 experimental split 與 A14.6 的封存 DOM 重放（M5 的一部分）。
+4. M5 / M6 其餘，再到 M7 的 seam v1.1。
+5. A15 的憑證切換排在 test split 計分之後，不要提早。
+6. 提交面（README、prompts 索引）最後。
+不預設任何 milestone 會被犧牲（A13.6），Task 2 也不預設不做。
+
+
+照慣例做完一個段落自己 commit 就好
+除非有爭議或需要改 spec 就停下來問，需要我手動幫你部署也停下來告訴我
