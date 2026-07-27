@@ -36,7 +36,7 @@ the two states apart.
 |---|---|---|---|
 | robots matching (RFC 9309) | `app/robots.py` | `blocked / robots_disallowed` | **Yes.** `test_robots_semantics.py` asserts both directions on two real robots.txt files, including that the OP-4 article is *allowed* by the same file that Disallows `Special:` |
 | robots.txt unfetchable | `app/robots.py` | `blocked / robots_disallowed` | **Yes**, both directions: 404 means unrestricted, 5xx means refuse |
-| Out-of-scope admission | `app/executor.py` | `T-REFUSED` before any fetch | **Yes, since today.** 12 must-accept + 14 must-refuse tasks, and a test that every declared reason is exercised |
+| Out-of-scope admission | `app/executor.py` | `T-REFUSED` before any fetch | **Yes, since today.** Must-accept corpus is every `eval/dev-set.md` task plus the home page chips — written elsewhere, for other reasons; must-refuse is ours, held to the rule that every declared reason is exercised |
 | Same-page evidence check | `app/verifier.py` | `failed / verification_mismatch` | **Yes, since today.** Positive and negative cases, including encoding, trailing slash, query string, scheme and subdomain |
 | Ambiguous routing | `app/executor.py` | `unsupported / policy_refused` | **Yes.** `test_policy.py` has pinned the fixture operations since M1; today's addition extends the same two-sided corpus to the four promised records |
 | Store path containment | `app/store.py` | artifact not served | **Yes.** `contains()` asserted true for a legitimate path and false for traversal |
@@ -44,17 +44,41 @@ the two states apart.
 | Vacuous verification (A11.7) | `app/verifier.py` | `failed / postcondition_unmet` | **Yes.** Both a claim-free postcondition (must fail) and a real one (must pass) |
 | Budget ceilings | `app/provider.py` | `failed / budget_exhausted`, `blocked / provider_quota` | **Yes.** Exhaustion tested, and normal runs pass through the same checks daily |
 | Egress / SSRF guard | `app/egress.py` | `blocked` | **Yes.** `test_egress_allows_declared_targets` names the three real hosts and asserts they pass, alongside the private/link-local refusals |
-| Anchor ambiguity | `app/verifier.py` | `failed / verification_mismatch` | **Partly.** Ambiguity is tested; nothing asserts that a label appearing legitimately in several places with the *same* value still resolves. A stricter ambiguity rule would fail correct runs and read as a mismatch |
-| Frozen-hash check (S-4.12) | `app/verifier.py` | `failed / verification_mismatch` | **Partly.** Tamper is tested; the pass case is covered incidentally by every run rather than deliberately |
+| Anchor ambiguity | `app/verifier.py` | `failed / verification_mismatch` | **Yes, since today.** Each of the three `AnchorAmbiguous` raise sites has both a disagreeing case that must refuse and a repeating-but-agreeing case that must resolve; the three are enumerated from the source by AST, so a fourth added without a case fails |
+| Frozen-hash check (S-4.12) | `app/verifier.py` | `failed / verification_mismatch` | **Yes, since today.** The pass case is now deliberate rather than incidental — a frozen object must still match itself, key order must not matter, and every serialised field must change the digest |
 | Reduction element cap | `app/reduce.py` | silent — no refusal at all | **No, structurally.** This is the OP-6 case: the cap has no failure status, it just shows the model less. `interactive_goal_term_over_cap` plus the quiet-outcome audit is the handle, and it only covers elements the goal *names* |
 | Persistent-store requirement (A11) | `app/store.py` | process refuses to start | **Yes.** An unwritable directory and a non-mount are both asserted to refuse, and every other test in the suite constructs a working store |
-| Provider model-alias refusal | `app/provider.py` | `SystemExit` at startup | **Partly.** Moving aliases are refused in tests; that the pinned id is *accepted* is only proven by the service running |
+| Provider model-alias refusal | `app/provider.py` | `SystemExit` at startup | **Yes, since today.** The marker test is split out as a pure function so the accepted case costs no provider call: every forbidden marker must be exercised, and the id we actually ship must not trip the rule |
+
+## Where the corpus comes from
+
+The first version of the must-accept list was written in the same sitting as the fix to the
+control it tests, by whoever had just decided what the rule should be. It passed. It was
+always going to pass — the same assumptions produced both halves, which is the same defect as
+writing this inventory from memory, one level up. It has been replaced by every task in
+`eval/dev-set.md` verbatim plus the home page's demo chips: sentences written for other
+purposes, before the rule existed, and therefore able to disagree with it. The expectation
+for each is read from the case's own `expected_terminal_status` rather than restated, so
+DEV-13 — refused by robots *after* admission — correctly has to be admitted.
+
+The must-refuse half is still ours and there is no honest way around that: nothing outside
+this repo enumerates the acts we decline. Its guard is the coverage rule instead.
+
+**"Every declared reason must be exercised" is the reusable part**, and it is what closed
+three of the four gaps in the table above. In each case the missing half was the positive
+one, because a refusal never asks to be explained:
+
+| Control | Declared set, enumerated from the code | The half that was missing |
+|---|---|---|
+| Anchor ambiguity | the `AnchorAmbiguous` raise sites, found by AST | a label that repeats but *agrees* must still resolve |
+| Frozen postcondition | every field of `Postcondition.to_dict()` | the object still matches itself, and key order does not matter |
+| Model-alias refusal | `FORBIDDEN_MARKERS` | the id we actually ship must not trip the rule |
 
 ## What I am not claiming
 
-"Partly" and "No" are not predictions that those controls are wrong. They are statements that
-**if one of them were wrong, this system has no way to notice**, and that is the property the
-two defects above turned out to share.
+"No" is not a prediction that the control is wrong. It is the statement that **if it were
+wrong, this system has no way to notice**, and that is the property the two defects above
+turned out to share.
 
 One row is "No", and it is the one where the fix cannot be a test at all: the **reduction
 cap** produces no verdict to test. It never refuses anything; it just shows the model less.
@@ -67,14 +91,35 @@ Three notes on how this table was built, because the method matters more than th
   requirement and routing all had two-sided coverage I had not credited. Checking each claim
   against the actual test file is what corrected them. An inventory written from
   recollection reproduces exactly the confidence it is supposed to audit.
-- "Partly" here means the negative case is tested and the positive case is only covered
+- "Partly" meant the negative case was tested and the positive case was covered only
   incidentally, by real runs passing. That is weaker than it sounds: real runs stop covering
-  it the moment they stop running.
+  it the moment they stop running. Three rows sat there; all three are closed above.
 - Nothing in this table was added by reading the code for suspicious patterns. Both defects
   were found by a run failing for a reason that turned out not to be the run's fault.
+
+Both of the first two notes are carried into `docs/m8-quiet-failures.md` §5 as the second
+instance of that finding — the one where the confidence being audited was our own.
+
+## The same defect with the sign flipped
+
+While checking the table, a control turned up that had never fired at all. `T-DECLARED` is
+defined at M1, is required by S-1.3 to be visible in the UI, and decides which runs count
+toward the headline success rate — and nothing assigned it. Every run against a promised
+record was reported as best-effort, and the support page said the four operations were "not
+yet implemented" for a milestone after they shipped.
+
+A control that never fires does not raise, does not refuse and does not break a test. It is
+the same mistake `app/coverage.py` was built to prevent for terminal statuses, in a taxonomy
+the ledger does not cover. Admission now derives the tier from the same promised-record list
+the support page renders, so the two cannot disagree, and a dev case that reaches no
+promised record fails the suite.
 
 ## Method, for the next one
 
 The measurable question is not "is this control correct" but "what would have to be written
 down for its being wrong to be visible". For anything that fails closed, that is a corpus of
-inputs it must **accept**. Everything else is asserting that a refusal refuses.
+inputs it must **accept**, ideally sourced from somewhere that had never heard of the
+control. Everything else is asserting that a refusal refuses. And for anything with a
+declared set of reasons, fields or markers, enumerate that set *from the code* and require
+each member to be exercised — otherwise the set and its evidence drift apart silently, which
+is how a rule ends up shipping with nothing behind it.

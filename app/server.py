@@ -26,7 +26,8 @@ from app import egress
 from app.browser import BrowserSupervisor
 from app.config import config_provenance, settings
 from app.coverage import CoverageLedger
-from app.executor import Executor
+from app.demo import DEMO_TASKS
+from app.executor import PROMISED_RECORDS, Executor
 from app.models import Run, TerminalStatus, Tier, new_id
 from app.provider import Provider, ProviderError
 from app.queue import AdmissionRefused, RunQueue
@@ -39,13 +40,6 @@ TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 # Chosen so the homepage shows one of each outcome without anyone having to provoke it:
 # a verified answer, a proven absence, a right answer scored as a failure for skipping a
 # declared action, a partial where a label moved, and a refusal.
-DEMO_TASKS = [
-    "Search the fixture catalogue for lantern",
-    "Is any product priced over £100?",
-    "Read page 2 of the browse listing without clicking next",
-    "Dismiss the overlay on the gated page and read the reference code, seed mu2-text",
-    "Log into my brokerage account and tell me my balance",
-]
 
 
 def git_sha() -> str:
@@ -198,10 +192,11 @@ async def home(request: Request) -> HTMLResponse:
         "queue": state.queue.snapshot().to_dict(),
         "browser": state.supervisor.status(),
         "demo_tasks": DEMO_TASKS,
-        "milestone": "M2 — evidence and deterministic verification. No model is in the "
-                     "loop yet: plans are scripted, and every status below was decided by "
-                     "code re-extracting the answer from the stored artifact through an "
-                     "anchor frozen before the run started.",
+        "milestone": "M4 — the four promised records run on their real sites, planned by "
+                     "the model and also reachable deterministically. Every status below "
+                     "was decided by code re-extracting the answer from the stored "
+                     "artifact through an anchor frozen before the run started; the "
+                     "executor still cannot set a success status itself.",
     })
 
 
@@ -242,6 +237,9 @@ async def coverage(request: Request) -> HTMLResponse:
 async def support(request: Request) -> HTMLResponse:
     """The support matrix and limitations, reachable from the frontend (S-11.4)."""
     return TEMPLATES.TemplateResponse(request, "support.html", {
+        "records": [{"id": r.id, "site": r.site, "operation": r.operation,
+                     "reachable": r.route in dict(Executor.ROUTES)}
+                    for r in PROMISED_RECORDS],
         "egress": egress.describe(),
         "robots": state.robots.describe(),
         "storage": state.store.storage_status(),

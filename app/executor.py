@@ -58,6 +58,36 @@ _STEP_KINDS = {
     "press": StepKind.PRESS, "wait_for": StepKind.WAIT_FOR, "extract": StepKind.EXTRACT,
 }
 
+@dataclass(frozen=True)
+class PromisedRecord:
+    """A promised `site × operation` record (S-1.3), keyed by the route that serves it.
+
+    This is the single list. Admission reads it to decide `T-DECLARED`, and the support
+    page renders it, so the page cannot claim a record the router cannot reach — which is
+    how the page came to advertise four unimplemented operations after they shipped.
+    """
+
+    id: str
+    site: str
+    operation: str
+    route: str
+
+
+PROMISED_RECORDS: tuple[PromisedRecord, ...] = (
+    PromisedRecord("OP-4", "en.wikipedia.org",
+                   "Sort a sortable table by a named column, read a cell from the top row",
+                   "wiki_sort"),
+    PromisedRecord("OP-5", "en.wikipedia.org",
+                   "Expand a collapsed box and extract a value not visible beforehand",
+                   "wiki_expand"),
+    PromisedRecord("OP-6", "books.toscrape.com",
+                   "Category navigation and pagination, list-level facts", "book_category"),
+    PromisedRecord("OP-7", "books.toscrape.com",
+                   "Open a product page and extract a labelled field", "book_detail"),
+)
+
+RECORD_BY_ROUTE: dict[str, PromisedRecord] = {r.route: r for r in PROMISED_RECORDS}
+
 #: A task asks for the planner explicitly, or configuration forces it. The deterministic
 #: path stays the default: it needs no quota, and it is what the fixture demonstrations run
 #: on so that a visitor never depends on a provider being reachable.
@@ -178,11 +208,21 @@ class Executor:
     # ---- admission-time classification -----------------------------------------
 
     def classify(self, task: str) -> tuple[Tier, str | None]:
-        """Tier is decided before execution starts (S-1.3)."""
+        """Tier is decided before execution starts (S-1.3).
+
+        The second element is why: the refused act, or the promised record the task maps
+        to. Routing to exactly one promised record is what T-DECLARED means, so the two
+        cannot disagree — before this, no run could ever be labelled T-DECLARED and every
+        promised-record run was reported as best-effort.
+        """
         low = task.lower()
         for pattern, what in OUT_OF_SCOPE:
             if re.search(pattern, low):
                 return Tier.REFUSED, what
+        operation, _, _ = self.route(task)
+        record = RECORD_BY_ROUTE.get(operation or "")
+        if record is not None:
+            return Tier.DECLARED, record.id
         return Tier.EXPERIMENTAL, None
 
     # ---- trace helpers ---------------------------------------------------------

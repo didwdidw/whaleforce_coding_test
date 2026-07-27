@@ -11,21 +11,18 @@
   <table>
     <thead><tr><th>ID</th><th>Site</th><th>Operation</th><th>Status in this build</th></tr></thead>
     <tbody>
-      <tr><td>OP-4</td><td>en.wikipedia.org</td>
-          <td>Sort a sortable table by a named column, read a cell from the top row</td>
-          <td><span class="badge b-warn">not yet implemented (M4)</span></td></tr>
-      <tr><td>OP-5</td><td>en.wikipedia.org</td>
-          <td>Expand a collapsed box and extract a value not visible beforehand</td>
-          <td><span class="badge b-warn">not yet implemented (M4)</span></td></tr>
-      <tr><td>OP-6</td><td>books.toscrape.com</td>
-          <td>Category navigation and pagination, list-level facts</td>
-          <td><span class="badge b-warn">not yet implemented (M4)</span></td></tr>
-      <tr><td>OP-7</td><td>books.toscrape.com</td>
-          <td>Open a product page and extract a labelled field</td>
-          <td><span class="badge b-warn">not yet implemented (M4)</span></td></tr>
+      {% for r in records %}
+      <tr><td>{{ r.id }}</td><td>{{ r.site }}</td><td>{{ r.operation }}</td>
+          <td>{% if r.reachable %}<span class="badge b-ok">implemented (M4)</span>
+              {% else %}<span class="badge b-warn">declared, not reachable</span>{% endif %}</td></tr>
+      {% endfor %}
     </tbody>
   </table>
   </div>
+  <p class="sub" style="margin-top:14px">This table is rendered from the same list the
+    admission check reads to decide <code>T-DECLARED</code>, so it cannot advertise an
+    operation the router cannot reach. It said "not yet implemented" for a full milestone
+    after these four shipped, because it was prose.</p>
   <p class="sub" style="margin-top:14px">
     <strong>The fixture site is not on this list on purpose.</strong> It is our own
     evaluation environment — built by us, for mutation and safety testing — and it is not a
@@ -45,10 +42,14 @@
 <div class="panel">
   <h2>Known limitations, concretely</h2>
   <ul style="font-size:13.5px;padding-left:20px;margin:0">
-    <li><strong>This build is M2.</strong> There is no model in the loop: plans are
-      scripted and only the fixture is reachable. What is real is the verification — every
-      status comes from deterministic re-extraction against the stored artifact, and the
-      executor cannot set a success status itself.</li>
+    <li><strong>This build is M4.</strong> A model plans; it does not judge. Every status
+      still comes from deterministic re-extraction against the stored artifact, and the
+      executor cannot set a success status itself. Locator memory and the mutation gate
+      (M5) and the safety suite (M6) are not in this build.</li>
+    <li><strong>Each promised record is reachable two ways</strong> — planned by the model,
+      and by a scripted plan that needs no provider quota. The scripted path is what the
+      pinned demonstrations run on, so the frontend stays inspectable when the provider is
+      not reachable. Both go through the same verification.</li>
     <li><strong><code>verified</code> does not mean "true".</strong> It means the claim
       is consistent with a preserved artifact and passes deterministic type, unit, date and
       entity checks. A value that is correct in form but taken from the wrong row, entity or
@@ -56,7 +57,13 @@
     <li><strong>A moved label costs a claim, deliberately.</strong> When the label a value is
       bound to changes, the value may still be on the page and readable by other means — the
       run is downgraded to <code>partial</code> anyway, because a binding that cannot be made
-      is not a verification. Re-anchoring is a recovery behaviour and arrives at M3.</li>
+      is not a verification. Re-anchoring is a recovery behaviour and is in this build.</li>
+    <li><strong>A quiet outcome can hide a defect.</strong> An abstention, a proven absence
+      and a refusal all look like caution from outside. Runs are audited for the conditions
+      that make a quiet outcome untrustworthy — chiefly, having refused on a reduced view
+      that dropped something the goal named — and one that trips the audit is shown as
+      <em>not a clean</em> outcome rather than as a clean one. It only covers what we
+      thought to look for.</li>
     <li><strong>Necessary UI actions are declared, not proven.</strong> The harness verifies
       that a case declared an action as required and the trace shows it happened. It does not
       prove the action was impossible to bypass. Only the fixture's GS-1/GS-2/GS-3 are

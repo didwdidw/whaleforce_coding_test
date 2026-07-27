@@ -37,6 +37,17 @@ log = logging.getLogger(__name__)
 FORBIDDEN_MARKERS = ("latest", "preview", "exp", "experimental")
 
 
+def looks_like_moving_alias(model_id: str) -> bool:
+    """Whether an id names something that can change under us.
+
+    Split out from the startup check so both halves are testable: refusing a moving alias
+    needs no provider, but proving the *pinned* id is accepted otherwise costs a live call,
+    and a rule that only ever gets asked about ids it rejects is one nobody can tell from a
+    rule that rejects everything.
+    """
+    return any(marker in model_id.lower() for marker in FORBIDDEN_MARKERS)
+
+
 class CredentialTier(str, enum.Enum):
     FREE = "free"
     PAID = "paid"
@@ -251,7 +262,7 @@ class Provider:
         use. A list-based check passes and then fails at the first real call, which surfaces
         as a mid-run `provider_error` instead of a refusal to start.
         """
-        if any(marker in self.model_id.lower() for marker in FORBIDDEN_MARKERS):
+        if looks_like_moving_alias(self.model_id):
             raise SystemExit(
                 f"REFUSING TO START: model id '{self.model_id}' looks like a moving alias "
                 f"or a preview model. A pinned stable id is required (S-11.15) — a model "

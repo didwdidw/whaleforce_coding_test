@@ -106,7 +106,59 @@ refusals, and the honest position is that the held-out set may contain some.
 What the signal buys is a handle that is visible from outside without knowing the answer,
 which is the only kind that helps on a held-out case. It is one handle, not a guarantee.
 
-## 5. The defect that this class already cost us once
+## 5. The second instance, where the confidence being audited was our own
+
+The mirror of §1 turned up almost immediately, and it is worth recording because of *who*
+it caught. `docs/m4-fail-closed-inventory.md` was written to list every fail-closed control
+that cannot tell "on and right" from "on and wrong". Two things went wrong in the writing of
+it, and both are the same failure the document is about:
+
+1. **The inventory was written from memory, and three of its rows were wrong.** Egress, the
+   persistent-store requirement and routing were all recorded as half-covered; all three
+   already had two-sided tests. Checking each row against the actual test file is what
+   corrected them. An inventory written from recollection reproduces exactly the confidence
+   it is supposed to audit.
+
+2. **The corpus that proved the fix was written by the session that wrote the fix.** The
+   out-of-scope classifier was repaired and then given a hand-written list of tasks it must
+   accept — composed by whoever had just decided what the rule should be. It passed. It was
+   always going to pass: the same assumptions produced both. The list is gone. The
+   must-accept corpus is now every task in `eval/dev-set.md` verbatim plus the home page's
+   demo chips, sentences written for other purposes before the rule existed, which is the
+   only reason they are able to disagree with it.
+
+The general form: **a control that checks another control is a control, and inherits the
+whole problem.** Self-written evidence is a quiet outcome in the same sense as a quiet
+refusal — it looks like verification and costs nothing to produce. The only structural
+defence found so far is provenance: the inputs an assertion is made of should come from
+somewhere that did not know about the assertion.
+
+Two mechanisms now enforce that where they can:
+
+- **Corpus provenance.** The accept half comes from outside the control's own session; the
+  refuse half cannot (nothing external enumerates acts we decline), so it is held to the
+  coverage rule instead.
+- **Every declared reason must be exercised by some case.** Written for the refusal reasons
+  and then applied to three more places where only half the evidence existed: every
+  `AnchorAmbiguous` raise site in the verifier (enumerated by AST, so a fourth one added
+  without a case fails), every field of the frozen postcondition, and every forbidden model-id
+  marker. In each case the *positive* half — the anchor that repeats but agrees, the frozen
+  object that still matches itself, the pinned model id that must not trip the alias rule —
+  was the half missing, because a refusal never asks to be explained.
+
+### The same defect with the sign flipped
+
+A control that never fires is the other end of this. `T-DECLARED` was defined at M1, is
+required by S-1.3 to be visible in the UI, decides which runs count toward the headline
+success rate — and was assigned by nothing. Every run against a promised record was labelled
+best-effort. The frontend was underreporting the system by an entire milestone, and no test
+noticed, because a tier that is never assigned raises nothing and breaks nothing.
+
+That is the same mistake `app/coverage.py` exists to prevent for terminal statuses: at M1 a
+hard gate appeared to pass while being unreachable. The ledger covers statuses and failure
+classes. It did not cover tiers.
+
+## 6. The defect that this class already cost us once
 
 Recorded in `docs/m8-credential-exposure.md` §5: arbitrary file deletion plus arbitrary file
 read, live since M2, in a product whose selling point is its safety posture. 107 tests did
