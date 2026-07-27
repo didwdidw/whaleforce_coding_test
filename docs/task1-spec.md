@@ -1592,3 +1592,108 @@ README MUST state this plainly rather than implying every request is on the paid
 (S-10.6), A12.2's topology and A8.8's prohibition hold exactly as written: no paid credential on the
 public-serving container, no fallback on that path. The switchover date is still recorded (A14.10's
 one surviving clause).
+
+### Amendment 16 — The acquisition seam takes on the SEC identity semantics (2026-07-28)
+
+Extends **§12** and **`docs/task2-seam.md`**, which moves to **v1.1**. Source: the product owner's
+parallel proposal `Q1_Q2_SEC_FILING_CONTRACT.md` (v0.2). Its **semantics are adopted; its surface
+area is not.**
+
+**A16.1 Assessment.** The proposal is right about the things our seam got wrong, and those things are
+all in the same family: **identity and time**. Our v1.0 identified a filing by `(cik,
+accession_number)` and recorded exactly one timestamp. That is not sufficient to be correct. The
+adopted items below are each a case where the current seam would produce a **confident wrong answer**
+— the failure class this whole system is built against — not a case of missing convenience.
+
+What is **not** adopted is the delivery surface: two acquisition profiles, an eleven-role taxonomy, a
+Q1-emitted evidence/locator object, five transport endpoints with capability tokens and signed URLs,
+and eighteen acceptance cases. That is a week of work whose absence costs the seam nothing, while M5,
+M6 and M8 are outstanding. A16.9 records what was deferred so it is a decision rather than an
+oversight.
+
+#### Adopted
+
+**A16.2 Three CIKs are three different things.** The first ten digits of an accession identify the
+**submitting** CIK, which may be a filing agent; the archive path CIK is a third form; a filing may
+disclose co-registrants. The seam MUST preserve `target_registrant_cik`,
+`submitter_cik_from_accession`, and the archive CIK separately, reconcile them against SEC metadata,
+and treat the **target registrant** as the filing's identity. Where an accession alone does not
+resolve to exactly one registrant, the seam returns `needs_registrant_cik` — it does not assume the
+prefix is the filer. Our v1.0 wording ("`cik` — the CIK of the filer") is wrong for
+agent-submitted and multi-registrant filings.
+
+**A16.3 Reproducibility needs an `as_of` cutoff and a revision policy.** "The FY2025 10-K" changes
+meaning the day a `10-K/A` is accepted. A lookup MUST carry an `as_of` timestamp, and the seam MUST
+NOT select a filing or amendment accepted after it. The revision policy is explicit
+(`exact_accession` | `original` | `consolidated_as_of`). **An amendment is an overlay, never an
+assumed replacement of the original filing.** This is the same discipline as postcondition freezing
+(S-4.12): pin what the answer was computed against.
+
+**A16.4 Four dates, none inferred from another.** `report_period_end` (fiscal period),
+`filing_date`, `accepted_at` (SEC acceptance), and `retrieved_at` (our fetch) are separate fields. A
+missing date MUST NOT be derived from a different one. Fiscal year is the year of the report period,
+not of submission.
+
+**A16.5 The resolution evidence is retained.** The SEC submissions JSON, the filing index, and the
+archive directory index used to resolve the filing MUST be stored and hashed like any other
+representation. Without them, "why this accession?" is unanswerable after the fact — which by our own
+§4 standard means the resolution is unverified.
+
+**A16.6 Raw and derived representations are distinct and raw is immutable.** A document may carry
+several representations. Each has its own identity, hash, and `retrieved_at`; a derived one (e.g.
+normalised text) MUST name the representation it came from and the transform's name and version, and
+MUST NOT overwrite the raw bytes. If the same URL later serves different bytes, that is a **new
+representation with a new hash** — the prior one stands. The URL is provenance, not identity.
+
+**A16.7 Metadata visibility is not availability.** A filing can appear in SEC metadata before every
+archive object is retrievable. Bounded retry is permitted; **a bundle MUST NOT become verified from
+metadata alone** when a mandatory artifact is missing. It terminates as partial or failed.
+
+**A16.8 Relationships come from SEC metadata only.** `amends` / `amended_by` / `related_filing` are
+derivable from submissions metadata and are recorded. **`incorporates_by_reference` is NOT a Task 1
+duty** — detecting it requires reading incorporation statements inside the filing, which is document
+structure, which S-12.1 forbids on this side of the seam. The proposal assigns it to Q1; we reject
+that. Task 2 determines incorporation and may record it against Task 1's stable document and
+representation identifiers. What Task 1 guarantees is that Part III being absent from the primary
+document is **representable without fabrication** — the inventory and relationships are complete
+enough for Task 2 to say "incorporated" rather than "missing".
+
+#### Rejected or deferred
+
+**A16.9** Recorded so the boundary is a decision, not an omission:
+
+- **2 requests/second is rejected.** S-2.15's ≤ 1 rps stands. It is already published as our stated
+  posture and it is stricter; loosening a self-imposed limit for convenience is the wrong direction.
+- **The capability-token authorisation model, signed content URLs, `401/403/410` semantics, and a
+  7-day retention rule are deferred.** We have no authentication system, artifacts are already
+  public run evidence, and retention is governed by A11.6 (age *and* disk-size bounds, with pinned
+  demonstrations) — a second, conflicting retention rule in the seam would be a trap. Deferred to a
+  future contract version if Task 2 needs private artifacts.
+- **`q2_extended` is deferred.** Eagerly fetching every textual document in a submission and
+  resolving related filings sits close to S-2.17's prohibition on enumeration and bulk download, and
+  it buys nothing for a first Task 2 build. The mandatory two plus a complete inventory remain.
+- **A Q1-emitted evidence/locator object is rejected.** Text offsets and DOM paths into a 10-K are
+  Task 2's coordinate system. Task 1 guarantees **stable document and representation identifiers
+  plus hashes**; Task 2 builds locators on top of them and must not alter Task 1's hashes.
+- **The eighteen contract acceptance cases are reduced to the subset that exercises the newly
+  adopted semantics** (agent-submitted accession, ambiguous company name, a filing with a related
+  `10-K/A`, changed bytes at a stable URL, metadata visible before the archive object, plus the
+  existing A-23/A-24 checks). The remainder are recorded in the seam document as future coverage.
+
+**A16.10 New `failure_class` values** for the seam, added under the A14.11 extension mechanism
+without touching `terminal_status`: `ambiguous_identity`, `filing_not_found_as_of`,
+`identity_mismatch`, `hash_mismatch`, `pending_source_publication`.
+
+**A16.11** `docs/task2-seam.md` moves to **v1.1** carrying A16.2–A16.8 and A16.10, with a changelog
+naming what changed and what was deliberately deferred. `Q1_Q2_SEC_FILING_CONTRACT.md` is a proposal
+input, not a second contract — the seam document remains the single normative one, and the repository
+MUST NOT carry two documents that both look binding.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-46** The independent consumer (S-12.4) resolves a filing whose submitting CIK differs from
+  the target registrant, and the bundle records all three CIK forms without conflating them (A16.2).
+- [ ] **A-47** A period lookup with an `as_of` before a known `10-K/A`'s acceptance returns the
+  original filing and records the amendment relationship without substituting it (A16.3, A16.8).
+- [ ] **A-48** The resolution snapshots are stored and hashed, and an ambiguous company name returns
+  a candidate set rather than a choice (A16.5).

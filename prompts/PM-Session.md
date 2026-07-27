@@ -389,3 +389,16 @@ model不是一樣嗎
 照我們原本的作法，default free tire, run out of quota 再 fall back to billing tier 不是很好嗎
 
 ==========
+
+我另外開了一個 session 平行研究了一下 task 1 to task 2 的介面
+我把我的提案放在 Q1_Q2_SEC_FILING_CONTRACT.md
+
+你研究一下
+請先詳細閱讀 Q1_Q2_SEC_FILING_CONTRACT.md，再複習一次我們的spec跟作業原始要求
+看看這個介面可不可以，還有現在好不好支援也要 take into account
+假設沒問題的話就整進去
+
+我上面的 prompt 還沒有送
+跟現在這個需求整理好後一起送
+
+==========
