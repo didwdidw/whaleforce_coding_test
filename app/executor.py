@@ -30,7 +30,7 @@ from app import egress
 from app.browser import BrowserSupervisor, BrowserUnavailable
 from app.config import settings
 from app.coverage import CoverageLedger
-from app.identity import ElementIdentity, identify
+from app.identity import COLLECT_JS, ElementIdentity, identify
 from app.models import (
     DiagnosedCause, FailureClass, Run, RunState, StepKind, TerminalStatus, Tier, TraceEntry,
 )
@@ -95,6 +95,11 @@ BOOK_CATEGORY_POETRY = f"{BOOKS}/catalogue/category/books/poetry_23/index.html"
 BOOK_DETAIL_URL = f"{BOOKS}/catalogue/a-light-in-the-attic_1000/index.html"
 BOOK_CATEGORY_NONFICTION = f"{BOOKS}/catalogue/category/books/nonfiction_13/index.html"
 BOOK_CATEGORY_NONFICTION_P2 = f"{BOOKS}/catalogue/category/books/nonfiction_13/page-2.html"
+WIKI_SP500 = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+CONSTITUENTS = '//table[@id="constituents"]'
+NAVBOX_TOGGLE = ".navbox-inner.mw-collapsible .mw-collapsible-toggle"
+COLLAPSED_NAVBOX = ('//div[contains(@class,"navbox-inner") '
+                    'and contains(@class,"mw-collapsed")]')
 
 OVERLAY_ANCHOR = '//*[contains(normalize-space(.), "Before you continue")][not(.//*[contains(normalize-space(.), "Before you continue")])]'
 
@@ -561,6 +566,32 @@ class Executor:
         """Resolve a ref to durable identity, as `app.identity` defines it."""
         return await identify(ctx.page, ref)
 
+    async def _click(self, ctx: ExecutionContext, selector: str, summary: str, *,
+                     navigates: bool = False) -> None:
+        """A scripted click that records what it clicked, not just how it found it.
+
+        A CSS selector is our spelling of an element, not the page's. When only the selector
+        was recorded, the declared target of a required action had to match one vocabulary
+        on the scripted path and a different one on the planned path — which is the
+        asymmetry that made the required-action check fail runs that did exactly the right
+        thing. Both paths now record the identity the page publishes.
+        """
+        identity = ElementIdentity(recorded_as=(selector,))
+        handle = await ctx.page.query_selector(selector)
+        if handle is not None:
+            try:
+                identity = ElementIdentity.from_browser(await handle.evaluate(COLLECT_JS))
+            except Exception:  # noqa: BLE001 - identification is diagnostic, not load-bearing
+                pass
+        entry = self._step(ctx.run, StepKind.CLICK, summary, selector=selector,
+                           element=identity.to_dict())
+        if navigates:
+            async with ctx.page.expect_navigation(wait_until="domcontentloaded"):
+                await ctx.page.click(selector)
+        else:
+            await ctx.page.click(selector)
+        self._finish_step(ctx.run, entry, final_url=ctx.page.url)
+
     async def _apply(self, ctx: ExecutionContext, proposal: Proposal) -> str:
         """The only place a proposed action touches the browser. The allow-list is closed:
         anything not named here never had a way to run."""
@@ -729,6 +760,9 @@ class Executor:
     # a perfectly plausible pager reading for a task that asked for something else. A
     # mis-route that still produces an answer is worse than one that fails.
     ROUTES: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("wiki_sort", ("sort the", "sorted by", "sort by", "s&p 500 table",
+                       "constituents table")),
+        ("wiki_expand", ("expand the", "collapsed navbox", "navbox", "collapsible")),
         ("book_detail", ("light in the attic", "upc", "product detail")),
         ("book_category", ("nonfiction", "category listing", "second page of results")),
         ("testhook", ("ground truth", "test hook", "testhook", "answer key")),
@@ -767,6 +801,10 @@ class Executor:
             return None
         low = self._strip_directives(task.lower())
         seed = self._seed(task.lower())
+        if name == "wiki_sort":
+            return self._plan_wiki_sort(low)
+        if name == "wiki_expand":
+            return self._plan_wiki_expand(low)
         if name == "book_detail":
             return self._plan_book_detail(low)
         if name == "book_category":
@@ -1215,6 +1253,144 @@ class Executor:
     # that lives in the frozen postcondition, where it is visible and hashed, rather than in
     # the reducer or the planner where it would be quietly deciding answers.
 
+    def _plan_wiki_sort(self, low: str) -> Plan:
+        """OP-4: sort a sortable wikitable by a named column, read the resulting top row.
+
+        The trap this operation exists for: descending order takes *two* clicks on the
+        header, and one click produces a completely reasonable ordering of the wrong kind.
+        Nothing about the run looks wrong afterwards — a real table, really sorted, really
+        read. So the postcondition does not assume what a click produces. It freezes the
+        direction it wants and compares it against the table's own statement of how it is
+        ordered, which is the only reading that is not our own assumption echoed back.
+        """
+        column = "GICS Sector"
+        pc = Postcondition(
+            goal=("On the Wikipedia list of S&P 500 companies, sort the constituents table "
+                  "by GICS Sector in descending order, then report the symbol and the "
+                  "sector of the row that ends up at the top."),
+            operation="OP-4",
+            target_url=WIKI_SP500,
+            inputs={"sort_column": column, "direction": "descending"},
+            required_actions=(
+                RequiredAction("click", column,
+                               "the ordering is produced client-side; there is no URL that "
+                               "reaches it, so the interaction is the capability being "
+                               "claimed", times=2),
+            ),
+            claims=(
+                ClaimSpec("sort_state", column, Relation.SORT_STATE, "sort_state",
+                          container=CONSTITUENTS),
+                ClaimSpec("top_symbol", "Symbol", Relation.TABLE_COLUMN_CELL, "code",
+                          container=CONSTITUENTS),
+                ClaimSpec("top_sector", column, Relation.TABLE_COLUMN_CELL, "text",
+                          container=CONSTITUENTS),
+            ),
+        )
+
+        async def open_article(ctx: ExecutionContext) -> None:
+            await self._navigate(ctx, WIKI_SP500)
+            await ctx.page.wait_for_selector("#constituents th.headerSort", timeout=15_000)
+
+        async def sort_descending(ctx: ExecutionContext) -> None:
+            selector = f'{CONSTITUENTS}//th[normalize-space(.)="{column}"]'
+            for ordinal in ("first", "second"):
+                await self._click(ctx, selector,
+                                  f"Click the {column!r} header ({ordinal} click)")
+                await ctx.page.wait_for_timeout(400)
+
+        async def read_top_row(ctx: ExecutionContext) -> None:
+            await self._capture(ctx, "constituents-sorted")
+            entry = self._step(ctx.run, StepKind.EXTRACT,
+                               "Read the top row of the sorted table", label_anchor=column)
+            values = await ctx.page.evaluate(
+                """(column) => {
+                    const norm = s => (s || '').replace(/\s+/g, ' ').trim();
+                    const table = document.querySelector('#constituents');
+                    const heads = [...table.querySelectorAll('tr th')];
+                    const at = name => heads.findIndex(
+                      h => h.textContent.replace(/\s+/g, ' ').trim() === name);
+                    const head = heads[at(column)];
+                    const row = table.querySelector('tr:has(td)');
+                    const cell = i => (row.cells[i] || {}).textContent || '';
+                    const cls = (head.className || '').toLowerCase();
+                    return {
+                      sort_state: {column,
+                        direction: head.getAttribute('aria-sort') ||
+                          (cls.includes('headersortdown') ? 'descending' :
+                           cls.includes('headersortup') ? 'ascending' : 'unsorted'),
+                        column_index: at(column)},
+                      top_symbol: norm(cell(at('Symbol'))),
+                      top_sector: norm(cell(at(column)))};
+                }""", column)
+            ctx.candidate = values
+            self._finish_step(ctx.run, entry, **{k: str(v)[:120] for k, v in values.items()})
+
+        return Plan("OP-4", "wikipedia sortable table, descending sort", pc,
+                    (open_article, sort_descending, read_top_row),
+                    entry_url=WIKI_SP500,
+                    terms=(column, "Symbol", "Security", "constituents"),
+                    read_step=read_top_row)
+
+    def _plan_wiki_expand(self, low: str) -> Plan:
+        """OP-5: expand a collapsed navbox and read a value out of it.
+
+        A4.2 applies and is not glossed over: the collapsed content is present in the DOM
+        beforehand, so this is not shortcut-proof by construction. What is verified is the
+        state transition — the collapsed marker must be gone from the stored artifact — plus
+        a value bound to its label inside the expanded box. The claim is "declared and
+        trace-verified", not "impossible to bypass".
+        """
+        group = "Energy"
+        pc = Postcondition(
+            goal=("On the Wikipedia list of S&P 500 companies, expand the collapsed S&P 500 "
+                  "companies navbox at the foot of the article and report the constituents "
+                  "listed under its Energy group."),
+            operation="OP-5",
+            target_url=WIKI_SP500,
+            inputs={"group": group},
+            required_actions=(
+                RequiredAction("click", "show",
+                               "the navbox is collapsed on load and its toggle is the only "
+                               "way to open it"),
+            ),
+            claims=(
+                ClaimSpec("still_collapsed", "the navbox's collapsed marker",
+                          Relation.ELEMENT_ABSENT, "boolean",
+                          container=COLLAPSED_NAVBOX),
+                ClaimSpec("energy_group", group, Relation.TABLE_ROW_CELL, "text"),
+            ),
+        )
+
+        async def open_article(ctx: ExecutionContext) -> None:
+            await self._navigate(ctx, WIKI_SP500)
+            await ctx.page.wait_for_selector(NAVBOX_TOGGLE, timeout=15_000)
+
+        async def expand(ctx: ExecutionContext) -> None:
+            await self._click(ctx, NAVBOX_TOGGLE, "Expand the collapsed navbox")
+            await ctx.page.wait_for_timeout(500)
+
+        async def read_group(ctx: ExecutionContext) -> None:
+            await self._capture(ctx, "navbox-expanded")
+            entry = self._step(ctx.run, StepKind.EXTRACT,
+                               "Read the labelled group from the expanded navbox",
+                               label_anchor=group)
+            # `textContent`, not `innerText`. Verification re-reads the stored artifact with
+            # lxml, which has no layout and therefore no rendered text; a cell holding a
+            # list of inline links renders with no separators and parses with them. Reading
+            # it the way the verifier will is the difference between a real mismatch and a
+            # mismatch about whitespace.
+            cell = await ctx.page.query_selector(
+                f"//tr[th[normalize-space(.)='{group}']]/td[1]")
+            text = norm_ws(await cell.evaluate("el => el.textContent")) if cell else None
+            ctx.candidate = {"still_collapsed": True, "energy_group": text}
+            self._finish_step(ctx.run, entry, energy_group=(text or "")[:120])
+
+        return Plan("OP-5", "wikipedia collapsed navbox, expanded", pc,
+                    (open_article, expand, read_group),
+                    entry_url=WIKI_SP500,
+                    terms=(group, "show", "S&P 500 companies", "navbox"),
+                    read_step=read_group)
+
     def _plan_book_detail(self, low: str) -> Plan:
         """OP-7: open a product detail page from a listing and read a labelled field."""
         pc = Postcondition(
@@ -1241,12 +1417,8 @@ class Executor:
             await self._navigate(ctx, BOOK_CATEGORY_POETRY)
 
         async def open_detail(ctx: ExecutionContext) -> None:
-            entry = self._step(ctx.run, StepKind.CLICK,
-                               "Open the product from the listing",
-                               selector="a-light-in-the-attic")
-            async with ctx.page.expect_navigation(wait_until="domcontentloaded"):
-                await ctx.page.click("h3 a[title='A Light in the Attic']")
-            self._finish_step(ctx.run, entry, final_url=ctx.page.url)
+            await self._click(ctx, "h3 a[title='A Light in the Attic']",
+                              "Open the product from the listing", navigates=True)
 
         async def read_detail(ctx: ExecutionContext) -> None:
             await self._capture(ctx, "product-detail")
@@ -1296,11 +1468,8 @@ class Executor:
             await self._navigate(ctx, BOOK_CATEGORY_NONFICTION)
 
         async def page_forward(ctx: ExecutionContext) -> None:
-            entry = self._step(ctx.run, StepKind.CLICK, "Click 'next' to the second page",
-                               selector="next")
-            async with ctx.page.expect_navigation(wait_until="domcontentloaded"):
-                await ctx.page.click("li.next a")
-            self._finish_step(ctx.run, entry, final_url=ctx.page.url)
+            await self._click(ctx, "li.next a", "Click 'next' to the second page",
+                              navigates=True)
 
         async def read_listing(ctx: ExecutionContext) -> None:
             await self._capture(ctx, "category-page-2")

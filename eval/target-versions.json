@@ -1,6 +1,6 @@
 {
- "pinned_at": 1785158855.6095061,
- "pinned_on": "2026-07-27 13:27:35Z",
+ "pinned_at": 1785163032.76656,
+ "pinned_on": "2026-07-27 14:37:12Z",
  "note": "The page version each OP-4\u2026OP-7 expected answer was taken from. When a case starts failing, compare against this first: a changed revision id or content hash means the site moved, and that is a different problem from a regression.",
  "targets": [
   {
@@ -10,8 +10,8 @@
    "why_this_page": "several sortable tables with overlapping header text, and the constituent list changes often enough to matter",
    "final_url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
    "http_status": 200,
-   "retrieved_at": 1785158852.492081,
-   "retrieved_on": "2026-07-27 13:27:32Z",
+   "retrieved_at": 1785163029.37772,
+   "retrieved_on": "2026-07-27 14:37:09Z",
    "sha256": "1ab5f689b34ae1a305d06d6bdc8de21b1addf69b8a14ca461e35946ea6d10624",
    "length": 1509483,
    "robots": {
@@ -37,8 +37,8 @@
    "why_this_page": "carries collapsible navboxes; S-3.4's fallback applies if none is stable",
    "final_url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
    "http_status": 200,
-   "retrieved_at": 1785158853.0741491,
-   "retrieved_on": "2026-07-27 13:27:33Z",
+   "retrieved_at": 1785163030.3873112,
+   "retrieved_on": "2026-07-27 14:37:10Z",
    "sha256": "1ab5f689b34ae1a305d06d6bdc8de21b1addf69b8a14ca461e35946ea6d10624",
    "length": 1509483,
    "robots": {
@@ -64,8 +64,8 @@
    "why_this_page": "multi-page category with the site's own result counter as a coverage anchor",
    "final_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html",
    "http_status": 200,
-   "retrieved_at": 1785158854.941955,
-   "retrieved_on": "2026-07-27 13:27:34Z",
+   "retrieved_at": 1785163032.115438,
+   "retrieved_on": "2026-07-27 14:37:12Z",
    "sha256": "be69d3a5293343cf9c27062b7819af219233cfe02e98ac0d36eb3a739d94c0d2",
    "length": 52725,
    "robots": {
@@ -88,8 +88,8 @@
    "why_this_page": "a labelled product-information table, which is what label\u2192value binding is verified against",
    "final_url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html",
    "http_status": 200,
-   "retrieved_at": 1785158855.6081789,
-   "retrieved_on": "2026-07-27 13:27:35Z",
+   "retrieved_at": 1785163032.7658958,
+   "retrieved_on": "2026-07-27 14:37:12Z",
    "sha256": "a6e572bec156bf80ff3149b89b6d218cdcf8866ccc26ccf69a5431db8e142c6a",
    "length": 9279,
    "robots": {

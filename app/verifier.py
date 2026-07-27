@@ -25,7 +25,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from lxml import html as lxml_html
 
@@ -268,6 +268,10 @@ class Verifier:
             return _list_enumeration(tree, spec)
         if spec.relation is Relation.ELEMENT_ABSENT:
             return _element_absent(tree, spec)
+        if spec.relation is Relation.TABLE_COLUMN_CELL:
+            return _table_column_cell(tree, spec)
+        if spec.relation is Relation.SORT_STATE:
+            return _sort_state(tree, spec)
         raise AnchorNotFound(f"No extractor for relation {spec.relation}")
 
     # ---- status decision -------------------------------------------------------
@@ -486,6 +490,102 @@ def _list_enumeration(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
     return items, f"{len(items)} rows", spec.container
 
 
+#: How tables on the web state their own sort direction, most standard first. This is a list
+#: of conventions rather than a rule about any one site: `aria-sort` is the accessibility
+#: standard, and the class names below are what the widely used table sorters emit when they
+#: have no `aria-sort`. Reading the direction off the page is the whole point — the
+#: alternative is assuming what a click produced, which is the error this claim exists to
+#: catch.
+SORT_DIRECTION_CLASSES = (
+    ("headersortup", "ascending"), ("headersortdown", "descending"),      # MediaWiki
+    ("sorting_asc", "ascending"), ("sorting_desc", "descending"),         # DataTables
+    ("sorted-asc", "ascending"), ("sorted-desc", "descending"),
+    ("tablesorter-headerasc", "ascending"), ("tablesorter-headerdesc", "descending"),
+)
+
+
+def _header_cells(tree, spec: ClaimSpec) -> list[Any]:
+    """Every column header matching the claim's label, inside the declared container."""
+    scope = tree.xpath(spec.container) if spec.container else [tree]
+    if not scope:
+        raise AnchorNotFound(f"Container {spec.container!r} resolved to nothing")
+    found = []
+    for node in scope:
+        found.extend(th for th in node.xpath(".//tr/th")
+                     if norm(th.text_content()) == spec.label)
+    if not found:
+        raise AnchorNotFound(
+            f"No column header reads {spec.label!r} inside {spec.container or 'the page'}")
+    return found
+
+
+def _column_index(header) -> int:
+    """The header's position among the cells of its own row, counting spans."""
+    index = 0
+    for cell in header.getparent().xpath("./th|./td"):
+        if cell is header:
+            return index
+        try:
+            index += int(cell.get("colspan", 1))
+        except ValueError:
+            index += 1
+    return index
+
+
+def _table_column_cell(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
+    """The cell in the first data row, under the named column header.
+
+    The row is the one the *page* put first, re-read from the stored artifact. Whether the
+    sort was supposed to produce that row is a separate claim; this one only reports what is
+    there, so an extra or missing click shows up as a value that does not match rather than
+    as a check that quietly adapts.
+    """
+    values: dict[str, Any] = {}
+    for header in _header_cells(tree, spec):
+        index = _column_index(header)
+        table = header.xpath("ancestor::table[1]")
+        rows = table[0].xpath(".//tr[td]") if table else []
+        if not rows:
+            continue
+        cells = rows[0].xpath("./th|./td")
+        if index < len(cells):
+            values[norm(cells[index].text_content())] = index
+    if not values:
+        raise AnchorNotFound(
+            f"The column {spec.label!r} was found but its table has no data rows")
+    if len(values) > 1:
+        raise AnchorAmbiguous(
+            f"The column header {spec.label!r} appears in more than one table with "
+            f"different top-row values ({sorted(values)}). Choosing one would be a guess.")
+    span = next(iter(values))
+    return (_coerce(span, spec.value_type), span,
+            f"{spec.container or '//table'}//tr[td][1]/td[column={spec.label!r}]")
+
+
+def _sort_state(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
+    """What the table says about how it is currently ordered."""
+    states = set()
+    index = None
+    for header in _header_cells(tree, spec):
+        classes = (header.get("class") or "").lower()
+        aria = (header.get("aria-sort") or "").strip().lower()
+        direction = aria if aria in ("ascending", "descending") else "unsorted"
+        if direction == "unsorted":
+            for marker, named in SORT_DIRECTION_CLASSES:
+                if marker in classes:
+                    direction = named
+                    break
+        states.add(direction)
+        index = _column_index(header)
+    if len(states) > 1:
+        raise AnchorAmbiguous(
+            f"The column header {spec.label!r} appears more than once with different sort "
+            f"states ({sorted(states)}).")
+    direction = next(iter(states))
+    value = {"column": spec.label, "direction": direction, "column_index": index}
+    return value, f"{spec.label}: {direction}", f"th[text()={spec.label!r}]/@class|@aria-sort"
+
+
 def _element_absent(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
     found = tree.xpath(spec.container) if spec.container else []
     if found:
@@ -527,6 +627,14 @@ def _coerce(value: Any, value_type: str) -> Any:
             return sorted(norm(str(v.get("sku") if isinstance(v, dict) else v)).casefold()
                           for v in value if v)
         return value
+    if value_type == "ordered_text_list":
+        # Order is the answer here, not a property of the page to be normalised away. A
+        # sort that ran one click too few produces a perfectly reasonable list in the wrong
+        # order, and sorting it before comparing would erase exactly that.
+        if isinstance(value, list):
+            return [norm(str(v.get("text") if isinstance(v, dict) else v)).casefold()
+                    for v in value if v]
+        return value
     if value_type == "sku_list":
         # Compared as a set of identifiers: the run reports which items it saw, and order
         # is a property of the page rather than of the answer.
@@ -551,15 +659,31 @@ def _frozen_input_drift(spec: ClaimSpec, value: Any, pc: Postcondition) -> str:
         if frozen_page is not None and value.get("page") != frozen_page:
             return (f"The plan froze page {frozen_page}, but the artifact shows page "
                     f"{value.get('page')} as the visible one.")
+    if spec.relation is Relation.SORT_STATE and "direction" in pc.inputs:
+        frozen = str(pc.inputs["direction"] or "").lower()
+        echoed = str(value.get("direction") or "").lower()
+        if frozen and echoed != frozen:
+            return (f"The plan froze a {frozen} sort on {value.get('column')!r}, but the "
+                    f"table states it is {echoed}. One click too few or too many produces a "
+                    f"perfectly reasonable ordering of the wrong kind, and the table's own "
+                    f"statement is what settles it.")
     return ""
 
 
 def _same_page(source_url: str | None, target_url: str) -> bool:
-    """Same origin and same path. Query strings differ legitimately (mutation seeds)."""
+    """Same origin and same path. Query strings differ legitimately (mutation seeds).
+
+    Paths are compared percent-decoded. A plan freezes the escaped form it navigated to and
+    the browser reports back whatever spelling it settled on — `List_of_S%26P_500_companies`
+    against `List_of_S&P_500_companies` is one page written two ways, and treating it as two
+    pages fails a correct run for a difference in encoding. The guard fails closed, so this
+    was invisible until a target URL happened to contain an escape.
+    """
     if not source_url:
         return False
     a, b = urlsplit(source_url), urlsplit(target_url)
-    return (a.scheme, a.netloc, a.path.rstrip("/")) == (b.scheme, b.netloc, b.path.rstrip("/"))
+    return ((a.scheme, a.netloc, unquote(a.path).rstrip("/"))
+            == (b.scheme, b.netloc, unquote(b.path).rstrip("/")))
 
 
 def _missing_actions(run: Run, pc: Postcondition) -> list[str]:

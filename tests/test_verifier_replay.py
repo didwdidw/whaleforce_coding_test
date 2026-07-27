@@ -223,3 +223,101 @@ def test_the_structural_checks_both_defects_passed_still_pass(store):
         candidate={"result_counter": {"count": 0,
                                       "term": "the fixture catalogue for lant"},
                    "items": [], "empty_state": True}).counts_as_success is False
+
+
+# ---- OP-4: the sort that ran one click short -----------------------------------
+
+def _op4_postcondition() -> Postcondition:
+    """The same object `Executor._plan_wiki_sort` freezes, built here so the replay is
+    judged by the postcondition the product actually ships."""
+    from app.executor import Executor
+
+    return Executor.__dict__["_plan_wiki_sort"](
+        Executor(supervisor=None, store=None), "").postcondition
+
+
+def test_a_sort_that_stopped_one_click_short_cannot_pass_as_the_sort_that_was_asked_for(
+        store):
+    """The trap the spec names, replayed from the page a real one-click run produced.
+
+    Descending order takes two clicks on a MediaWiki sortable header. One click produces a
+    real table, really sorted, and a run that reads its top row reports a value that is
+    genuinely there — `GOOGL` under `Communication Services`. Nothing about the run looks
+    wrong: right page, right table, right column, right cell, and the reported value agrees
+    with the artifact.
+
+    The trace here shows both declared clicks, so the required-action guard is satisfied and
+    cannot be what catches this. What catches it is the table's own statement of how it is
+    ordered, compared against the direction frozen before browsing.
+    """
+    pc = _op4_postcondition()
+    steps = [
+        _step(1, StepKind.NAVIGATE, "Navigate to the article"),
+        _step(2, StepKind.CLICK, "Click the 'GICS Sector' header (first click)"),
+        _step(3, StepKind.CLICK, "Click the 'GICS Sector' header (second click)"),
+        _step(4, StepKind.SNAPSHOT, "Snapshot captured"),
+    ]
+    run = _run(store, "sort the constituents table by GICS Sector descending", pc, steps)
+    artifact = _artifact(store, run, "replay-d-op4-one-click-ascending.html",
+                         "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
+
+    # Exactly what an honest run of the one-click page reports: it is not lying about
+    # anything it saw.
+    candidate = {
+        "sort_state": {"column": "GICS Sector", "direction": "ascending",
+                       "column_index": 2},
+        "top_symbol": "GOOGL",
+        "top_sector": "Communication Services",
+    }
+    verdict = Verifier(store).verify(run, artifact_id=artifact, candidate=candidate)
+
+    assert verdict.status is TerminalStatus.FAILED
+    assert verdict.failure_class is FailureClass.VERIFICATION_MISMATCH
+    assert not any(c.name == "sort_state" and c.ok for c in verdict.claims)
+    reason = next(c.reason for c in verdict.claims if c.name == "sort_state")
+    assert "descending" in reason and "ascending" in reason
+
+
+def test_the_top_row_value_itself_still_verifies_against_the_artifact(store):
+    """The half that makes the failure interesting: the reported cell is correct.
+
+    If the value check had failed too, this would just be a broken run. It is the *right*
+    answer to a question nobody asked, which is the failure mode the whole postcondition
+    mechanism exists for, and it has to be visible as such in the claims.
+    """
+    pc = _op4_postcondition()
+    steps = [
+        _step(1, StepKind.NAVIGATE, "Navigate to the article"),
+        _step(2, StepKind.CLICK, "Click the 'GICS Sector' header (first click)"),
+        _step(3, StepKind.CLICK, "Click the 'GICS Sector' header (second click)"),
+    ]
+    run = _run(store, "sort the constituents table by GICS Sector descending", pc, steps)
+    artifact = _artifact(store, run, "replay-d-op4-one-click-ascending.html",
+                         "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")
+    verdict = Verifier(store).verify(run, artifact_id=artifact, candidate={
+        "sort_state": {"column": "GICS Sector", "direction": "ascending",
+                       "column_index": 2},
+        "top_symbol": "GOOGL",
+        "top_sector": "Communication Services",
+    })
+
+    by_name = {c.name: c for c in verdict.claims}
+    assert by_name["top_symbol"].ok and by_name["top_sector"].ok
+    assert not by_name["sort_state"].ok
+
+
+def test_the_same_page_check_is_not_fooled_by_percent_encoding():
+    """A guard that fails closed can be wrong for years without anyone noticing.
+
+    A plan freezes the escaped URL it navigated to; the browser reports back whatever
+    spelling it settled on. One page written two ways was being treated as two pages, which
+    failed correct runs — and because the failure is a refusal, it looked like caution.
+    """
+    from app.verifier import _same_page
+
+    escaped = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    decoded = "https://en.wikipedia.org/wiki/List_of_S&P_500_companies"
+    assert _same_page(decoded, escaped)
+    assert _same_page(escaped, decoded)
+    # ...and still says no to a genuinely different page.
+    assert not _same_page("https://en.wikipedia.org/wiki/S%26P_500", escaped)

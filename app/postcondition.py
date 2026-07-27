@@ -43,6 +43,14 @@ class Relation(str, enum.Enum):
     LIST_ENUMERATION = "list_enumeration"
     #: An element that must be absent from the artifact — evidence of a state transition.
     ELEMENT_ABSENT = "element_absent"
+    #: Label in a column header, value in the cell below it — the other way a table binds a
+    #: value to a name. S-4.9 names "same row, adjacent cell" among others; a sorted table's
+    #: top row is bound to its column, not to a row header.
+    TABLE_COLUMN_CELL = "table_column_cell"
+    #: A table's own statement of how it is currently ordered. The counterpart of
+    #: PAGER_POSITION for sorting: the page says what it did, and that is what gets compared
+    #: against the frozen input — not the order we assumed a click would produce.
+    SORT_STATE = "sort_state"
 
 
 class AbsenceMode(str, enum.Enum):
