@@ -326,3 +326,25 @@ engineering agent 提報一個決定要你裁量：
 簡述你改了什麼，spec哪裡有變，他下一步要做什麼
 
 ==========
+
+M3 前置閘門過了，模型 pin 不動
+但過程中有幾件要寫進 spec 的事，寫成 Amendment 12
+
+1. 憑證隔離要是拓樸的，不是條件的。
+原因是我先前的推論錯了一半：spec 的 Common Requirements 要求 held-out cases 打已部署的系統，但那是 grader 的流量
+A9.6 要求付費金鑰的是「我們自己的 validation / test split」
+這是兩件事，只有後者需要付費金鑰
+所以公開服務的容器檔案系統上永遠沒有付費金鑰，M8 那天也一樣。我們的 scored round 跑在同一台機器上的另一個 workload，共用同一個 volume 讓證據落在同一個 store
+「金鑰不在」對服務匿名流量的那個 process 仍然字面成立，保護沒有被換成一個 if 判斷。
+那個 scored workload 不開公開網域，不可從外部用 HTTP 打到。
+
+2. 執行期花費上限。每日累計 USD 上限，狀態存在 volume 上（重啟仍在），在每次 provider 呼叫之前檢查，超過就是 blocked / provider_quota —— 拒絕，不是靜靜繼續，數字顯示在 /healthz。
+這條不是為了假想的未來。Amendment 8 寫的 USD 5 上限現在只存在人的腦子裡，執行期沒有任何東西在擋，而付費金鑰已經在用了。
+
+3. store 的 containment 不變量要寫成需求，不能只活在測試裡。
+起因是一個邊界測試抓到真漏洞：retention 拿資料庫裡的路徑直接 unlink，read_artifact 拿同樣來源的路徑決定 HTTP 交出什麼，兩處都沒有歸屬檢查。那是任意檔案刪除加任意檔案讀取，從 M2 就在，107 個測試沒抓到。
+寫成需求：store 讀取或刪除的每一條檔案系統路徑，resolve 之後必須落在 artifact 根目錄底下，越界一律拒絕並記 error log，路徑穿越擋掉。適用於服務出去的那一側和 retention 那一側。
+
+4. M8 的 analysis report 要講清楚，我們的 validation / test split 跑在同一台主機、同一份映像檔的另一個 workload，不是服務匿名流量的那個 process。這樣量測的範圍才是誠實的。
+
+==========

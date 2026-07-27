@@ -1242,3 +1242,78 @@ MUST be applied only when a value is genuinely absent.
   with metadata intact — no 404, no broken image (A11.4).
 - [ ] **A-31** Confirm the health endpoint reports unhealthy when the artifact store is unwritable,
   and that retention limits (age and size) are enforced and observable (A11.5, A11.6).
+
+### Amendment 12 — Topological credential isolation, enforced spend ceiling, store containment (2026-07-27)
+
+Extends **A8.8**, **A9.6**, **A8.10**, **A11.1**, **S-11.11**. Decided at the M3 preflight gate; the
+model pin (A9.2) is unchanged.
+
+#### Credential isolation is topological, not conditional
+
+**A12.1 Correction to the reasoning behind A9.6.** Two things were being conflated. The Common
+Requirements have held-out cases run against the **deployed system** — that is **grader traffic**, and
+it runs on the public demo path under A8.8 and S-11.13 (free credential, no auto-fallback, exhaustion
+surfaces as `blocked / provider_quota`). A9.6's paid-credential requirement applies to **our own
+validation and test split runs**. Only the latter needs the paid key. A9.6's conclusion stands; only
+its scope is narrowed to what it actually covers.
+
+**A12.2 The paid credential MUST NOT be present on the filesystem of the container serving public
+traffic — at any point, including on the M8 acceptance day.** This is the substance of the amendment.
+S-11.11 asked for separate credentials; a runtime branch that selects a credential is a condition that
+can be mis-evaluated, and its failure mode is silent. Absence of the key is a property of the
+environment, and it cannot be defeated by a bug in a conditional.
+
+**A12.3 Scored runs execute as a separate workload**, co-located on the same host and built from the
+same image, holding the paid credential. It **MUST NOT** be published on any public domain and MUST
+NOT be reachable over HTTP from outside the host. It shares the persistent volume (A11.1) so that
+evidence from scored runs lands in the same artifact store and remains inspectable through the public
+run views.
+
+**A12.4** The claim "the public service does not hold the paid key" MUST therefore be **literally
+true of the process serving anonymous traffic**, and the README and analysis report MUST state it in
+those terms — as a deployment topology, not as an application-level policy.
+
+#### The spend ceiling must exist at runtime
+
+**A12.5 A daily cumulative USD ceiling MUST be enforced in code.** A8.10's USD 5 limit currently
+exists only as an intention in a person's head, while the paid credential is already in use — the gap
+between "we decided a limit" and "something enforces a limit" is the whole risk. Requirements:
+
+1. **Checked before every provider call**, not sampled, not checked afterwards.
+2. **Exceeding the ceiling refuses the call** and terminates the run as `blocked / provider_quota`.
+   Continuing to spend while logging a warning is not acceptable — this is fail-closed under S-6.3.
+3. **The accumulated state lives on the persistent volume** (A11.1) so it survives restarts and
+   redeploys. A counter held in memory resets exactly when spending resumes.
+4. **The current spend and the ceiling are exposed on the health endpoint**, so the remaining budget
+   is answerable without reading logs or the provider console.
+
+#### Store path containment
+
+**A12.6** A boundary test found a real vulnerability present since M2: retention `unlink`ed paths
+taken from the database, and `read_artifact` used paths from the same source to decide what to return
+over HTTP — **neither side checked ownership**. That is arbitrary file deletion plus arbitrary file
+read, and 107 passing tests did not catch it. Invariants that live only in tests are invariants that
+can be removed by anyone who does not read the tests.
+
+**A12.7 Store containment is a requirement.** Every filesystem path the artifact store reads or
+deletes MUST be **resolved** (symlinks and relative segments included) and MUST be verified to fall
+under the artifact root directory. A path resolving outside the root MUST be refused and recorded in
+the error log. Path-traversal segments MUST be rejected. This applies to **both** sides — the serving
+path and the retention sweep — because either alone leaves the vulnerability open.
+
+#### Reporting scope
+
+**A12.8** The M8 analysis report MUST state that our validation and test splits were executed by the
+**separate co-located workload** described in A12.3 — same host, same image, different process from
+the one serving anonymous traffic — and MUST NOT present those measurements as though they came from
+the public-facing process. Otherwise the reported scope of the measurement is wrong, which is the same
+class of dishonesty the evidence requirements exist to prevent.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-32** Confirm the public-serving container's filesystem does not contain the paid credential,
+  and that the scored workload is not reachable over HTTP from outside the host (A12.2, A12.3).
+- [ ] **A-33** Confirm the daily spend ceiling is enforced before provider calls, survives a restart,
+  and is reported on the health endpoint; exhaustion produces `blocked / provider_quota` (A12.5).
+- [ ] **A-34** Attempt to read and to delete an artifact whose recorded path resolves outside the
+  artifact root: both are refused and logged (A12.7).
