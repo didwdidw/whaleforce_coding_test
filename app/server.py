@@ -28,6 +28,7 @@ from app.config import config_provenance, settings
 from app.coverage import CoverageLedger
 from app.executor import Executor
 from app.models import Run, TerminalStatus, Tier, new_id
+from app.provider import Provider, ProviderError
 from app.queue import AdmissionRefused, RunQueue
 from app.robots import RobotsCache
 from app.store import Store
@@ -75,6 +76,14 @@ class App:
         self.robots = RobotsCache()
         self.executor = Executor(self.supervisor, self.store, self.robots)
         self.coverage = CoverageLedger(self.store)
+        self.provider = Provider()
+        #: Set at startup. A deployment with no credential is a degraded deployment, not a
+        #: dead one: everything deterministic still runs, and the planner path reports a
+        #: named failure instead of the service refusing to boot.
+        self.planner_status: dict[str, Any] = {
+            "available": False,
+            "reason": "not checked yet",
+        }
         self.queue = RunQueue(self._execute, session_count=self.store.session_run_count)
         self.started_at = time.time()
         self.git_sha = git_sha()
@@ -104,6 +113,7 @@ async def _startup() -> None:
     settings.validate_or_die()
     await state.supervisor.start()
     await state.queue.start()
+    _check_planner()
     state.store.enforce_retention()
     asyncio.create_task(_seed_pre_executed())
 
@@ -113,6 +123,38 @@ async def _shutdown() -> None:
     await state.queue.aclose()
     await state.supervisor.aclose()
     state.store.close()
+
+
+def _check_planner() -> None:
+    """Whether the planner can run at all, decided once at startup and reported.
+
+    A missing credential must not stop the service: the fixture operations, the verifier,
+    the evidence store and every deterministic path work without a model, and a deployment
+    that refuses to boot is a deployment nobody can look at. What it must not do is look
+    healthy and then fail obscurely at the first planned run — so the state is named here
+    and surfaced on /healthz.
+    """
+    if not state.provider.configured():
+        state.planner_status = {
+            "available": False,
+            "reason": ("No provider credential is readable for the "
+                       f"{state.provider.policy.value} policy. Deterministic operations "
+                       f"still run; anything needing the planner ends "
+                       f"blocked / provider_error rather than failing obscurely."),
+            "failure_class": "provider_error",
+        }
+        log.warning("planner unavailable: no credential configured")
+        return
+    try:
+        detail = state.provider.validate_or_die()
+    except ProviderError as exc:
+        state.planner_status = {"available": False, "reason": str(exc)[:300],
+                                "failure_class": exc.failure_class.value}
+        log.warning("planner unavailable: %s", exc)
+        return
+    state.planner_status = {"available": True, "model": detail["model"],
+                            "credential_tier": detail["credential_tier"],
+                            "validated_by": "a live minimal call at startup (A9.3)"}
 
 
 async def _seed_pre_executed() -> None:
@@ -334,6 +376,10 @@ async def healthz(response: Response) -> dict[str, Any]:
                                  ["browser is not connected"])),
         "egress_guard": settings.egress_guard_state(),
         "config_provenance": config_provenance(),
+        # Presence and tier only. Never a value, a prefix, or a length — a length is a fact
+        # about the secret and this endpoint is public.
+        "credentials": state.provider.credential_state(),
+        "planner": state.planner_status,
         # Which declared statuses this deployment has actually produced. `overdue` is the
         # list of paths nothing has ever reached, which is the shape an untested gate takes.
         "status_coverage": {k: v for k, v in state.coverage.report().items()

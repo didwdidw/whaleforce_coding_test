@@ -199,12 +199,32 @@ class Provider:
 
     def key_for(self, tier: CredentialTier) -> str | None:
         p = settings.provider
-        for directory in (p.key_dir, p.repo_key_dir):
-            name = p.free_key_name if tier is CredentialTier.FREE else p.paid_key_name
-            key = _read_key(directory / name)
+        free = tier is CredentialTier.FREE
+        candidates = (
+            p.key_dir / (p.free_key_name if free else p.paid_key_name),
+            p.repo_key_dir / (p.repo_free_key_name if free else p.repo_paid_key_name),
+        )
+        for path in candidates:
+            key = _read_key(path)
             if key:
                 return key
         return None
+
+    def credential_state(self) -> dict[str, Any]:
+        """What `/healthz` is allowed to say about credentials: whether one exists and
+        which tier it is. Never the value, a prefix, or a length — a length is a fact about
+        the secret, and this endpoint is public.
+        """
+        present = [t.value for t in (CredentialTier.FREE, CredentialTier.PAID)
+                   if self.key_for(t) is not None]
+        usable = [t.value for t in self.available_tiers() if self.key_for(t) is not None]
+        return {
+            "configured": bool(usable),
+            "tiers_present": present,
+            "tiers_usable_under_policy": usable,
+            "policy": self.policy.value,
+            "search_path": str(settings.provider.key_dir),
+        }
 
     def available_tiers(self) -> list[CredentialTier]:
         """The tiers this run may use, in order, given what it is for."""

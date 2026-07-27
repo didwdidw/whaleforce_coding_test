@@ -197,14 +197,20 @@ class ProviderPolicy:
     #: figure must come from uncached runs, so this is opt-in rather than opt-out.
     cache_enabled: bool = field(default_factory=lambda: _bool("LLM_CACHE", False))
 
-    free_key_name: str = "Free_tier_agent_API_Key"
-    paid_key_name: str = "Billing_agent_API_Key"
-    #: Keys live on the persistent volume in the deployment and in the repo (git-ignored)
-    #: locally. Never in an environment variable: an environment dump would put one in a
-    #: trace or a prompt record.
-    key_dir: Path = field(
-        default_factory=lambda: _path("PROVIDER_KEY_DIR", "/data/task1/keys"))
+    #: Keys live outside the artifact store on purpose. `/data` is the root the evidence
+    #: store serves from, and a secret has no business living in a tree whose contents are
+    #: handed out over HTTP — one path-handling mistake would be enough. They are also never
+    #: read from an environment variable, so an environment dump cannot put one in a trace,
+    #: a log line or a prompt record.
+    key_dir: Path = field(default_factory=lambda: _path("PROVIDER_KEY_DIR", "/etc/wf"))
+    free_key_name: str = field(
+        default_factory=lambda: _str("PROVIDER_FREE_KEY_NAME", "gemini_free_tier"))
+    paid_key_name: str = field(
+        default_factory=lambda: _str("PROVIDER_PAID_KEY_NAME", "gemini_paid_tier"))
+    #: Local development only; git-ignored, and never present in the image.
     repo_key_dir: Path = REPO_ROOT / "api_keys"
+    repo_free_key_name: str = "Free_tier_agent_API_Key"
+    repo_paid_key_name: str = "Billing_agent_API_Key"
 
     @property
     def prices_usd_per_1m(self) -> tuple[float, float]:

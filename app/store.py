@@ -419,13 +419,34 @@ class Store:
 
     def read_artifact(self, artifact_id: str) -> bytes | None:
         """Bytes if still stored, None if expired. Verification re-resolves anchors in the
-        full stored artifact (A7.4), so an expired one must fail loudly, not silently."""
+        full stored artifact (A7.4), so an expired one must fail loudly, not silently.
+
+        The path comes out of the database, and this store hands its contents to anyone
+        over HTTP, so it is checked against the store directory before it is read. Without
+        that, one bad row is the difference between serving evidence and serving whatever
+        the row points at.
+        """
         row = self._conn.execute(
             "SELECT path, state FROM artifacts WHERE id = ?", (artifact_id,)).fetchone()
-        if row is None or row["state"] != "stored":
+        if row is None or row["state"] != "stored" or not row["path"]:
             return None
-        p = Path(row["path"])
-        return p.read_bytes() if p.exists() else None
+        path = Path(row["path"])
+        if not self.contains(path):
+            log.error("artifact %s points outside the store (%s); refusing to read it",
+                      artifact_id, path)
+            return None
+        return path.read_bytes() if path.exists() else None
+
+    def contains(self, path: Path) -> bool:
+        """Whether a path is inside the artifact store. Secrets live outside it by design
+        (the key directory is not under the data directory), and this is what keeps the
+        design from resting on that fact alone."""
+        try:
+            resolved = path.resolve()
+            root = self.artifact_dir.resolve()
+        except OSError:
+            return False
+        return resolved == root or root in resolved.parents
 
     def artifacts_for_run(self, run_id: str) -> list[ArtifactRef]:
         return [self.get_artifact_ref(r["id"]) for r in self._conn.execute(
@@ -523,7 +544,15 @@ class Store:
             if ref and ref["pinned"]:
                 continue          # belt and braces: pinned never expires (A11.3)
             if ref and ref["path"]:
-                Path(ref["path"]).unlink(missing_ok=True)
+                path = Path(ref["path"])
+                # Retention deletes bytes, so it must not be able to delete anything it
+                # does not own. The path comes from the database; a row pointing outside
+                # the store loses its bytes-column and keeps its file.
+                if self.contains(path):
+                    path.unlink(missing_ok=True)
+                else:
+                    log.error("refusing to expire %s: its path %s is outside the store",
+                              row["id"], path)
             self._conn.execute(
                 "UPDATE artifacts SET state='expired', expired_at=?, path=NULL WHERE id=?",
                 (time.time(), row["id"]))
