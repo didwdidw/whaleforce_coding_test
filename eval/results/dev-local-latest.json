@@ -1,0 +1,585 @@
+{
+ "provenance": {
+  "harness_version": "harness/1.0",
+  "split": "dev",
+  "base_url": "http://localhost:8099",
+  "git_sha": "ea125e1",
+  "model_pinned": "gemini-3.1-flash-lite",
+  "eval_set_sha256": "8f584218710ec79a4b27d536a4c24f98b926cdf306a0461b8c46465b80bb9bb1",
+  "eval_set_file": "dev-set.md",
+  "planner_available": true,
+  "credentials": {
+   "configured": true,
+   "tiers_present": [
+    "free",
+    "paid"
+   ],
+   "tiers_usable_under_policy": [
+    "free"
+   ],
+   "policy": "public_demo",
+   "search_path": "/etc/wf"
+  },
+  "session_policy": "one session per case",
+  "started_at": "2026-07-27T16:46:49Z",
+  "finished_at": "2026-07-27T16:49:23Z"
+ },
+ "aggregate": {
+  "headline_declared": {
+   "cases": 10,
+   "passed": 9,
+   "rate": 0.9
+  },
+  "experimental_reported_separately": {
+   "cases": 4,
+   "passed": 2,
+   "rate": 0.5
+  },
+  "all_cases": {
+   "cases": 15,
+   "passed": 12,
+   "rate": 0.8
+  },
+  "failure_class_histogram": {
+   "budget_exhausted": 1,
+   "internal_error": 1,
+   "none": 10,
+   "policy_refused": 3
+  },
+  "evidence_findings": 0
+ },
+ "cases": [
+  {
+   "case": "DEV-01",
+   "record": "OP-4 \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_bfccf02691f9",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 2,
+    "independently_checked": 2,
+    "findings": [],
+    "notes": [
+     "sort_state: derived value (dict), not string-checkable against the artifact",
+     "top_row: derived value (dict), not string-checkable against the artifact"
+    ]
+   },
+   "duration_seconds": 8.62,
+   "budget": {
+    "steps": 15,
+    "llm_calls_exploration": 2,
+    "llm_calls_recovery": 0,
+    "input_tokens": 10273,
+    "output_tokens": 370,
+    "usd": 0.003123,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  },
+  {
+   "case": "DEV-02",
+   "record": "OP-4 \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_072051aa99a6",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": null,
+   "terminal_status": "unsupported",
+   "failure_class": "policy_refused",
+   "counts_as_success": false,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "independently_checked": 0,
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 0.0,
+   "budget": {
+    "steps": 2,
+    "llm_calls_exploration": 0,
+    "llm_calls_recovery": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "usd": 0.0,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": false
+  },
+  {
+   "case": "DEV-03",
+   "record": "OP-4 \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_bf387401a3a3",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 2,
+    "independently_checked": 2,
+    "findings": [],
+    "notes": [
+     "sort_state: derived value (dict), not string-checkable against the artifact",
+     "top_row: derived value (dict), not string-checkable against the artifact"
+    ]
+   },
+   "duration_seconds": 3.81,
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 5275,
+    "output_tokens": 175,
+    "usd": 0.001581,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  },
+  {
+   "case": "DEV-04",
+   "record": "OP-5 \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_627df27a5987",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 1,
+    "independently_checked": 1,
+    "findings": [],
+    "notes": [
+     "still_collapsed: derived value (bool), not string-checkable against the artifact",
+     "still_collapsed: label anchor 'collapsed marker of box 1' is a rule, not page text"
+    ]
+   },
+   "duration_seconds": 3.88,
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 3479,
+    "output_tokens": 162,
+    "usd": 0.001113,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  },
+  {
+   "case": "DEV-05",
+   "record": "OP-5 \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_ecf1462f8470",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 1,
+    "independently_checked": 1,
+    "findings": [],
+    "notes": [
+     "still_collapsed: derived value (bool), not string-checkable against the artifact",
+     "still_collapsed: label anchor 'collapsed marker of box 2' is a rule, not page text"
+    ]
+   },
+   "duration_seconds": 4.02,
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 3479,
+    "output_tokens": 159,
+    "usd": 0.001108,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  },
+  {
+   "case": "DEV-06",
+   "record": "OP-6 \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_8f46a73e9dea",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 3,
+    "independently_checked": 3,
+    "findings": [],
+    "notes": [
+     "result_counter: derived value (dict), not string-checkable against the artifact",
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: derived value (dict), not string-checkable against the artifact",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: derived value (list), not string-checkable against the artifact",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "duration_seconds": 5.42,
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 3101,
+    "output_tokens": 156,
+    "usd": 0.001009,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  },
+  {
+   "case": "DEV-07",
+   "record": "OP-6 \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_f3687a3c61cc",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 3,
+    "independently_checked": 3,
+    "findings": [],
+    "notes": [
+     "result_counter: derived value (dict), not string-checkable against the artifact",
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: derived value (dict), not string-checkable against the artifact",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: derived value (list), not string-checkable against the artifact",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "duration_seconds": 13.84,
+   "budget": {
+    "steps": 18,
+    "llm_calls_exploration": 3,
+    "llm_calls_recovery": 0,
+    "input_tokens": 8806,
+    "output_tokens": 489,
+    "usd": 0.002935,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  },
+  {
+   "case": "DEV-08",
+   "record": "OP-6 \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_21cc4f29ae27",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "failed",
+   "failure_class": "budget_exhausted",
+   "counts_as_success": false,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "independently_checked": 0,
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 19.02,
+   "budget": {
+    "steps": 25,
+    "llm_calls_exploration": 4,
+    "llm_calls_recovery": 0,
+    "input_tokens": 12760,
+    "output_tokens": 649,
+    "usd": 0.004163,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": false
+  },
+  {
+   "case": "DEV-09",
+   "record": "OP-7 \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_1928a64e2933",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 3,
+    "independently_checked": 3,
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 5.06,
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 2735,
+    "output_tokens": 160,
+    "usd": 0.000924,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  },
+  {
+   "case": "DEV-10",
+   "record": "OP-7 \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_361497cc053c",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 3,
+    "independently_checked": 3,
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 5.1,
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 2735,
+    "output_tokens": 160,
+    "usd": 0.000924,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  },
+  {
+   "case": "DEV-11",
+   "record": "XB-1 (Mode B) \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_0896041a821f",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "failed",
+   "failure_class": "internal_error",
+   "counts_as_success": false,
+   "expected": [
+    "no_result_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "independently_checked": 0,
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 10.92,
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 3201,
+    "output_tokens": 178,
+    "usd": 0.001067,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": false
+  },
+  {
+   "case": "DEV-12",
+   "record": "XB-4 \u00b7 **tier** T-DECLARED",
+   "declared_tier": "",
+   "run_id": "run_b9bd13584e2c",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "expected": [
+    "failed",
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 3,
+    "independently_checked": 3,
+    "findings": [],
+    "notes": [
+     "result_counter: derived value (dict), not string-checkable against the artifact",
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: derived value (dict), not string-checkable against the artifact",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: derived value (list), not string-checkable against the artifact",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "duration_seconds": 14.2,
+   "budget": {
+    "steps": 18,
+    "llm_calls_exploration": 3,
+    "llm_calls_recovery": 0,
+    "input_tokens": 8806,
+    "output_tokens": 489,
+    "usd": 0.002935,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  },
+  {
+   "case": "DEV-13",
+   "record": "XB-5 \u00b7 **tier** T-REFUSED",
+   "declared_tier": "",
+   "run_id": "run_796b2dc86417",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "scripted",
+   "terminal_status": "blocked",
+   "failure_class": "policy_refused",
+   "counts_as_success": false,
+   "expected": [
+    "blocked"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 0,
+    "independently_checked": 0,
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 0.09,
+   "budget": {
+    "steps": 4,
+    "llm_calls_exploration": 0,
+    "llm_calls_recovery": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "usd": 0.0,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  },
+  {
+   "case": "DEV-14",
+   "record": "XB-5 \u00b7 **tier** T-REFUSED",
+   "declared_tier": "",
+   "run_id": "run_92dbf18ce39e",
+   "tier": "T-REFUSED",
+   "execution_path": null,
+   "terminal_status": "unsupported",
+   "failure_class": "policy_refused",
+   "counts_as_success": false,
+   "expected": [
+    "unsupported"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 0,
+    "independently_checked": 0,
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 0.0,
+   "budget": {
+    "steps": 2,
+    "llm_calls_exploration": 0,
+    "llm_calls_recovery": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "usd": 0.0,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  },
+  {
+   "case": "DEV-15",
+   "record": "XB-5 \u00b7 **tier** T-EXPERIMENTAL",
+   "declared_tier": "",
+   "run_id": "run_63a4edf1878e",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "expected": [
+    "blocked",
+    "succeeded_verified",
+    "unsupported",
+    "unverified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 1,
+    "independently_checked": 1,
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 35.85,
+   "budget": {
+    "steps": 28,
+    "llm_calls_exploration": 7,
+    "llm_calls_recovery": 0,
+    "input_tokens": 25002,
+    "output_tokens": 1879,
+    "usd": 0.009069,
+    "elapsed_seconds": 0.0
+   },
+   "timed_out_waiting": false,
+   "passed": true
+  }
+ ]
+}

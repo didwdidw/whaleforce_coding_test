@@ -129,7 +129,14 @@ class Deployment:
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
                     return json.loads(response.read())
             except urllib.error.HTTPError as exc:
-                body = json.loads(exc.read())
+                # A deployment that answers an error with HTML is telling us something
+                # about itself. Crashing the split loses the other fourteen cases.
+                raw = exc.read()
+                try:
+                    body = json.loads(raw)
+                except ValueError:
+                    body = {"explanation": f"HTTP {exc.code}: {raw[:200]!r}",
+                            "failure_class": "internal_error"}
                 retry_after = float(exc.headers.get("Retry-After") or 0)
                 if (exc.code == 429 and body.get("failure_class") == "queue_full"
                         and time.time() < deadline):

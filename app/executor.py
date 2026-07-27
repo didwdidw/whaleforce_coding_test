@@ -156,6 +156,12 @@ STOPWORDS = frozenset({
 #: refusal cites a rule rather than a preference.
 TESTHOOK_PATH = "/__testhook__/ground-truth"
 
+#: A question of the form "is there any X that …". Answering it with a list of what is
+#: there is not an answer; absence has to be proven (Amendment 3).
+ABSENCE_QUESTION = re.compile(
+    r"\b(is|are)\s+there\s+any\b|\bdoes\s+any\b|\bany\s+\w+\s+(priced|costing|"
+    r"cheaper|more expensive)\b|\bis\s+any\b")
+
 SHORTCUT = re.compile(r"without (clicking|paginating|interacting|using the pager)"
                       r"|straight from the dom|shortcut")
 
@@ -2049,6 +2055,14 @@ class Executor:
         task; it means this canned instance is not the one being asked for, and the run
         goes to the generic path or stops and says which parameter it could not honour.
         """
+        # A yes/no question about whether anything matches needs a plan entitled to prove
+        # absence (Amendment 3). A listing plan answers it with a listing — every claim
+        # verified, the question untouched. The parameter check below cannot see this,
+        # because a task naming a category does name the category.
+        if ABSENCE_QUESTION.search(task.lower()) and pc.absence is AbsenceMode.NONE:
+            return ("the task asks whether anything matches a predicate, and this plan "
+                    "cannot prove absence — it would report a listing instead of an answer")
+
         haystack = f" {normalise(task)} "
         for key, value in (pc.inputs or {}).items():
             # Scalars only. A structure is something the plan derived from the task with
