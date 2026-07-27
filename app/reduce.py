@@ -22,6 +22,13 @@ really a blind spot in what we showed it. v1.2 drops invisible anchor regions fo
 class of reason — offering a `hidden` page block as a target produces a planner that keeps
 being told "not yet rendered" about something that will never render.
 
+v1.3 also lifts the selector policy out of this script into `SELECTORS`, as data that can
+be measured. Every site-specific selector the module carried has been removed: not because
+naming a site is forbidden, but because `preflight/selector_contribution.py` measured each
+one against every page the product runs against and found them inert. A rule that changes
+nothing is indistinguishable from a rule that is absent, and until it was measured, so was a
+rule that worked.
+
 v1.3 is the same class of defect a third time, and the most expensive one, because the
 symptom was silence. On a category listing the goal term matched the sidebar, every sidebar
 link inherited top rank, the element budget filled with them, and the single pagination link
@@ -68,14 +75,12 @@ REDUCE_TEMPLATE = r"""
   // The smallest table / list / definition-list / section containing a goal term, rendered
   // as bounded rows. Resolved first so interactive elements can be ranked against them.
   const lowerTerms = terms.map(t => t.toLowerCase()).filter(t => t.length > 2);
-  const containerOf = el => el.closest(
-    'table, dl, ul.pager, form, section, div.product_main, div.sub-header, ' +
-    'div.mw-collapsible, div.side_categories') || el.parentElement;
+  const containerOf = el => el.closest(__CONTAINERS__) || el.parentElement;
 
   const seen = new Set();
   const regions = [];
   const anchorContainers = [];
-  const CANDIDATE_TEXT = 'th, td, dt, dd, h1, h2, h3, h4, label, strong, caption, li.current, li.next';
+  const CANDIDATE_TEXT = __CANDIDATE_TEXT__;
 
   for (const el of document.querySelectorAll(CANDIDATE_TEXT)) {
     if (!visible(el)) continue;
@@ -109,20 +114,11 @@ REDUCE_TEMPLATE = r"""
   }
 
   // --- 2. Interactive elements, ranked -------------------------------------------------
-  const INTERACTIVE = 'a[href], button, input, select, textarea, summary, [role="button"],' +
-    '[role="link"], [role="tab"], [role="checkbox"], [onclick], [tabindex]:not([tabindex="-1"]),' +
-    'th.headerSort, .mw-collapsible-toggle, li.next a, li.previous a';
+  const INTERACTIVE = __INTERACTIVE__;
   // Site chrome is never the target of a task, and in document order it would otherwise
-  // consume the entire element budget before the content is reached. Only what a page
-  // publishes about its own structure: HTML5 sectioning elements and ARIA landmarks. This
-  // list used to name MediaWiki containers (`#mw-panel`, `.vector-header`, `#vector-toc`)
-  // as well; `preflight/chrome_selectors_ab.py` measured what they were worth and the
-  // answer was nothing — the reduced view of the OP-4 article is element-for-element
-  // identical without them, because the skin already marks its chrome up with landmarks.
-  const CHROME = 'nav, header, footer, [role="navigation"], [role="banner"],' +
-    '[role="contentinfo"], [role="complementary"], [role="search"]';
-  const MAIN = '#mw-content-text, main, [role="main"], article, #content_inner,' +
-    '.product_main, .page_inner';
+  // consume the entire element budget before the content is reached.
+  const CHROME = __CHROME__;
+  const MAIN = __MAIN__;
 
   // An element the goal itself names outranks everything. Being inside an anchor region is
   // weak evidence — a region qualifies by containing a term anywhere — and on a category
@@ -224,9 +220,84 @@ REDUCE_TEMPLATE = r"""
 }
 """
 
-#: The one place the shared collector is spliced in, so the reducer cannot drift into
-#: describing elements by fields the rest of the system does not know about.
-REDUCE_JS = REDUCE_TEMPLATE.replace("__IDENTITY__", COLLECT_JS.strip())
+#: Which selectors decide what the model is shown. They live here rather than inside the
+#: browser script because a rule nobody can measure is a rule nobody can retire: the CHROME
+#: list carried MediaWiki container names from the day it was written, they never once
+#: changed a reduced view, and nothing could tell that apart from them working. As data,
+#: each entry can be removed and the difference measured — `preflight/selector_contribution.py`
+#: does exactly that, and every entry below is answerable to it.
+#:
+#: `general` selectors describe a page by what the web standardises: sectioning elements,
+#: ARIA roles, form controls. `site` selectors name a class or id one site happens to use;
+#: they are kept only where a measurement shows they do something, and each one is a bet
+#: that a held-out site spells it the same way.
+SELECTORS: dict[str, dict[str, tuple[str, ...]]] = {
+    # The smallest container a goal term's anchor region is taken from.
+    "containers": {
+        "general": ("table", "dl", "form", "section"),
+        "site": (),
+    },
+    # Elements whose text may nominate an anchor region.
+    "candidate_text": {
+        "general": ("th", "td", "dt", "dd", "h1", "h2", "h3", "h4", "label", "strong",
+                    "caption"),
+        "site": (),
+    },
+    # What counts as something a planner may act on.
+    "interactive": {
+        "general": ('a[href]', "button", "input", "select", "textarea", "summary",
+                    '[role="button"]', '[role="link"]', '[role="tab"]',
+                    '[role="checkbox"]', "[onclick]", '[tabindex]:not([tabindex="-1"])'),
+        "site": (),
+    },
+    # Site chrome, which is never the target of a task and would otherwise consume the
+    # element budget before the content is reached.
+    "chrome": {
+        "general": ("nav", "header", "footer", '[role="navigation"]', '[role="banner"]',
+                    '[role="contentinfo"]', '[role="complementary"]', '[role="search"]'),
+        "site": (),
+    },
+    # The part of the page a task is actually about.
+    "main": {
+        "general": ("main", '[role="main"]', "article"),
+        "site": (),
+    },
+}
+
+
+def selector(group: str, *, without: tuple[str, ...] = (),
+             plus: tuple[str, ...] = ()) -> str:
+    """One CSS selector list, with named entries removed or added for measurement.
+
+    `plus` is how a retired selector is put back for one arm of a measurement, so the
+    evidence that justified retiring it stays reproducible instead of disappearing with it.
+    """
+    entries = SELECTORS[group]["general"] + SELECTORS[group]["site"] + tuple(plus)
+    kept = [e for e in entries if e not in without]
+    # An empty selector list is a syntax error in `querySelectorAll`, and a measurement arm
+    # is allowed to empty one. Matching nothing is the honest meaning.
+    return ", ".join(kept) if kept else ":not(*)"
+
+
+def build_reduce_js(*, without: tuple[str, ...] = (),
+                    plus: dict[str, tuple[str, ...]] | None = None) -> str:
+    """The browser script, with the selector policy spliced in as data.
+
+    `without` drops named selectors and `plus` restores retired ones, so any selector's
+    contribution can be measured against a real page rather than argued about.
+    """
+    js = REDUCE_TEMPLATE.replace("__IDENTITY__", COLLECT_JS.strip())
+    for group, placeholder in (("containers", "__CONTAINERS__"),
+                               ("candidate_text", "__CANDIDATE_TEXT__"),
+                               ("interactive", "__INTERACTIVE__"),
+                               ("chrome", "__CHROME__"),
+                               ("main", "__MAIN__")):
+        js = js.replace(placeholder, repr(selector(
+            group, without=without, plus=(plus or {}).get(group, ()))))
+    return js
+
+
+REDUCE_JS = build_reduce_js()
 
 DEFAULTS = {"maxInteractive": 60, "maxAnchorRegions": 4, "maxRowsPerRegion": 6,
             "maxPerAffordance": 6}

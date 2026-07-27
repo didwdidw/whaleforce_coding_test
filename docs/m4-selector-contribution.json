@@ -1,0 +1,1320 @@
+{
+ "measured_at": "2026-07-27 14:54:37Z",
+ "question": "For each site-specific selector in the reducer: does removing it change the reduced view of any page the product runs against?",
+ "why": "The held-out set runs on sites we have not seen. A rule that does nothing on our pages is indistinguishable from absent and should go; a rule that only works on our pages means the dev numbers do not travel.",
+ "pages": [
+  {
+   "label": "OP-4/OP-5 wikipedia article",
+   "url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+  },
+  {
+   "label": "OP-6 books category listing",
+   "url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+  },
+  {
+   "label": "OP-7 books product detail",
+   "url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"
+  },
+  {
+   "label": "fixture browse listing",
+   "url": "https://wf-fixture.zeabur.app/browse"
+  },
+  {
+   "label": "fixture gated page",
+   "url": "https://wf-fixture.zeabur.app/gated"
+  }
+ ],
+ "unreachable": [],
+ "verdicts": {
+  "containers:ul.pager": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "containers:div.product_main": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "containers:div.sub-header": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "containers:div.mw-collapsible": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "containers:div.side_categories": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [
+    "OP-6 books category listing"
+   ],
+   "verdict": "changes the view on 1 page(s) \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": true,
+     "elements_lost": 48,
+     "elements_gained": 50,
+     "regions_lost": 1,
+     "regions_gained": 1,
+     "examples_lost": [
+      {
+       "href": "../../../unseen-city-the-majesty-of-pigeons-the-discreet-charm-of-snails-other-wonders-of-the-urban-wilderness_952/index.html",
+       "role": "link",
+       "text": "Unseen City: The Majesty ...",
+       "title": "Unseen City: The Majesty of Pigeons, the Discreet Charm of Snails & Other Wonders of the Urban Wilderness"
+      },
+      {
+       "href": "../../../throwing-rocks-at-the-google-bus-how-growth-became-the-enemy-of-prosperity_948/index.html",
+       "role": "link",
+       "text": "Throwing Rocks at the ...",
+       "title": "Throwing Rocks at the Google Bus: How Growth Became the Enemy of Prosperity"
+      },
+      {
+       "href": "../../../the-life-changing-magic-of-tidying-up-the-japanese-art-of-decluttering-and-organizing_936/index.html",
+       "role": "link",
+       "text": "The Life-Changing Magic of ...",
+       "title": "The Life-Changing Magic of Tidying Up: The Japanese Art of Decluttering and Organizing"
+      }
+     ]
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "candidate_text:li.current": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "candidate_text:li.next": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "interactive:th.headerSort": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "interactive:.mw-collapsible-toggle": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "interactive:li.next a": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "interactive:li.previous a": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "chrome:#mw-panel": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "chrome:#mw-navigation": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "chrome:#vector-toc": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "chrome:#p-lang-btn": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "chrome:.mw-footer": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "chrome:.vector-header": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "chrome:.vector-sticky-header": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "chrome:.mw-jump-link": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "chrome:.mw-editsection": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "chrome:.navbar": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "chrome:.sitenav": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "main:#mw-content-text": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "main:#content_inner": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "main:.product_main": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [],
+   "verdict": "inert on every page measured \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  },
+  "main:.page_inner": {
+   "status": "retired",
+   "pages_measured": 5,
+   "pages_changed": [
+    "OP-6 books category listing"
+   ],
+   "verdict": "changes the view on 1 page(s) \u2014 stays retired",
+   "per_page": {
+    "OP-4/OP-5 wikipedia article": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "OP-6 books category listing": {
+     "changed": true,
+     "elements_lost": 17,
+     "elements_gained": 20,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": [
+      {
+       "href": "../../../higherselfie-wake-up-your-life-free-your-soul-find-your-tribe_957/index.html",
+       "role": "link",
+       "text": "#HigherSelfie: Wake Up Your ...",
+       "title": "#HigherSelfie: Wake Up Your Life. Free Your Soul. Find Your Tribe."
+      },
+      {
+       "href": "../../../unseen-city-the-majesty-of-pigeons-the-discreet-charm-of-snails-other-wonders-of-the-urban-wilderness_952/index.html",
+       "role": "link",
+       "text": "Unseen City: The Majesty ...",
+       "title": "Unseen City: The Majesty of Pigeons, the Discreet Charm of Snails & Other Wonders of the Urban Wilderness"
+      },
+      {
+       "href": "../../../throwing-rocks-at-the-google-bus-how-growth-became-the-enemy-of-prosperity_948/index.html",
+       "role": "link",
+       "text": "Throwing Rocks at the ...",
+       "title": "Throwing Rocks at the Google Bus: How Growth Became the Enemy of Prosperity"
+      }
+     ]
+    },
+    "OP-7 books product detail": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture browse listing": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    },
+    "fixture gated page": {
+     "changed": false,
+     "elements_lost": 0,
+     "elements_gained": 0,
+     "regions_lost": 0,
+     "regions_gained": 0,
+     "examples_lost": []
+    }
+   }
+  }
+ }
+}

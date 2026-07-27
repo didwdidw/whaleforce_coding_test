@@ -64,11 +64,28 @@ _STEP_KINDS = {
 PLANNER_MARKER = re.compile(r"\b(use the planner|with the planner|planner mode)\b")
 
 # Phrases that put a task outside scope before any browsing happens (S-2.1).
+#
+# These match the *act being asked for*, not words that happen to appear. The first version
+# matched nouns, and the result was a refusal that looked exactly like caution: a bare
+# `order` refused "sort in descending order", and `book a` refused "read the product page
+# for the book A Light in the Attic" — our own OP-7 case, phrased the way a person would.
+# A refusal is the safe-looking answer, so nothing complained, and the corpus below is what
+# makes the difference between this control working and this control being always-on
+# visible at all. Both halves of it are load-bearing: what must be refused, and what must
+# not.
 OUT_OF_SCOPE = (
-    (r"\b(log ?in|login|sign ?in|my account|password|credential)\b", "authentication or a login flow"),
-    (r"\b(brokerage|bank|portfolio|balance|my (orders|cart|email|inbox))\b", "private or personal data"),
-    (r"\b(buy|purchase|check ?out|pay|order|book a|reserve|subscribe)\b", "a transaction or a state change"),
-    (r"\b(post|submit a review|comment|delete|update my|send an? email)\b", "writing to a third party"),
+    (r"\b(log ?in|logging in|sign ?in|sign up|create an account|my account|"
+     r"password|credentials?)\b", "authentication or a login flow"),
+    (r"\b(brokerage|bank account|my portfolio|"
+     r"(my|your|their) account balance|"
+     r"my (orders?|cart|basket|email|inbox|account))\b", "private or personal data"),
+    (r"\b(buy|purchase|place an order|order (me|us) |check ?out|pay for|"
+     r"add (it )?to (the )?(cart|basket)|"
+     r"book (a|an|me) (table|room|flight|seat|ticket|appointment|slot)|"
+     r"reserve (a|an|me) (table|room|seat|ticket|slot|copy)|subscribe to)\b",
+     "a transaction or a state change"),
+    (r"\b(post a|submit an? (review|comment|form|rating)|leave an? (review|comment)|"
+     r"delete|update my|send an? (email|message))\b", "writing to a third party"),
     (r"\bcaptcha\b", "an anti-bot challenge"),
 )
 
@@ -1303,7 +1320,7 @@ class Executor:
             entry = self._step(ctx.run, StepKind.EXTRACT,
                                "Read the top row of the sorted table", label_anchor=column)
             values = await ctx.page.evaluate(
-                """(column) => {
+                r"""(column) => {
                     const norm = s => (s || '').replace(/\s+/g, ' ').trim();
                     const table = document.querySelector('#constituents');
                     const heads = [...table.querySelectorAll('tr th')];

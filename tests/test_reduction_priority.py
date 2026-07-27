@@ -108,3 +108,37 @@ def test_the_view_describes_elements_with_the_shared_identity_fields():
     assert not (keys - set(FIELDS) - {
         "ref", "role", "in_region", "names_goal_term", "table", "column_index",
         "type", "value", "state"}), f"the view invents element fields: {keys}"
+
+
+# --- the selector policy answers to measurement ------------------------------------
+
+def test_no_site_specific_selector_ships_unmeasured():
+    """Naming one site's markup in a general component is a bet on a held-out site
+    spelling it the same way, and an unmeasured bet is the worst kind.
+
+    The CHROME list carried MediaWiki container names from the day it was written; they
+    never once changed a reduced view, and nothing could distinguish that from them working.
+    This test does not forbid site selectors. It forbids adding one without going through
+    `preflight/selector_contribution.py` and recording what it is worth — which is what
+    changing this test forces you to do.
+    """
+    from app.reduce import SELECTORS
+
+    carried = {group: lists["site"] for group, lists in SELECTORS.items()
+               if lists["site"]}
+    assert not carried, (
+        f"site-specific selectors present: {carried}. Run "
+        f"preflight/selector_contribution.py, record the result in "
+        f"docs/m4-selector-contribution.json, and state the assumption each one encodes.")
+
+
+def test_removing_a_selector_is_something_the_code_supports():
+    """The measurement harness has to keep working, or the rule above becomes unenforceable
+    the first time someone changes how the script is built."""
+    from app.reduce import SELECTORS, build_reduce_js, selector
+
+    assert "a[href]" in selector("interactive")
+    assert "a[href]" not in selector("interactive", without=("a[href]",))
+    # Emptying a group must not produce a selector that throws in the browser.
+    assert selector("chrome", without=SELECTORS["chrome"]["general"]) == ":not(*)"
+    assert "__CHROME__" not in build_reduce_js()
