@@ -35,8 +35,11 @@ from app.postcondition import AbsenceMode, ClaimSpec, Postcondition, Relation, m
 from app.store import Store
 
 WS = re.compile(r"\s+")
-COUNTER = re.compile(r"^\s*(?P<count>\d+)\s+results?\s+for\s+[\"“](?P<term>.*?)[\"”]",
-                     re.IGNORECASE)
+COUNTER = re.compile(
+    r"^\s*(?P<count>\d+)\s+results?"
+    r"(?:\s+for\s+[\"“](?P<term>.*?)[\"”])?"
+    r"(?:\s*[-–]\s*showing\s+(?P<first>\d+)\s+to\s+(?P<last>\d+))?",
+    re.IGNORECASE)
 PAGER = re.compile(r"page\s+(?P<page>\d+)\s+of\s+(?P<total>\d+)"
                    r"(?:\s*[·•]\s*(?P<items>\d+)\s+products?)?", re.IGNORECASE)
 MONEY = re.compile(r"[£$€]\s*([0-9]+(?:\.[0-9]+)?)")
@@ -423,7 +426,10 @@ def _counter_echo(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
         span = norm(el.text_content())
         m = COUNTER.search(span)
         if m:
-            return ({"count": int(m.group("count")), "term": m.group("term")},
+            value = {"count": int(m.group("count")), "term": m.group("term")}
+            if m.group("first"):
+                value["showing"] = [int(m.group("first")), int(m.group("last"))]
+            return (value,
                     span, f"//*[matches(., '{COUNTER.pattern}')] [label={spec.label!r}]")
     raise AnchorNotFound(f"No element states a result count in the form {spec.label!r}")
 
@@ -460,7 +466,11 @@ def _list_enumeration(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
     for row in rows:
         text = norm(row.text_content())
         money = MONEY.search(text)
-        items.append({"sku": row.get("data-sku") or _sku_from_text(text),
+        # An identifier if the markup offers one, otherwise the element's own title or
+        # text. A list of products and a list of article titles are the same shape of
+        # claim; only the fixture happens to carry SKUs.
+        items.append({"sku": (row.get("data-sku") or _sku_from_text(text)
+                              or row.get("title") or text or None),
                       "text": text,
                       "price_gbp": float(money.group(1)) if money else None})
     return items, f"{len(items)} rows", spec.container
@@ -502,6 +512,11 @@ def _coerce(value: Any, value_type: str) -> Any:
         return norm(str(value)).upper()
     if value_type == "text":
         return norm(str(value))
+    if value_type == "text_list":
+        if isinstance(value, list):
+            return sorted(norm(str(v.get("sku") if isinstance(v, dict) else v)).casefold()
+                          for v in value if v)
+        return value
     if value_type == "sku_list":
         # Compared as a set of identifiers: the run reports which items it saw, and order
         # is a property of the page rather than of the answer.
@@ -553,9 +568,13 @@ def _missing_actions(run: Run, pc: Postcondition) -> list[str]:
             if t.kind.value != action.kind or not t.ok:
                 continue
             element = t.detail.get("element") or {}
+            # A link's href is part of its identity: on a real site the declared target is
+            # often a path fragment, and the visible text is a human-readable title that
+            # matches nothing.
             haystack = " ".join(str(x).lower() for x in (
                 t.detail.get("selector", ""), element.get("id") or "",
-                element.get("name") or "", element.get("text") or "", t.summary))
+                element.get("name") or "", element.get("href") or "",
+                element.get("title") or "", element.get("text") or "", t.summary))
             if target in haystack:
                 seen += 1
         if seen < action.times:

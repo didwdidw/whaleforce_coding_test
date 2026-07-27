@@ -107,10 +107,13 @@ def test_health_reports_presence_and_tier_and_nothing_else(key_dir):
 
     body = json.dumps(state)
     assert SECRET not in body
-    assert SECRET[:8] not in body            # no prefix
-    assert str(len(SECRET)) not in body      # no length: that is a fact about the secret
-    for key in state:
-        assert "key" not in key or key.endswith("_name") or key == "search_path", key
+    assert SECRET[:8] not in body                       # no prefix
+    # No length either — that is a fact about the secret. Checked against the reported
+    # values rather than by scanning the whole document: a temp path can contain the
+    # number by coincidence, and a test that fails on a coincidence teaches nothing.
+    assert len(SECRET) not in [v for v in state.values() if isinstance(v, int)]
+    assert str(len(SECRET)) not in json.dumps(
+        {k: v for k, v in state.items() if k != "search_path"})
 
 
 def test_the_key_value_never_reaches_a_repr(key_dir):

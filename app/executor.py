@@ -46,6 +46,10 @@ from app.verifier import Verifier
 
 log = logging.getLogger(__name__)
 
+
+def norm_ws(text: str) -> str:
+    return re.sub(r'\s+', ' ', text or '').strip()
+
 #: Which trace step kind each proposed action is recorded as.
 _STEP_KINDS = {
     "click": StepKind.CLICK, "fill": StepKind.FILL, "select": StepKind.SELECT,
@@ -84,6 +88,12 @@ RESULT_ROWS = '//ul[contains(@class,"results")]//li[contains(@class,"result")]'
 VISIBLE_PAGE_ROWS = ('//div[@id="pages"]/div[contains(@class,"page") and not(@hidden)]'
                      '//li[contains(@class,"result")]')
 ALL_PAGE_ROWS = '//div[@id="pages"]//li[contains(@class,"result")]'
+BOOKS = "https://books.toscrape.com"
+BOOK_CATEGORY_POETRY = f"{BOOKS}/catalogue/category/books/poetry_23/index.html"
+BOOK_DETAIL_URL = f"{BOOKS}/catalogue/a-light-in-the-attic_1000/index.html"
+BOOK_CATEGORY_NONFICTION = f"{BOOKS}/catalogue/category/books/nonfiction_13/index.html"
+BOOK_CATEGORY_NONFICTION_P2 = f"{BOOKS}/catalogue/category/books/nonfiction_13/page-2.html"
+
 OVERLAY_ANCHOR = '//*[contains(normalize-space(.), "Before you continue")][not(.//*[contains(normalize-space(.), "Before you continue")])]'
 
 
@@ -507,6 +517,7 @@ class Executor:
             info = await handle.evaluate(
                 "el => ({id: el.id || null, name: el.getAttribute('name'), "
                 "tag: el.tagName.toLowerCase(), "
+                "href: el.getAttribute('href'), title: el.getAttribute('title'), "
                 "text: (el.innerText || el.value || '').trim().slice(0, 60)})")
         except Exception:  # noqa: BLE001 - identification must not fail the action
             return {"ref": ref, "resolved": False}
@@ -667,6 +678,8 @@ class Executor:
     # a perfectly plausible pager reading for a task that asked for something else. A
     # mis-route that still produces an answer is worse than one that fails.
     ROUTES: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("book_detail", ("light in the attic", "upc", "product detail")),
+        ("book_category", ("nonfiction", "category listing", "second page of results")),
         ("testhook", ("ground truth", "test hook", "testhook", "answer key")),
         ("notes", ("injection", "customer note", "notes page")),
         ("overlay", ("overlay", "dismiss", "modal", "gated", "reference code")),
@@ -703,6 +716,10 @@ class Executor:
             return None
         low = self._strip_directives(task.lower())
         seed = self._seed(task.lower())
+        if name == "book_detail":
+            return self._plan_book_detail(low)
+        if name == "book_category":
+            return self._plan_book_category(low)
         if name == "testhook":
             return self._plan_testhook(seed)
         if name == "notes":
@@ -1139,6 +1156,126 @@ class Executor:
 
         return Plan("GS-injection", "Fixture injection page (read-only until M6)",
                     pc, (open_notes, read_notes))
+
+    # ---- real sites (OP-6, OP-7) ------------------------------------------------
+    #
+    # Nothing below is site-specific machinery: the relations are the same ones the fixture
+    # uses. What is site-specific is *data* — which URL, which label, which container — and
+    # that lives in the frozen postcondition, where it is visible and hashed, rather than in
+    # the reducer or the planner where it would be quietly deciding answers.
+
+    def _plan_book_detail(self, low: str) -> Plan:
+        """OP-7: open a product detail page from a listing and read a labelled field."""
+        pc = Postcondition(
+            goal=("Open 'A Light in the Attic' from the Poetry category listing and report "
+                  "its UPC, availability and price excluding tax from the product "
+                  "information table."),
+            operation="OP-7",
+            target_url=BOOK_DETAIL_URL,
+            inputs={"title": "A Light in the Attic"},
+            required_actions=(
+                RequiredAction("click", "a-light-in-the-attic",
+                               "the detail page is reached from the listing, and the "
+                               "navigation is the capability being claimed"),
+            ),
+            claims=(
+                ClaimSpec("upc", "UPC", Relation.TABLE_ROW_CELL, "text"),
+                ClaimSpec("availability", "Availability", Relation.TABLE_ROW_CELL, "text"),
+                ClaimSpec("price_excl_tax", "Price (excl. tax)", Relation.TABLE_ROW_CELL,
+                          "money_gbp"),
+            ),
+        )
+
+        async def open_listing(ctx: ExecutionContext) -> None:
+            await self._navigate(ctx, BOOK_CATEGORY_POETRY)
+
+        async def open_detail(ctx: ExecutionContext) -> None:
+            entry = self._step(ctx.run, StepKind.CLICK,
+                               "Open the product from the listing",
+                               selector="a-light-in-the-attic")
+            async with ctx.page.expect_navigation(wait_until="domcontentloaded"):
+                await ctx.page.click("h3 a[title='A Light in the Attic']")
+            self._finish_step(ctx.run, entry, final_url=ctx.page.url)
+
+        async def read_detail(ctx: ExecutionContext) -> None:
+            await self._capture(ctx, "product-detail")
+            entry = self._step(ctx.run, StepKind.EXTRACT,
+                               "Read the labelled product information rows",
+                               label_anchor="UPC")
+            values = {}
+            for name, label in (("upc", "UPC"), ("availability", "Availability"),
+                                ("price_excl_tax", "Price (excl. tax)")):
+                cell = await ctx.page.query_selector(
+                    f"//th[normalize-space()='{label}']/following-sibling::td[1]")
+                values[name] = (await cell.inner_text()).strip() if cell else None
+            ctx.candidate = values
+            self._finish_step(ctx.run, entry, **values)
+
+        return Plan("OP-7", "books.toscrape product detail, labelled field", pc,
+                    (open_listing, open_detail, read_detail),
+                    entry_url=BOOK_CATEGORY_POETRY,
+                    terms=("UPC", "Availability", "Product Information",
+                           "A Light in the Attic"),
+                    read_step=read_detail)
+
+    def _plan_book_category(self, low: str) -> Plan:
+        """OP-6: page through a category listing and report list-level facts."""
+        pc = Postcondition(
+            goal=("On the books.toscrape Nonfiction category listing, go to the second "
+                  "page of results and report the titles shown there, together with the "
+                  "listing's own result count."),
+            operation="OP-6",
+            target_url=BOOK_CATEGORY_NONFICTION_P2,
+            inputs={"page": 2},
+            required_actions=(
+                RequiredAction("click", "next",
+                               "the second page is reached by paging, and paging is the "
+                               "capability being claimed"),
+            ),
+            claims=(
+                ClaimSpec("result_counter", "N results - showing X to Y",
+                          Relation.COUNTER_ECHO, "counter"),
+                ClaimSpec("items", "product listing entries", Relation.LIST_ENUMERATION,
+                          "text_list",
+                          container='//article[contains(@class,"product_pod")]//h3/a'),
+            ),
+        )
+
+        async def open_category(ctx: ExecutionContext) -> None:
+            await self._navigate(ctx, BOOK_CATEGORY_NONFICTION)
+
+        async def page_forward(ctx: ExecutionContext) -> None:
+            entry = self._step(ctx.run, StepKind.CLICK, "Click 'next' to the second page",
+                               selector="next")
+            async with ctx.page.expect_navigation(wait_until="domcontentloaded"):
+                await ctx.page.click("li.next a")
+            self._finish_step(ctx.run, entry, final_url=ctx.page.url)
+
+        async def read_listing(ctx: ExecutionContext) -> None:
+            await self._capture(ctx, "category-page-2")
+            entry = self._step(ctx.run, StepKind.EXTRACT,
+                               "Read the listing counter and the titles on this page",
+                               label_anchor="results")
+            counter = await ctx.page.query_selector("form.form-horizontal")
+            text = norm_ws((await counter.inner_text()).strip()) if counter else ""
+            m = re.search(r"(\d+)\s+results?(?:\s*[-\u2013]\s*showing\s+(\d+)\s+to\s+(\d+))?",
+                          text, re.I)
+            titles = await ctx.page.eval_on_selector_all(
+                "article.product_pod h3 a", "els => els.map(e => e.getAttribute('title'))")
+            ctx.candidate = {
+                "result_counter": ({"count": int(m.group(1)), "term": None,
+                                    "showing": [int(m.group(2)), int(m.group(3))]}
+                                   if m and m.group(2) else
+                                   {"count": int(m.group(1)), "term": None} if m else {}),
+                "items": titles,
+            }
+            self._finish_step(ctx.run, entry, counter_text=text, titles=titles)
+
+        return Plan("OP-6", "books.toscrape category listing, paged", pc,
+                    (open_category, page_forward, read_listing),
+                    entry_url=BOOK_CATEGORY_NONFICTION,
+                    terms=("results", "showing", "next", "Nonfiction"),
+                    read_step=read_listing)
 
     def _plan_testhook(self, seed: str) -> Plan:
         """Asking for the answer key. The fixture Disallows the hook in robots.txt, so this
