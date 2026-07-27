@@ -113,11 +113,14 @@ REDUCE_TEMPLATE = r"""
     '[role="link"], [role="tab"], [role="checkbox"], [onclick], [tabindex]:not([tabindex="-1"]),' +
     'th.headerSort, .mw-collapsible-toggle, li.next a, li.previous a';
   // Site chrome is never the target of a task, and in document order it would otherwise
-  // consume the entire element budget before the content is reached.
+  // consume the entire element budget before the content is reached. Only what a page
+  // publishes about its own structure: HTML5 sectioning elements and ARIA landmarks. This
+  // list used to name MediaWiki containers (`#mw-panel`, `.vector-header`, `#vector-toc`)
+  // as well; `preflight/chrome_selectors_ab.py` measured what they were worth and the
+  // answer was nothing — the reduced view of the OP-4 article is element-for-element
+  // identical without them, because the skin already marks its chrome up with landmarks.
   const CHROME = 'nav, header, footer, [role="navigation"], [role="banner"],' +
-    '[role="contentinfo"], #mw-panel, #mw-navigation, #vector-toc, #p-lang-btn,' +
-    '.mw-footer, .vector-header, .vector-sticky-header, .mw-jump-link,' +
-    '.mw-editsection, .navbar, .sitenav';
+    '[role="contentinfo"], [role="complementary"], [role="search"]';
   const MAIN = '#mw-content-text, main, [role="main"], article, #content_inner,' +
     '.product_main, .page_inner';
 
