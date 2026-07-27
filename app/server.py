@@ -24,6 +24,7 @@ from fastapi.templating import Jinja2Templates
 
 from app import egress
 from app.browser import BrowserSupervisor
+from app.buildstate import gate_operations, mutation_catalogue
 from app.buildstate import state as build_state
 from app.config import config_provenance, settings
 from app.coverage import CoverageLedger
@@ -237,6 +238,8 @@ async def support(request: Request) -> HTMLResponse:
         "records": [{"id": r.id, "site": r.site, "operation": r.operation,
                      "reachable": r.route in dict(Executor.ROUTES)}
                     for r in PROMISED_RECORDS],
+        "gates": gate_operations(),
+        "mutations": mutation_catalogue(),
         "egress": egress.describe(),
         "robots": state.robots.describe(),
         "storage": state.store.storage_status(),

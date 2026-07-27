@@ -235,7 +235,7 @@ class Verifier:
             if result.ok:
                 by_relation[spec.relation] = value
 
-        return self._decide(pc, results, by_relation, checks)
+        return self._decide(pc, results, by_relation, checks, candidate)
 
     # ---- one claim -------------------------------------------------------------
 
@@ -319,7 +319,8 @@ class Verifier:
     # ---- status decision -------------------------------------------------------
 
     def _decide(self, pc: Postcondition, results: list[ClaimResult],
-                extracted: dict[Relation, Any], checks: list[Check]) -> Verdict:
+                extracted: dict[Relation, Any], checks: list[Check],
+                candidate: dict[str, Any] | None = None) -> Verdict:
         # A11.7: a verification that passes because there was nothing to check is a
         # defect, not a pass. Each of these is a way for a run to be "clean" without any
         # evidence having been examined, and a vacuous success is indistinguishable from a
@@ -336,7 +337,7 @@ class Verifier:
                            "; ".join(f"{r.name}: {r.reason}" for r in hard),
                            checks, results)
 
-        absence = self._absence(pc, extracted, checks)
+        absence = self._absence(pc, extracted, checks, candidate)
         if absence is not None:
             return Verdict(absence[0], absence[1], absence[2], checks, results)
 
@@ -385,7 +386,8 @@ class Verifier:
         return ""
 
     def _absence(self, pc: Postcondition, extracted: dict[Relation, Any],
-                 checks: list[Check]) -> tuple[TerminalStatus, FailureClass | None, str] | None:
+                 checks: list[Check], candidate: dict[str, Any] | None = None
+                 ) -> tuple[TerminalStatus, FailureClass | None, str] | None:
         """Absence is only ever concluded from a positive proof (Amendment 3)."""
         counter = extracted.get(Relation.COUNTER_ECHO)
         enumerated = extracted.get(Relation.LIST_ENUMERATION)
@@ -412,32 +414,66 @@ class Verifier:
                     "no_result_verified (A3.2).")
 
         if predicate and isinstance(enumerated, list):
-            coverage = extracted.get(Relation.PAGER_POSITION)
-            if not isinstance(coverage, dict) or not pc.coverage_anchor:
+            # Either form of the site's own count is a coverage anchor. A3.2 names both —
+            # "110 results - showing 1 to 20." and "Page 1 of 6" — and a category that fits
+            # on one page has no pager at all, so requiring the pager would make single-page
+            # absence unprovable on a site that states its total plainly.
+            pager = extracted.get(Relation.PAGER_POSITION)
+            total, anchor_kind = None, None
+            if isinstance(pager, dict) and pager.get("items") is not None:
+                total, anchor_kind = pager["items"], "pager total"
+            elif isinstance(counter, dict) and counter.get("count") is not None:
+                total, anchor_kind = counter["count"], "results counter"
+            if total is None or not pc.coverage_anchor:
                 checks.append(Check("absence_mode_b_coverage", False,
-                                    {"coverage_anchor": pc.coverage_anchor}))
+                                    {"coverage_anchor": pc.coverage_anchor,
+                                     "anchor_kind": anchor_kind}))
                 return (TerminalStatus.UNVERIFIED, FailureClass.POSTCONDITION_UNMET,
                         "Absence by enumeration requires a coverage anchor proving the whole "
                         "result set was seen (A3.2). Without one this is only \"we did not "
                         "happen to see it\".")
-            total = coverage.get("items")
-            complete = total is not None and total == len(enumerated)
+            complete = total == len(enumerated)
             matches = [i for i in enumerated if _predicate_holds(i, predicate)]
             checks.append(Check("absence_mode_b_coverage", complete,
                                 {"anchor_total": total, "enumerated": len(enumerated),
-                                 "anchor": pc.coverage_anchor}))
+                                 "anchor": pc.coverage_anchor,
+                                 "anchor_kind": anchor_kind}))
             if not complete:
                 return (TerminalStatus.UNVERIFIED, FailureClass.POSTCONDITION_UNMET,
                         f"The site's own count says {total} items; {len(enumerated)} were "
                         f"enumerated from the artifact. Coverage is unproven, so absence "
                         f"cannot be concluded.")
-            if matches:
-                checks.append(Check("absence_mode_b_predicate", False,
-                                    {"matches": [m.get("sku") for m in matches]}))
-                return (TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
-                        f"The run claimed nothing matched, but re-checking every enumerated "
-                        f"member found {len(matches)}: "
-                        f"{', '.join(str(m.get('sku')) for m in matches)}.")
+            found = sorted(str(m.get("sku")) for m in matches)
+            claimed = (candidate or {}).get("matches")
+            if claimed is None:
+                # A plan that does not say what it found can only be believed about absence,
+                # so a match is a contradiction of the only thing it asserted.
+                if matches:
+                    checks.append(Check("absence_mode_b_predicate", False,
+                                        {"matches": found}))
+                    return (TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
+                            f"The run claimed nothing matched, but re-checking every "
+                            f"enumerated member found {len(matches)}: {', '.join(found)}.")
+            else:
+                # The run stated its own finding, so the two can be compared. This is a
+                # stronger check than absence alone: it catches a run that enumerated
+                # correctly and read the predicate the other way round.
+                stated = sorted(str(c) for c in claimed)
+                if stated != found:
+                    checks.append(Check("enumeration_agreement", False,
+                                        {"run_reported": stated, "artifact_says": found}))
+                    return (TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
+                            f"The run reported {len(stated)} match(es) and re-extraction "
+                            f"from the stored artifact finds {len(found)}. Run: "
+                            f"{', '.join(stated) or 'none'}. Artifact: "
+                            f"{', '.join(found) or 'none'}.")
+                checks.append(Check("enumeration_agreement", True, {"matches": found}))
+                if matches:
+                    return (TerminalStatus.SUCCEEDED_VERIFIED, None,
+                            f"{len(matches)} of the {total} items in the complete listing "
+                            f"satisfy the frozen predicate: {', '.join(found)}. Coverage is "
+                            f"proven by the site's own anchor ({pc.coverage_anchor}), and "
+                            f"every member was re-read from the stored artifact.")
             checks.append(Check("absence_mode_b_predicate", True,
                                 {"checked": len(enumerated)}))
             return (TerminalStatus.NO_RESULT_VERIFIED, None,
@@ -525,8 +561,15 @@ def _list_enumeration(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
         # An identifier if the markup offers one, otherwise the element's own title or
         # text. A list of products and a list of article titles are the same shape of
         # claim; only the fixture happens to carry SKUs.
+        # A listing entry usually names itself on a nested link's `title` before it names
+        # itself anywhere else. Without that step the identifier for a book was the whole
+        # row — price, stock and basket button included — which is unreadable in an
+        # explanation and impossible for a run to reproduce exactly.
+        nested = row.xpath(".//*[@title][1]/@title")
         items.append({"sku": (row.get("data-sku") or _sku_from_text(text)
-                              or row.get("title") or text or None),
+                              or row.get("title")
+                              or (norm(nested[0]) if nested else None)
+                              or text or None),
                       "text": text,
                       "price_gbp": float(money.group(1)) if money else None})
     return items, f"{len(items)} rows", spec.container
@@ -944,8 +987,12 @@ def _predicate_holds(item: dict[str, Any], predicate: dict[str, Any]) -> bool:
         return False
     if op == ">":
         return value > target
+    if op == ">=":
+        return value >= target
     if op == "<":
         return value < target
+    if op == "<=":
+        return value <= target
     if op == "==":
         return value == target
     if op == "contains":

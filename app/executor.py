@@ -36,7 +36,7 @@ from app.models import (
     DiagnosedCause, FailureClass, Run, RunState, StepKind, TerminalStatus, Tier, TraceEntry,
 )
 from app.models import StrategyFamily
-from app.planner import Planner, Proposal, ProposalRejected
+from app.planner import Planner, Proposal, ProposalRejected, ResponseTruncated
 from app.postcondition import (
     AbsenceMode, ClaimSpec, Postcondition, Relation, RequiredAction,
 )
@@ -73,6 +73,11 @@ class PromisedRecord:
     site: str
     operation: str
     route: str
+    #: Further routes belonging to this record. A cross-behaviour from §3.3 is not a record
+    #: of its own — XB-1's proof of absence over a category listing is a list-level fact
+    #: about that category, reached by the same navigation and proven by the same
+    #: enumeration, so it is part of OP-6 rather than a fifth promise.
+    extra_routes: tuple[str, ...] = ()
 
 
 PROMISED_RECORDS: tuple[PromisedRecord, ...] = (
@@ -83,12 +88,45 @@ PROMISED_RECORDS: tuple[PromisedRecord, ...] = (
                    "Expand a collapsed box and extract a value not visible beforehand",
                    "wiki_expand"),
     PromisedRecord("OP-6", "books.toscrape.com",
-                   "Category navigation and pagination, list-level facts", "book_category"),
+                   "Category navigation and pagination, list-level facts", "book_category",
+                   extra_routes=("book_absence",)),
     PromisedRecord("OP-7", "books.toscrape.com",
                    "Open a product page and extract a labelled field", "book_detail"),
 )
 
-RECORD_BY_ROUTE: dict[str, PromisedRecord] = {r.route: r for r in PROMISED_RECORDS}
+RECORD_BY_ROUTE: dict[str, PromisedRecord] = {
+    route: record for record in PROMISED_RECORDS
+    for route in (record.route, *record.extra_routes)
+}
+
+
+@dataclass(frozen=True)
+class GateOperation:
+    """A fixture operation that exists to prove a mechanism, not to promise a capability.
+
+    Withdrawn from the promised set by A1.2 and kept as gate evidence: each one is
+    constructed so the answer cannot be reached without performing the UI action, which is
+    what makes "the action was necessary" checkable rather than declared.
+    """
+
+    id: str
+    route: str
+    mechanism: str
+    shortcut_proof_because: str
+
+
+GATE_OPERATIONS: tuple[GateOperation, ...] = (
+    GateOperation("GS-1", "search", "POST-only form search",
+                  "Results exist only behind a POST. No URL expresses a result set, and "
+                  "the fixture answers GET /search with 405, so the form must be filled "
+                  "and submitted."),
+    GateOperation("GS-2", "paginate", "Client-side pagination with no URL change",
+                  "The URL is identical on every page, so page N cannot be reached by "
+                  "navigating to it — only by clicking through."),
+    GateOperation("GS-3", "overlay", "Overlay dismissal, then the underlying action",
+                  "The control beneath is disabled until the overlay is dismissed, so a "
+                  "run that skips the dismissal cannot perform the action at all."),
+)
 
 #: A task asks for the planner explicitly, or configuration forces it. The deterministic
 #: path stays the default: it needs no quota, and it is what the fixture demonstrations run
@@ -226,6 +264,17 @@ class ExecutionContext:
 
     def deadline_exceeded(self) -> bool:
         return self.run.budget.elapsed_seconds > settings.budgets.wall_clock_seconds
+
+
+def _compare(value: float | None, predicate: dict[str, Any]) -> bool:
+    """The same comparison the verifier will make, used only to record what the run saw.
+    The verdict is the verifier's; this is what goes in the trace so a disagreement between
+    the two is visible rather than silent."""
+    if value is None:
+        return False
+    op, target = predicate.get("op"), predicate.get("value")
+    return {">": value > target, ">=": value >= target,
+            "<": value < target, "<=": value <= target}.get(op, False)
 
 
 class Executor:
@@ -577,6 +626,16 @@ class Executor:
                 try:
                     proposal = self._planner.propose(prompt, budget=budget,
                                                      purpose=purpose, view=view)
+                except ResponseTruncated as exc:
+                    # Our output allowance, not a defect in our code and not a model that
+                    # broke its contract. Naming it `internal_error` blamed the wrong thing
+                    # and sent anyone reading the histogram looking for a bug.
+                    self._finish_step(run, call, ok=False, truncated=exc.reason)
+                    self._terminate(
+                        run, TerminalStatus.FAILED, FailureClass.PROVIDER_ERROR,
+                        f"{exc.reason} The run stops here rather than guessing what the "
+                        f"cut-off reply was going to say.")
+                    return
                 except ProposalRejected as exc:
                     # Outside the contract. Recorded and refused, never repaired into
                     # something plausible.
@@ -994,6 +1053,9 @@ class Executor:
         ("wiki_sort", ("sort the", "sorted by", "sort by", "s&p 500 table",
                        "constituents table")),
         ("wiki_expand", ("expand the", "collapsed navbox", "navbox", "collapsible")),
+        ("book_absence", ("priced at", "priced over", "priced above", "or more",
+                          "or above", "at least £", "more expensive than", "cheaper than",
+                          "under £", "less than £")),
         ("book_detail", ("light in the attic", "upc", "product detail")),
         ("book_category", ("nonfiction", "category", "page of results",
                            "pages of results")),
@@ -1036,6 +1098,16 @@ class Executor:
         ("book_detail", "book_category",
          "a task naming a specific product asks about that product; the category it sits "
          "in is how the product is reached, not what is being asked"),
+        ("book_absence", "book_category",
+         "a question about whether anything matches names a category to say where to look, "
+         "not to ask for a listing; answering it with the listing answers a question that "
+         "was not asked"),
+        ("book_absence", "book_detail",
+         "the same, for a price question that happens to name a title"),
+        ("absence", "book_absence",
+         "a price question naming no site is a fixture task; a task naming books.toscrape "
+         "never reaches the fixture's markers at all, because a named site restricts the "
+         "routes before precedence is consulted"),
     )
 
     @classmethod
@@ -1062,6 +1134,8 @@ class Executor:
             return self._plan_wiki_expand(self._strip_directives(task))
         if name == "book_detail":
             return self._plan_book_detail(low)
+        if name == "book_absence":
+            return self._plan_book_absence(low)
         if name == "book_category":
             return self._plan_book_category(low)
         if name == "testhook":
@@ -1905,6 +1979,134 @@ class Executor:
         return "last" if word == "last" else {
             "first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5}[word]
 
+    #: How a price question is worded, and the comparison each wording means. Ordered so a
+    #: two-word form is tried before the single word it contains.
+    PRICE_OPERATORS: tuple[tuple[str, str], ...] = (
+        (r"or\s+more", ">="), (r"or\s+above", ">="), (r"or\s+over", ">="),
+        (r"at\s+least", ">="), (r"or\s+higher", ">="),
+        (r"or\s+less", "<="), (r"at\s+most", "<="), (r"or\s+cheaper", "<="),
+        (r"more\s+than", ">"), (r"more\s+expensive\s+than", ">"),
+        (r"priced\s+over", ">"), (r"priced\s+above", ">"), (r"over", ">"), (r"above", ">"),
+        (r"less\s+than", "<"), (r"cheaper\s+than", "<"), (r"under", "<"), (r"below", "<"),
+    )
+
+    @classmethod
+    def price_predicate(cls, low: str) -> dict[str, Any] | None:
+        """The comparison the task asked for, or nothing.
+
+        Nothing is the important half: a price question whose threshold or direction cannot
+        be read is not answered with a guessed one. "£60 or more" and "over £60" differ on
+        exactly one book, and picking the wrong one produces a fully verifiable answer to a
+        question nobody asked.
+        """
+        money = re.search(r"£\s*([0-9]+(?:\.[0-9]+)?)", low)
+        if not money:
+            return None
+        threshold = float(money.group(1))
+        after = low[money.end():]
+        for pattern, op in cls.PRICE_OPERATORS:
+            if re.search(rf"\b{pattern}\b", after) or re.search(
+                    rf"\b{pattern}\b\s*£?\s*{re.escape(money.group(1))}", low):
+                return {"field": "price_gbp", "op": op, "value": threshold}
+        return None
+
+    def _plan_book_absence(self, low: str) -> Plan:
+        """XB-1 Mode B on a promised category: is there any book matching this price?
+
+        Absence is only ever concluded from a positive proof (A3.1). The proof here is the
+        listing's own results counter — A3.2 names that exact form, `"110 results - showing
+        1 to 20."`, as a coverage anchor — checked against a full enumeration re-read from
+        the stored artifact. Answering "no" because nothing was noticed is `unverified`, and
+        stays that way.
+        """
+        category = (self.CATEGORY_WORD.search(low) or [None])[0]
+        category = category.title() if isinstance(category, str) else "Poetry"
+        predicate = self.price_predicate(low)
+        readable = ({">=": "at or above", ">": "above",
+                     "<=": "at or below", "<": "below"}.get(predicate["op"], "matching")
+                    + f" £{predicate['value']}") if predicate else "matching"
+
+        pc = Postcondition(
+            goal=(f"On books.toscrape, determine whether any book in the {category} "
+                  f"category is priced {readable}, by enumerating the whole category and "
+                  f"proving coverage against the listing's own results count."),
+            operation="OP-6",
+            target_url=f"{BOOKS}/catalogue/category/books/",
+            inputs={"category": category, "url_scope": "prefix", "predicate": predicate},
+            required_actions=(
+                RequiredAction("click", category,
+                               "the category listing is reached from the sidebar, and the "
+                               "navigation is the capability being claimed"),
+            ),
+            claims=(
+                ClaimSpec("result_counter", "N results - showing X to Y",
+                          Relation.COUNTER_ECHO, "counter"),
+                ClaimSpec("items", "every product entry in the listing",
+                          Relation.LIST_ENUMERATION, "sku_list",
+                          container='//article[contains(@class,"product_pod")]'),
+            ),
+            absence=AbsenceMode.B_ENUMERATION,
+            coverage_anchor="the category listing's own results count",
+        )
+
+        async def open_home(ctx: ExecutionContext) -> None:
+            if predicate is None:
+                self._terminate(
+                    ctx.run, TerminalStatus.UNSUPPORTED, FailureClass.POLICY_REFUSED,
+                    "The task asks whether any book matches a price, but the threshold or "
+                    "the comparison could not be read from it. Choosing either would answer "
+                    "a different question, so the run stopped before browsing.")
+                return
+            await self._navigate(ctx, f"{BOOKS}/index.html")
+
+        async def open_category(ctx: ExecutionContext) -> None:
+            selector = (f'xpath=//div[contains(@class,"side_categories")]//a'
+                        f'[normalize-space(.)="{category}"]')
+            await self._click(ctx, selector, f"Click the {category} category link",
+                              navigates=True)
+
+        async def enumerate_category(ctx: ExecutionContext) -> None:
+            await self._capture(ctx, f"absence-{category.lower()}")
+            entry = self._step(
+                ctx.run, StepKind.EXTRACT,
+                "Enumerate every listed book and read the listing's own result count",
+                label_anchor="results")
+            counter = await ctx.page.query_selector("form.form-horizontal")
+            text = norm_ws((await counter.inner_text()).strip()) if counter else ""
+            m = re.search(r"(\d+)\s+results?", text, re.I)
+            # Read by the rule that will check it: the verifier identifies a listing entry
+            # by the first nested `title`, so the run does too. Two rules that agree by
+            # coincidence stop agreeing the first time either one is edited.
+            rows = await ctx.page.eval_on_selector_all(
+                "article.product_pod",
+                "els => els.map(e => {const t = e.querySelector('[title]');"
+                " return {title: t ? t.getAttribute('title') : null, text: e.innerText};})")
+            items = []
+            for row in rows:
+                text = norm_ws(row["text"] or "")
+                price = re.search(r"£\s*([0-9]+(?:\.[0-9]+)?)", text)
+                items.append({"sku": norm_ws(row["title"] or "") or text or None,
+                              "text": text,
+                              "price_gbp": float(price.group(1)) if price else None})
+            ctx.candidate = {
+                "result_counter": {"count": int(m.group(1)), "term": None} if m else {},
+                "items": items,
+                # What the run itself concluded. Stating it is what lets the verifier
+                # disagree; a plan that only ever asserts absence cannot be caught reading
+                # the predicate backwards.
+                "matches": [i["sku"] for i in items
+                            if predicate and _compare(i["price_gbp"], predicate)],
+            }
+            self._finish_step(ctx.run, entry, counter_text=text, enumerated=len(items),
+                              matches=[i["sku"] for i in items
+                                       if predicate and _compare(i["price_gbp"], predicate)])
+
+        return Plan("OP-6", f"books.toscrape {category}: is any book priced {readable}?",
+                    pc, (open_home, open_category, enumerate_category),
+                    entry_url=f"{BOOKS}/index.html",
+                    terms=("results", "showing", category, "price", "£"),
+                    read_step=enumerate_category)
+
     def _plan_book_category(self, low: str) -> Plan:
         """OP-6: reach a named category, page to the page the task asked for, and report
         that page's list-level facts.
@@ -2138,8 +2340,9 @@ class Executor:
         host = cls.named_site(task)
         if not host:
             return cls.ROUTES
-        allowed = {r.route for r in PROMISED_RECORDS
-                   if r.site.lower().removeprefix("www.") == host}
+        allowed = {route for r in PROMISED_RECORDS
+                   if r.site.lower().removeprefix("www.") == host
+                   for route in (r.route, *r.extra_routes)}
         return tuple(r for r in cls.ROUTES if r[0] in allowed) if allowed else cls.ROUTES
 
     @staticmethod

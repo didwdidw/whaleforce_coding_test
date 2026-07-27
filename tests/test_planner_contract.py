@@ -243,3 +243,77 @@ def test_the_daily_ceiling_is_separate_from_the_cumulative_one(tmp_path, monkeyp
     with pytest.raises(ProviderQuotaExhausted) as exc:
         provider.complete("anything", budget=RunBudget(), purpose="exploration")
     assert "Today's provider spend ceiling" in str(exc.value)
+
+
+# --- a cut-off reply is not a broken contract (A14.8's DEV-11 entry) -----------------
+
+def test_a_reply_cut_off_by_the_output_allowance_is_retried_once_then_named():
+    """The per-call output allowance is shared with the model's thinking tokens, so a long
+    deliberation can leave too few for the JSON to close. Reported as `internal_error` that
+    accused our own code of a defect it did not have."""
+    from app.planner import Planner, ResponseTruncated
+    from app.provider import Completion, CredentialTier, RunBudget, Usage
+
+    cut_off = Completion('{"action": "finish", "args": {}, "why": "I reviewed the',
+                         Usage(), "m", CredentialTier.FREE, cached=False, seconds=0.1,
+                         finish_reason="FinishReason.MAX_TOKENS")
+
+    class _Provider:
+        calls = 0
+
+        def complete(self, prompt, **kwargs):
+            type(self).calls += 1
+            return cut_off
+
+    planner = Planner(provider=_Provider())
+    with pytest.raises(ResponseTruncated):
+        planner.propose("p", budget=RunBudget(), purpose="exploration", view={})
+    assert _Provider.calls == 2, "the second attempt must actually be made"
+
+
+def test_the_retry_succeeds_and_is_recorded_as_having_happened():
+    """A run that quietly made two calls for one step has a cost and a call count nobody
+    can explain from the trace."""
+    from app.planner import Planner
+    from app.provider import Completion, CredentialTier, RunBudget, Usage
+
+    replies = iter([
+        Completion('{"action": "finish", "args": {}, "why": "I reviewed the',
+                   Usage(), "m", CredentialTier.FREE, cached=False, seconds=0.1,
+                   finish_reason="FinishReason.MAX_TOKENS"),
+        Completion('{"action": "finish", "args": {}, "why": "done", "strategy": "F1",'
+                   ' "diagnosis": "none"}',
+                   Usage(), "m", CredentialTier.FREE, cached=False, seconds=0.1,
+                   finish_reason="STOP"),
+    ])
+
+    class _Provider:
+        def complete(self, prompt, **kwargs):
+            return next(replies)
+
+    proposal = Planner(provider=_Provider()).propose(
+        "p", budget=RunBudget(), purpose="exploration", view={})
+    assert proposal.action == "finish"
+    assert proposal.truncated_retry is True
+    assert proposal.to_dict()["truncated_retry"] is True
+
+
+def test_malformed_json_that_was_not_truncated_is_still_a_contract_failure():
+    """The distinction has to hold in both directions, or every model defect becomes an
+    allowance problem and nothing gets fixed."""
+    from app.planner import Planner, ProposalRejected, ResponseTruncated
+    from app.provider import Completion, CredentialTier, RunBudget, Usage
+
+    class _Provider:
+        calls = 0
+
+        def complete(self, prompt, **kwargs):
+            type(self).calls += 1
+            return Completion("not json at all", Usage(), "m", CredentialTier.FREE,
+                              cached=False, seconds=0.1, finish_reason="STOP")
+
+    with pytest.raises(ProposalRejected) as caught:
+        Planner(provider=_Provider()).propose("p", budget=RunBudget(),
+                                              purpose="exploration", view={})
+    assert not isinstance(caught.value, ResponseTruncated)
+    assert _Provider.calls == 1, "a malformed reply must not be re-asked"

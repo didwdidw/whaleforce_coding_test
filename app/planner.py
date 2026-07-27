@@ -18,6 +18,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from app.config import settings
 from app.models import DiagnosedCause, StrategyFamily
 from app.provider import Completion, Provider, RunBudget
 
@@ -59,8 +60,9 @@ Rules you cannot change and must not restate:
   bound to. Code re-reads the value from that label and compares; pointing at a container
   makes the two readings disagree and the run fails.
 
-Reply with a single JSON object:
-{"action": ..., "args": {...}, "why": "<one sentence>",
+Reply with a single JSON object and nothing else. Keep "why" under 15 words: the output
+allowance is shared with your deliberation, and a long explanation truncates the JSON.
+{"action": ..., "args": {...}, "why": "<one short sentence>",
  "strategy": "<one of: F1 semantic role+name, F2 visible text or label, F3 structural
   position, F5 alternate route or surface, F6 alternate representation>",
  "diagnosis": "<one of: element_absent, not_interactable, obscured_by_overlay,
@@ -76,6 +78,21 @@ class ProposalRejected(Exception):
         self.raw = raw[:400]
 
 
+class ResponseTruncated(ProposalRejected):
+    """The response was cut off by the output allowance rather than malformed.
+
+    Worth a separate type because the two have different causes and different honest
+    answers. Malformed JSON is the model failing its contract. A cut-off response is our
+    own cap: the per-call output allowance is shared with the model's thinking tokens, so a
+    long deliberation can leave too few tokens for the JSON to close. Reported as
+    `internal_error` it accused our own code of a defect it did not have.
+    """
+
+
+def was_truncated(completion: Completion) -> bool:
+    return "MAX_TOKENS" in (completion.finish_reason or "").upper()
+
+
 @dataclass
 class Proposal:
     action: str
@@ -85,6 +102,9 @@ class Proposal:
     diagnosis: DiagnosedCause
     raw: str = ""
     completion: Completion | None = None
+    #: Set when the first reply was cut off and a second call was needed. Recorded so a
+    #: run's call count and cost stay explainable.
+    truncated_retry: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -93,6 +113,7 @@ class Proposal:
             "why": self.why,
             "strategy": self.strategy.value if self.strategy else None,
             "diagnosis": self.diagnosis.value,
+            "truncated_retry": self.truncated_retry,
             "call": self.completion.to_dict() if self.completion else None,
         }
 
@@ -136,8 +157,31 @@ class Planner:
     def propose(self, prompt: str, *, budget: RunBudget, purpose: str,
                 view: dict[str, Any]) -> Proposal:
         completion = self.provider.complete(prompt, budget=budget, purpose=purpose)
-        proposal = parse_proposal(completion.text)
+        retried = False
+        try:
+            proposal = parse_proposal(completion.text)
+        except ProposalRejected:
+            if not was_truncated(completion):
+                raise
+            # Asked once more with the allowance raised and an explicit instruction to stop
+            # deliberating. It costs a call from the same budget, which is the honest price;
+            # what it avoids is losing a run to a sentence that ran one clause too long.
+            retried = True
+            completion = self.provider.complete(
+                prompt + "\n\nYour previous reply was cut off. Answer with the JSON object "
+                         "only, and make \"why\" at most five words.",
+                budget=budget, purpose=purpose,
+                max_output_tokens=settings.budgets.max_output_tokens_per_call * 2)
+            try:
+                proposal = parse_proposal(completion.text)
+            except ProposalRejected as exc:
+                if was_truncated(completion):
+                    raise ResponseTruncated(
+                        "The model's reply was cut off by the output allowance twice, "
+                        "including once with the allowance doubled.", completion.text) from exc
+                raise
         proposal.completion = completion
+        proposal.truncated_retry = retried
         validate(proposal, view)
         return proposal
 

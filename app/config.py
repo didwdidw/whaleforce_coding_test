@@ -111,10 +111,14 @@ class Budgets:
         default_factory=lambda: _int("BUDGET_INPUT_TOKENS_PER_CALL", 8_000))
     max_input_tokens_per_run: int = field(
         default_factory=lambda: _int("BUDGET_INPUT_TOKENS_PER_RUN", 60_000))
+    # The output allowance is shared with the model's thinking tokens, so it is not the
+    # size of the JSON we expect back. At 1,024 a low-effort deliberation could consume
+    # almost all of it and cut the reply off mid-string — a run lost to a budget nothing in
+    # the spec fixes (A7 caps input, not output).
     max_output_tokens_per_call: int = field(
-        default_factory=lambda: _int("BUDGET_OUTPUT_TOKENS_PER_CALL", 1_024))
+        default_factory=lambda: _int("BUDGET_OUTPUT_TOKENS_PER_CALL", 2_048))
     max_output_tokens_per_run: int = field(
-        default_factory=lambda: _int("BUDGET_OUTPUT_TOKENS_PER_RUN", 8_000))
+        default_factory=lambda: _int("BUDGET_OUTPUT_TOKENS_PER_RUN", 16_000))
 
     def __post_init__(self) -> None:
         if self.exploration_calls + self.recovery_calls != self.max_llm_calls:

@@ -50,6 +50,54 @@
 </div>
 
 <div class="panel">
+  <h2>Mechanism evidence — not a supported site, not in any success rate</h2>
+  <p class="sub">
+    Everything in this panel runs on <strong>our own evaluation environment</strong>: a
+    fixture we wrote, deliberately excluded from the support matrix above, and
+    <strong>not a supported website</strong>. None of it appears in any reliability or
+    success-rate figure. A reliability number measured on a site we control is not evidence
+    of anything, and labelling it does not change that. What is worth publishing is the
+    <em>construction</em> — these three operations are built so the UI action cannot be
+    skipped, which is what makes "the action was necessary" a checkable property rather
+    than a declaration.
+  </p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>ID</th><th>Mechanism</th><th>Why a shortcut is impossible</th>
+      <th>In this build</th></tr></thead>
+    <tbody>
+      {% for g in gates %}
+      <tr><td>{{ g.id }}</td><td>{{ g.mechanism }}</td>
+          <td>{{ g.shortcut_proof_because }}</td>
+          <td>{% if g.reachable %}<span class="badge b-ok">reachable</span>
+              {% else %}<span class="badge b-warn">not reachable</span>{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="sub" style="margin-top:14px">
+    The same pages are served under a <strong>mutation seed</strong>, which rewrites the
+    markup without touching the data the answers come from — so a mutation can break a
+    locator but can never change the correct result. Append a seed to any fixture task
+    (<code>seed mu2-text</code>) to run against mutated markup.
+    {{ build.mutations_wired }} of {{ build.mutations_declared }} mutations are wired in
+    this build; the rest land with the mutation gate suite.
+  </p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Seed</th><th>ID</th><th>Transform</th><th>Wired</th></tr></thead>
+    <tbody>
+      {% for m in mutations %}
+      <tr><td class="mono">{{ m.seed }}</td><td>{{ m.id }}</td><td>{{ m.desc }}</td>
+          <td>{% if m.implemented %}<span class="badge b-ok">yes</span>
+              {% else %}<span class="badge b-warn">not yet</span>{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="panel">
   <h2>Known limitations, concretely</h2>
   <ul style="font-size:13.5px;padding-left:20px;margin:0">
     <li><strong>This build is {{ build.milestone }}.</strong> A model plans; it does not
