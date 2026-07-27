@@ -438,3 +438,43 @@ M2 有一件事現在就排進去：那兩個有缺陷的 run 要留著當回歸
 
 A10 那些做得好，A10.2 用 AST 解析而不是 grep 文字這個細節尤其值得讚許
 Good job, thanks
+
+==========
+
+重新部署 done
+
+Spec 更新：Amendment 11（docs/task1-spec.md §16，commit 9cef7a8）。M2 的持久化決定已批准，
+但範圍比「掛個 volume」大。動工前完整讀 A11.1–A11.8 與新增的 A-29/A-30/A-31，這裡只是導讀。
+
+決定
+- A11.1 掛 persistent volume，artifact store 與 run database 都放上去。
+- A11.2 Zeabur 因此從 RollingUpdate 轉成 Recreate、每次部署吃一輪冷啟停機 —— 這個代價被接受，
+  但必須寫進 analysis report，不准把持久化講成免費。A8.4 不變：這段停機不准花錢買掉。
+
+掛了 volume 仍然要做的四件事
+- A11.3 首頁預跑 run 一律 pin，永不因年齡或磁碟壓力被淘汰，且完全排除在 retention sweep 之外。
+  「到期自動重跑」的方案已被否決，理由在條文裡。代價：每個預跑 run 必須顯示 retrieved_at。
+- A11.4 過期必須是「已於某日過期」的記錄狀態，不是 404、不是破圖、不是空面板。
+  artifact 的 metadata（id、source URL、retrieved_at、content hash、byte length、過期日）
+  必須在 bytes 被回收之後仍然存在。HTML 與 API 兩邊都要。這條跟 volume 無關，本來就該有。
+- A11.5 /healthz 必須用「實際寫入探測」確認 artifact store 已掛載且可寫，不可只檢查路徑存在；
+  不可靜靜退回暫時儲存（A10.7）；production 模式下無法初始化 store 就是啟動失敗（A10.8）。
+- A11.6 retention 要真的被執行：年齡上限 + 總容量上限（綁磁碟比例，機器 60 GB，
+  單次大 DOM run 約 2 MB），淘汰順序為未 pin 者由舊到新，每次淘汰要記錄，
+  逼近上限是必須可見的運維事件（health endpoint 與 log），不是無聲覆蓋證據。
+
+你在 M2 修掉的兩個 bug 已升為通則，請往上收一層再往 M3 走
+- A11.7 空洞的驗證必須 fail closed。零 claim 的 postcondition 不得產生
+  推廣：任何「因為沒有東西可檢查而通過」的驗證都是缺陷 —— 空 claim set
+  零 anchor 被解析、全部 skip 的 check set，都必須以 failed 加上診斷原
+  「沒有失敗」不等於「全部通過」。請掃過所有驗證與聚合路徑，不只是當初
+- A11.8 明確設定的 falsy 值不等於未設定。0 / false / 空字串必須與 unset
+  預設值只在真正缺值時套用。同樣請掃過整份 config 解析，不只 retention_
+
+新增驗收項（黑箱）
+- A-29 重新部署後，部署前的預跑 run 與使用者 run 的 artifact 仍可解析。
+- A-30 打開一個 artifact 已過保存期限的 run，看到帶日期的過期狀態且 met
+- A-31 artifact store 不可寫時 /healthz 回不健康；retention 的年齡與容
+
+順序建議：A11.7 與 A11.8 的全面掃查先做（它們會影響 M3 的驗證行為，晚做
+再做 volume 與 retention。做完照慣例回報，M3 之後再往下走。

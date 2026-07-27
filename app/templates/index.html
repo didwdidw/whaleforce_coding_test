@@ -51,7 +51,9 @@
 <div class="panel">
   <h2>Runs</h2>
   <p class="sub">The first few are pre-executed at startup, including a refusal, so there
-    is something inspectable before you wait for anything.</p>
+    is something inspectable before you wait for anything. Their evidence is
+    <strong>pinned</strong> — never evicted by age or disk pressure — so each one shows the
+    date its evidence was captured: a demonstration is dated, not current.</p>
   <div class="scroll">
   <table>
     <thead><tr>
@@ -62,7 +64,11 @@
     {% for r in runs %}
       <tr>
         <td>{{ r.task[:74] }}{% if r.task|length > 74 %}…{% endif %}
-          {% if r.pre_executed %}<span class="badge b-dim">pre-executed</span>{% endif %}</td>
+          {% if r.pre_executed %}<span class="badge b-dim">pre-executed</span>
+            {% if captured.get(r.id) %}
+              <span class="sub">evidence captured {{ captured[r.id] }}</span>
+            {% endif %}
+          {% endif %}</td>
         <td><span class="badge {% if r.tier.value == 'T-DECLARED' %}b-ok{% elif r.tier.value == 'T-REFUSED' %}b-bad{% else %}b-warn{% endif %}">{{ r.tier.value }}</span></td>
         <td>
           {% if r.terminal_status %}

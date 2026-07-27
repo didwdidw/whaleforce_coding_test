@@ -60,11 +60,21 @@
           <dt>Bound to label</dt><dd class="mono">{{ c.evidence.label_anchor }}</dd>
           <dt>Extracted span</dt><dd class="mono">{{ c.evidence.extracted_span }}</dd>
           <dt>Structural anchor</dt><dd class="mono">{{ c.evidence.structural_anchor }}</dd>
+          {% set live = artifact_state.get(c.evidence.artifact_id) %}
           <dt>Artifact</dt><dd>
-            {% if c.evidence.artifact_state == 'stored' %}
+            {% if live and live.state == 'stored' %}
               <a href="/api/artifacts/{{ c.evidence.artifact_id }}">{{ c.evidence.artifact_id }}</a>
-            {% else %}<span class="badge b-warn">expired</span>
-              <span class="mono">{{ c.evidence.artifact_id }}</span>{% endif %}
+              <span class="sub">· captured {{ live.retrieved_on }}</span>
+              {% if live.pinned %}<span class="badge b-ok">pinned</span>{% endif %}
+            {% elif live %}
+              <span class="badge b-warn">expired on {{ live.expired_on }}</span>
+              <span class="mono">{{ c.evidence.artifact_id }}</span>
+              <span class="sub">· captured {{ live.retrieved_on }}, {{ '{:,}'.format(live.length) }} bytes,
+                hash retained</span>
+            {% else %}
+              <span class="badge b-bad">no longer recorded</span>
+              <span class="mono">{{ c.evidence.artifact_id }}</span>
+            {% endif %}
             · <span class="mono">sha256 {{ c.evidence.artifact_sha256[:16] }}…</span></dd>
           <dt>Source</dt><dd class="mono">{{ c.evidence.source_url }}</dd>
           <dt>Trace steps</dt><dd class="mono">{{ c.evidence.trace_segment | join(', ') }}</dd>
@@ -144,28 +154,33 @@
   <h2>Evidence artifacts</h2>
   <div class="scroll">
   <table>
-    <thead><tr><th>Kind</th><th>Source</th><th>Length</th><th>SHA-256</th>
+    <thead><tr><th>Kind</th><th>Source</th><th>Captured</th><th>Length</th><th>SHA-256</th>
       <th>State</th><th></th></tr></thead>
     <tbody>
     {% for a in artifacts %}
       <tr>
         <td><code>{{ a.kind }}</code></td>
         <td class="mono">{{ a.source_url or '—' }}</td>
+        <td class="mono">{{ a.retrieved_on }}</td>
         <td>{{ '{:,}'.format(a.length) }}</td>
         <td class="mono">{{ a.sha256[:16] }}…</td>
         <td>{% if a.state == 'stored' %}<span class="badge b-ok">stored</span>
-            {% else %}<span class="badge b-warn">expired</span>{% endif %}</td>
-        <td>{% if a.state == 'stored' %}<a href="/api/artifacts/{{ a.id }}">open</a>{% endif %}</td>
+              {% if a.pinned %}<span class="badge b-ok">pinned</span>{% endif %}
+            {% else %}<span class="badge b-warn">expired on {{ a.expired_on }}</span>{% endif %}</td>
+        <td>{% if a.state == 'stored' %}<a href="/api/artifacts/{{ a.id }}">open</a>
+            {% else %}<span class="sub">bytes reclaimed; metadata retained</span>{% endif %}</td>
       </tr>
     {% else %}
-      <tr><td colspan="6" class="meta">No artifacts.</td></tr>
+      <tr><td colspan="7" class="meta">No artifacts.</td></tr>
     {% endfor %}
     </tbody>
   </table>
   </div>
-  <p class="sub" style="margin:12px 0 0">Artifacts expire as a recorded state, never as a
-    deletion of the reference: an expired artifact keeps its hash and length, so an evidence
-    bundle is never a dangling pointer.</p>
+  <p class="sub" style="margin:12px 0 0">Artifacts expire as a dated, recorded state, never
+    as a deletion of the reference: an expired artifact keeps its id, source URL, retrieval
+    date, content hash and byte length, so the bundle stays auditable in structure even when
+    it is no longer re-inspectable. The homepage demonstrations are pinned and are never
+    evicted.</p>
 </div>
 
 <div class="panel">

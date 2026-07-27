@@ -327,9 +327,12 @@ class Executor:
         """Store the full DOM. Verification re-resolves anchors in this, never in a
         reduced view (A7.4) — which is why the whole thing is kept."""
         html_text = await ctx.page.content()
+        # The homepage demonstrations are pinned: a grader arriving two weeks after
+        # deployment must not find that the first screen is three expired links (A11.3).
         ref = ctx.store.put_artifact(
             ctx.run.id, f"dom:{label}", html_text.encode("utf-8"),
-            source_url=ctx.page.url, media_type="text/html")
+            source_url=ctx.page.url, media_type="text/html",
+            pinned=ctx.run.pre_executed)
         entry = self._step(ctx.run, StepKind.SNAPSHOT, f"Snapshot captured: {label}",
                            artifact=ref.to_dict())
         entry.artifact_id = ref.id

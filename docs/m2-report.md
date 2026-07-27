@@ -106,8 +106,9 @@ Both were found by writing the test first and watching it fail for the wrong rea
 
 **A postcondition with no claims reported success.** `_decide` treated "no required claims
 failed" as "everything passed", so a plan that declared nothing to check returned
-`succeeded_verified`. Absence of a failure is not a success; a claim-free postcondition now
-returns `unverified`.
+`succeeded_verified`. Absence of a failure is not a success. A claim-free postcondition now
+terminates as `failed / postcondition_unmet` — the fix first made it `unverified`, which
+Amendment 11 then tightened, along with three further instances of the same class (§6.2).
 
 **`enforce_retention(retention_days=0)` silently meant 14 days.** `retention_days or
 settings.artifact_retention_days` — an explicit zero is falsy. The caller asking to expire
@@ -123,16 +124,18 @@ cannot be made. That is a false negative by construction and the right direction
 S-4.9 exists because a value that only *looks* right is the failure mode being defended
 against. Re-anchoring across strategy families is a recovery behaviour and arrives at M3.
 
-### 5.2 Evidence does not survive a deploy
+### 5.2 Evidence not surviving a deploy — raised here, decided as Amendment 11
 
-`DATA_DIR` is `/tmp/task1-data` and the pod mounts no volume, so every restart destroys all
-runs and artifacts. At M1 this was invisible. It is not invisible now: an evidence bundle is
-the product's central claim, and a bundle whose artifact vanished on the next deploy is a
+`DATA_DIR` was `/tmp/task1-data` with no volume mounted, so every restart destroyed all runs
+and artifacts. At M1 this was invisible. It stopped being invisible at M2: an evidence bundle
+is the product's central claim, and a bundle whose artifact vanished on the next deploy is a
 dangling reference that looks fine until someone opens it.
 
-The fix is a mounted volume, and its cost belongs to the product owner: Zeabur switches a
-service with a volume from `RollingUpdate` to `Recreate`, trading the overlapping rollout
-(M1 report §4.2) for a full boot of downtime per deploy. Flagged, not decided.
+Decided by the product owner as **Amendment 11** — §6 is what was built. The accepted cost is
+stated rather than hidden: a volume-mounted Zeabur service switches from `RollingUpdate` to
+`Recreate`, so every deploy now takes a full cold start of downtime (~8 s, M1 report §4.1)
+instead of the overlapping rollout. **Persistence is not free**, and that sentence belongs in
+the analysis report, not only here.
 
 ### 5.3 The shortcut case, and what it does not prove
 
@@ -149,7 +152,52 @@ right shape from the wrong row on a page with two similar tables, or the right l
 wrong period. Label binding narrows this; it does not close it. The decoy mutations (MU-4)
 are where that gets measured, at M5.
 
-## 6. What M3 inherits
+## 6. Amendment 11, implemented
+
+| ID | Requirement | Where |
+|---|---|---|
+| A11.1 | Volume for artifacts and the run database | `DATA_DIR` defaults to `/data/task1`; the image no longer sets it, so `app/config.py` is the single source |
+| A11.2 | The `Recreate` cost is stated, not hidden | §5.2 here, and the deploy runbook |
+| A11.3 | Homepage demonstrations pinned, exempt from every sweep, and dated | `artifacts.pinned`; the homepage shows each demo's capture date |
+| A11.4 | Expiry renders as "expired on `<date>`" with metadata intact, in HTML **and** API | run detail re-resolves artifact state at render time; `/api/artifacts` answers 410 with the full record |
+| A11.5 | Health verifies the store by writing to it, never falls back silently | write probe **and** a mount check; unhealthy → HTTP 503 |
+| A11.6 | Age limit and size ceiling, oldest-first over unpinned, every eviction recorded | `retention_events` table, warning at 80% of the ceiling |
+| A11.7 | Vacuous verification fails closed | `Verifier._vacuous`, plus the coverage gate and the fixture self-test |
+| A11.8 | Explicit falsy ≠ unset | `_resolve` in `app/config.py`, with provenance on `/healthz` |
+
+### 6.1 The check a write probe cannot make
+
+A11.5 asks for a write probe rather than a path-existence check. Implementing it exposed
+that a write probe is **also** insufficient here: the image runs `mkdir -p /data`, so with no
+volume attached the directory exists, is writable, and passes. Everything works and every
+artifact dies at the next deploy — the precise condition the volume was mounted to prevent.
+
+So the store also compares the data directory's device id against `/`. A mounted volume has
+its own; a directory the image created does not. That is the check that catches "the volume
+was never attached", and it is off only in development, where the data directory is an
+ordinary folder.
+
+### 6.2 Where the two promoted rules changed behaviour beyond their original bug
+
+**A11.7** turned out to have three more instances than the one that prompted it:
+
+- a claim set that is entirely **optional** — an empty claim set wearing a hat, since the run
+  could pass with no value confirmed;
+- **zero anchors resolved**, which previously returned `unverified`. It is now `failed`:
+  nothing was examined, so nothing was verified. `unverified` is kept for the narrower case
+  where an anchor *did* resolve and the claim still could not be established — absence
+  without a declared proof mode. That reading is what keeps A11.7 and S-5.1 consistent;
+- the **coverage ledger's own gate**, which passed on an empty ledger because nothing was
+  overdue either, and the **fixture's self-test**, which compares ground truth across
+  mutation seeds and would have passed with zero seeds or an empty baseline.
+
+**A11.8** produced one behaviour change worth naming: an environment variable that is set but
+unreadable — `BUDGET_MAX_STEPS=lots`, `ALLOW_PRIVATE_EGRESS=maybe` — now stops the process
+instead of quietly resolving to the default. Guessing `False` for an unrecognised flag is the
+same failure as treating `0` as unset: an operator who set something believed it did
+something.
+
+## 7. What M3 inherits
 
 - The postcondition is the interface. The planner may propose actions, locators and
   candidate claims; it may not write the postcondition or reach `verified` (S-4.7).
@@ -164,6 +212,6 @@ are where that gets measured, at M5.
 
 ---
 
-**Tests:** 87 passing (76 without a browser, 11 integration + replay).
+**Tests:** 107 passing (93 without a browser, 14 integration).
 **CI:** two jobs — policy and semantics on every push, plus a browser job running the replay
 suite and the M2 gate.

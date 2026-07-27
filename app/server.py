@@ -24,7 +24,7 @@ from fastapi.templating import Jinja2Templates
 
 from app import egress
 from app.browser import BrowserSupervisor
-from app.config import settings
+from app.config import config_provenance, settings
 from app.coverage import CoverageLedger
 from app.executor import Executor
 from app.models import Run, TerminalStatus, Tier, new_id
@@ -141,8 +141,18 @@ async def _seed_pre_executed() -> None:
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request) -> HTMLResponse:
     runs = state.store.recent_runs(limit=20)
+    # A pinned demonstration never expires, so it ages instead. Showing when its evidence
+    # was captured keeps a two-week-old run reading as a dated demonstration rather than as
+    # a current result (A11.3).
+    captured = {}
+    for r in runs:
+        if r.pre_executed:
+            arts = state.store.artifacts_for_run(r.id)
+            if arts:
+                captured[r.id] = arts[0].retrieved_on
     return TEMPLATES.TemplateResponse(request, "index.html", {
         "runs": runs,
+        "captured": captured,
         "queue": state.queue.snapshot().to_dict(),
         "browser": state.supervisor.status(),
         "demo_tasks": DEMO_TASKS,
@@ -160,11 +170,17 @@ async def run_detail(request: Request, run_id: str) -> Response:
         return HTMLResponse("<h1>404</h1><p>No such run.</p>", status_code=404)
     verdict = next((t.detail.get("verdict") for t in run.trace if t.detail.get("verdict")),
                    None)
+    artifacts = state.store.artifacts_for_run(run_id)
     return TEMPLATES.TemplateResponse(request, "run.html", {
         "run": run,
-        "artifacts": state.store.artifacts_for_run(run_id),
+        "artifacts": artifacts,
         "position": state.queue.position_of(run_id),
         "verdict": verdict,
+        # An evidence bundle stores the artifact's state as it was at verification time. Two
+        # weeks later that is stale, and rendering it would offer a link to bytes that are
+        # gone. The state is re-resolved now so expiry shows as "expired on <date>" rather
+        # than as a dead link (A11.4).
+        "artifact_state": {a.id: a.to_dict() for a in artifacts},
     })
 
 
@@ -277,25 +293,47 @@ async def artifact(artifact_id: str) -> Response:
     if data is None:
         # Expired, not missing. The reference still resolves and says so (A9.7.2).
         return JSONResponse({**ref.to_dict(), "error": "expired",
-                             "detail": "The bytes have aged out of the artifact store. The "
-                                       "reference, hash and length are retained so this "
-                                       "evidence bundle is never a dangling pointer."},
+                             "detail": (f"Expired on {ref.expired_on}. The bytes have aged "
+                                        f"out of the artifact store; the id, source URL, "
+                                        f"retrieval date, content hash and byte length are "
+                                        f"retained, so this evidence bundle is a dated "
+                                        f"record rather than a dangling pointer (A11.4).")},
                             status_code=410)
     return Response(data, media_type=ref.media_type or "application/octet-stream")
 
 
 @app.get("/healthz")
-async def healthz() -> dict[str, Any]:
-    """Liveness plus the numbers A9.7 is judged on."""
+async def healthz(response: Response) -> dict[str, Any]:
+    """Liveness plus the numbers A9.7 and A11.5 are judged on.
+
+    The store check is an actual write probe. A path-existence check passes on an unmounted
+    directory, a read-only mount and a full disk alike — the three states that would
+    otherwise be discovered only when someone opened an evidence bundle.
+    """
+    storage = state.store.storage_status()
+    store_ok = storage["writable"] and (storage["on_mounted_volume"]
+                                        or not storage["mount_required"])
+    healthy = store_ok and state.supervisor.status()["connected"]
+    if not healthy:
+        response.status_code = 503
     return {
-        "ok": True,
+        "ok": healthy,
         "git_sha": state.git_sha,
         "uptime_seconds": round(time.time() - state.started_at, 1),
         "model_pinned": settings.provider.model_id,
         "queue": state.queue.snapshot().to_dict(),
         "browser": state.supervisor.status(),
-        "storage": state.store.storage_status(),
+        "storage": storage,
+        "unhealthy_because": ([] if healthy else
+                              ([] if store_ok else
+                               [f"artifact store at {storage['data_dir']} is not usable: "
+                                f"writable={storage['writable']}, "
+                                f"on_mounted_volume={storage['on_mounted_volume']} "
+                                f"({storage['write_probe']['error'] or 'no volume mounted'})"])
+                              + ([] if state.supervisor.status()["connected"] else
+                                 ["browser is not connected"])),
         "egress_guard": settings.egress_guard_state(),
+        "config_provenance": config_provenance(),
         # Which declared statuses this deployment has actually produced. `overdue` is the
         # list of paths nothing has ever reached, which is the shape an untested gate takes.
         "status_coverage": {k: v for k, v in state.coverage.report().items()

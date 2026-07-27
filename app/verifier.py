@@ -261,13 +261,14 @@ class Verifier:
 
     def _decide(self, pc: Postcondition, results: list[ClaimResult],
                 extracted: dict[Relation, Any], checks: list[Check]) -> Verdict:
-        if not pc.claims:
-            # A run with nothing to check is not a run that checked out. Without this, a
-            # plan that declares no claims reports success for having done nothing wrong.
-            return Verdict(
-                TerminalStatus.UNVERIFIED, FailureClass.POSTCONDITION_UNMET,
-                "The frozen postcondition declares no claims, so there is nothing that "
-                "could be verified. Absence of a failure is not a success.", checks, results)
+        # A11.7: a verification that passes because there was nothing to check is a
+        # defect, not a pass. Each of these is a way for a run to be "clean" without any
+        # evidence having been examined, and a vacuous success is indistinguishable from a
+        # real one in every aggregate — which is the silent failure §4 exists to prevent.
+        vacuous = self._vacuous(pc, results, checks)
+        if vacuous:
+            return Verdict(TerminalStatus.FAILED, FailureClass.POSTCONDITION_UNMET,
+                           vacuous, checks, results)
 
         hard = [r for r in results if not r.ok and r.failure_class in
                 (FailureClass.VERIFICATION_MISMATCH, FailureClass.POSTCONDITION_UNMET)]
@@ -282,13 +283,13 @@ class Verifier:
 
         required = [r for r in results if not _optional(pc, r.name)]
         verified = [r for r in required if r.ok]
-        if not required or len(verified) == len(required):
+        if len(verified) == len(required):
             return Verdict(
                 TerminalStatus.SUCCEEDED_VERIFIED, None,
-                f"Every required claim was re-extracted from the stored artifact through its "
-                f"declared label anchor and matched the run's value. Verified means "
-                f"consistent with the artifact preserved at capture time — not true in the "
-                f"world.", checks, results)
+                f"All {len(required)} required claims were re-extracted from the stored "
+                f"artifact through their declared label anchors and matched the run's "
+                f"values. Verified means consistent with the artifact preserved at capture "
+                f"time — not true in the world.", checks, results)
         if verified:
             failed = [r.name for r in required if not r.ok]
             return Verdict(
@@ -298,9 +299,31 @@ class Verifier:
                 f"Partial is not a success state and is never counted as one.",
                 checks, results)
         return Verdict(
-            TerminalStatus.UNVERIFIED, FailureClass.LOCATOR_NOT_FOUND,
-            "A candidate answer exists but nothing in the stored artifact confirmed it. "
-            "`unverified` is not a success state.", checks, results)
+            TerminalStatus.FAILED, FailureClass.LOCATOR_NOT_FOUND,
+            "Not one declared anchor resolved in the stored artifact, so no claim was "
+            "examined at all. That is a failed verification, not an unverified answer: "
+            "nothing was checked (A11.7).", checks, results)
+
+    @staticmethod
+    def _vacuous(pc: Postcondition, results: list[ClaimResult],
+                 checks: list[Check]) -> str:
+        """The reason this verification would be empty, or "" if it has real work to do.
+
+        Kept as one function so the rule is stated once. Adding a verification path means
+        deciding what its vacuous case looks like, here, rather than discovering later that
+        it passes by default.
+        """
+        if not pc.claims:
+            return ("The frozen postcondition declares no claims, so there was nothing to "
+                    "verify. \"Nothing failed\" is not \"everything passed\".")
+        if all(c.optional for c in pc.claims):
+            return (f"All {len(pc.claims)} declared claims are optional, so this run could "
+                    f"reach a success status without a single value being confirmed.")
+        if not checks:
+            return "No verification check ran at all."
+        if all(not c.ok for c in checks):
+            return "Every verification check was skipped or failed."
+        return ""
 
     def _absence(self, pc: Postcondition, extracted: dict[Relation, Any],
                  checks: list[Check]) -> tuple[TerminalStatus, FailureClass | None, str] | None:

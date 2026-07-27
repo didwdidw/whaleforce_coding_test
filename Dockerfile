@@ -41,7 +41,10 @@ RUN chmod +x entrypoint.sh
 # Artifacts and the run database live here. Mount a volume over it to keep runs across
 # deploys; without one the store starts empty on each release, which is acceptable but
 # should be a decision rather than a surprise.
-ENV DATA_DIR=/data
+# The mount point for the persistent volume (A11.1). DATA_DIR is deliberately NOT set
+# here: app/config.py owns the default (/data/task1), so there is one source of truth. If
+# no volume is mounted, that path lands on the container's own filesystem and the store
+# refuses to start rather than silently holding evidence that dies with the container.
 RUN mkdir -p /data
 
 # Chromium needs more than a container's default 64 MB /dev/shm. The browser is launched

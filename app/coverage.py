@@ -103,12 +103,15 @@ class CoverageLedger:
         statuses = rows(STATUS_DUE, by_status)
         failures = rows(FAILURE_DUE, by_failure)
         overdue = [r["value"] for r in statuses + failures if r["overdue"]]
+        # An empty ledger must not read as a passing gate: with nothing declared and
+        # nothing observed there would be no overdue rows either (A11.7).
+        observed = [r for r in statuses + failures if r["observed"]]
         return {
             "milestone": self.current,
             "terminal_status": statuses,
             "failure_class": failures,
             "overdue": overdue,
-            "gate_passes": not overdue,
+            "gate_passes": bool(observed) and not overdue,
             "note": ("A value due at or before the current milestone and never observed is "
                      "an unreachable code path, which is how a gate passes without ever "
                      "having been tested."),

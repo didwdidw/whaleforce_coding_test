@@ -108,6 +108,13 @@ def selftest() -> dict[str, Any]:
 
     baseline = ground_truth(category="instruments")
     failures = []
+    # A self-test that compares nothing passes for the wrong reason: with no seeds, or an
+    # empty baseline, "identical under every mutation" is trivially true (A11.7).
+    if not SEEDS:
+        failures.append({"seed": None, "reason": "no mutation seeds to check"})
+    if not baseline.get("all_skus"):
+        failures.append({"seed": None,
+                         "reason": "baseline result set is empty, so equality proves nothing"})
     for seed in SEEDS:
         after = ground_truth(category="instruments")
         if after != baseline:

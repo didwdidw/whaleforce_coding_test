@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
+import os
 import sqlite3
 import time
 from dataclasses import dataclass
@@ -25,6 +27,8 @@ from app.models import (
     BudgetUse, DiagnosedCause, FailureClass, Run, RunState, StepKind, StrategyFamily,
     TerminalStatus, TraceEntry, Tier,
 )
+
+log = logging.getLogger(__name__)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
@@ -79,7 +83,20 @@ CREATE TABLE IF NOT EXISTS artifacts (
     -- 'stored' or 'expired'. Expiry keeps the row, the hash and the length; only the
     -- bytes go. A dangling reference is never produced.
     state        TEXT NOT NULL DEFAULT 'stored',
-    expired_at   REAL
+    expired_at   REAL,
+    -- Pinned artifacts are never evicted, by age or by disk pressure (A11.3). The
+    -- homepage's demonstrations are the whole of the pinned set.
+    pinned       INTEGER NOT NULL DEFAULT 0
+);
+
+-- Every eviction, so evidence disappearing is a recorded operational event rather than
+-- something noticed later by a broken link (A11.6).
+CREATE TABLE IF NOT EXISTS retention_events (
+    at        REAL NOT NULL,
+    reason    TEXT NOT NULL,
+    artifacts INTEGER NOT NULL,
+    bytes     INTEGER NOT NULL,
+    detail    TEXT
 );
 CREATE INDEX IF NOT EXISTS artifacts_run ON artifacts (run_id);
 CREATE INDEX IF NOT EXISTS artifacts_state ON artifacts (state, retrieved_at);
@@ -99,6 +116,25 @@ CREATE TABLE IF NOT EXISTS status_coverage (
 """
 
 
+def _unavailable(path: Path, error: str) -> str:
+    return (
+        f"REFUSING TO START: the artifact store at {path} is not usable ({error}).\n"
+        f"Evidence bundles are the product's central claim, so writing them somewhere that "
+        f"disappears on the next deploy is not an acceptable fallback — it works, it looks "
+        f"fine, and every stored artifact is gone the next time the service restarts.\n"
+        f"In production: attach the persistent volume and mount it at the parent of this "
+        f"path. Locally: set DATA_DIR to a writable directory.")
+
+
+class StoreUnavailable(RuntimeError):
+    """The artifact store is not mounted or not writable.
+
+    In production this is a startup failure (A10.8, A11.5). Falling back to ephemeral
+    storage would work, look fine, and destroy every evidence bundle on the next deploy —
+    which is exactly the condition the volume exists to fix.
+    """
+
+
 @dataclass
 class ArtifactRef:
     id: str
@@ -111,6 +147,19 @@ class ArtifactRef:
     sha256: str
     state: str
     expired_at: float | None = None
+    pinned: bool = False
+
+    @property
+    def retrieved_on(self) -> str:
+        return time.strftime("%Y-%m-%d", time.gmtime(self.retrieved_at))
+
+    @property
+    def expired_on(self) -> str | None:
+        """The date expiry happened, so the UI can say "expired on 2026-08-10" rather than
+        showing an empty panel (A11.4)."""
+        if self.expired_at is None:
+            return None
+        return time.strftime("%Y-%m-%d", time.gmtime(self.expired_at))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -118,25 +167,88 @@ class ArtifactRef:
             "kind": self.kind,
             "source_url": self.source_url,
             "retrieved_at": self.retrieved_at,
+            "retrieved_on": self.retrieved_on,
             "media_type": self.media_type,
             "length": self.length,
             "sha256": self.sha256,
             "state": self.state,
             "expired_at": self.expired_at,
+            "expired_on": self.expired_on,
+            "pinned": self.pinned,
             "available": self.state == "stored",
         }
 
 
 class Store:
     def __init__(self, db_path: Path | None = None, artifact_dir: Path | None = None) -> None:
-        self.db_path = db_path or settings.db_path
-        self.artifact_dir = artifact_dir or settings.artifact_dir
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.artifact_dir.mkdir(parents=True, exist_ok=True)
+        self.db_path = db_path if db_path is not None else settings.db_path
+        self.artifact_dir = (artifact_dir if artifact_dir is not None
+                             else settings.artifact_dir)
+        try:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+            self.artifact_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise StoreUnavailable(_unavailable(self.artifact_dir, str(exc))) from exc
+        probe = self.probe()
+        if not probe["writable"]:
+            raise StoreUnavailable(_unavailable(self.artifact_dir, probe["error"]))
+        if settings.require_persistent_store and not probe["mounted"]:
+            raise StoreUnavailable(_unavailable(
+                self.artifact_dir,
+                "it is on the container's own filesystem, not a mounted volume — the "
+                "directory exists and is writable, which is exactly why this would "
+                "otherwise go unnoticed until a deploy deleted every artifact"))
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(SCHEMA)
+        self._migrate()
         self._conn.commit()
+
+    def _migrate(self) -> None:
+        """Add columns a previously-created database does not have.
+
+        `CREATE TABLE IF NOT EXISTS` does nothing to an existing table, which was harmless
+        while storage was ephemeral and stops being harmless the moment a volume makes the
+        database outlive the code that wrote it.
+        """
+        existing = {row["name"] for row in
+                    self._conn.execute("PRAGMA table_info(artifacts)")}
+        if "pinned" not in existing:
+            self._conn.execute(
+                "ALTER TABLE artifacts ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
+            self._conn.commit()
+
+    def probe(self) -> dict[str, Any]:
+        """Confirm the store is really writable by writing to it (A11.5).
+
+        A path-existence check passes on an unmounted directory, a read-only mount and a
+        full disk alike — all three of which are exactly the states this needs to catch.
+        """
+        marker = self.artifact_dir / ".write-probe"
+        payload = f"{time.time():.6f}".encode()
+        result: dict[str, Any] = {"path": str(self.artifact_dir),
+                                  "mounted": self._on_its_own_device(),
+                                  "checked_at": time.time()}
+        try:
+            marker.write_bytes(payload)
+            ok = marker.read_bytes() == payload
+            marker.unlink(missing_ok=True)
+            return {**result, "writable": ok,
+                    "error": None if ok else "readback did not match what was written"}
+        except OSError as exc:
+            return {**result, "writable": False, "error": f"{type(exc).__name__}: {exc}"}
+
+    def _on_its_own_device(self) -> bool:
+        """True when the data directory sits on a different filesystem from `/`.
+
+        A mounted volume has its own device id; a directory the image happened to create
+        does not. This is the difference between persistent storage and storage that looks
+        persistent right up until the next deploy.
+        """
+        try:
+            return os.stat(self.artifact_dir).st_dev != os.stat("/").st_dev
+        except OSError:
+            return False
 
     def close(self) -> None:
         self._conn.close()
@@ -271,21 +383,25 @@ class Store:
 
     def put_artifact(self, run_id: str, kind: str, data: bytes, *,
                      source_url: str | None = None, media_type: str | None = None,
-                     artifact_id: str | None = None) -> ArtifactRef:
+                     artifact_id: str | None = None, pinned: bool = False) -> ArtifactRef:
         from app.models import new_id
         aid = artifact_id or new_id("art")
         digest = hashlib.sha256(data).hexdigest()
         path = self.artifact_dir / f"{aid}.bin"
-        path.write_bytes(data)
+        try:
+            path.write_bytes(data)
+        except OSError as exc:
+            raise StoreUnavailable(
+                f"Could not write artifact {aid} to {path}: {exc}") from exc
         ref = ArtifactRef(id=aid, run_id=run_id, kind=kind, source_url=source_url,
                           retrieved_at=time.time(), media_type=media_type,
-                          length=len(data), sha256=digest, state="stored")
+                          length=len(data), sha256=digest, state="stored", pinned=pinned)
         self._conn.execute(
             """INSERT INTO artifacts (id, run_id, kind, source_url, retrieved_at,
-                                      media_type, length, sha256, path, state)
-               VALUES (?,?,?,?,?,?,?,?,?,'stored')""",
+                                      media_type, length, sha256, path, state, pinned)
+               VALUES (?,?,?,?,?,?,?,?,?,'stored',?)""",
             (aid, run_id, kind, source_url, ref.retrieved_at, media_type, ref.length,
-             digest, str(path)))
+             digest, str(path), int(pinned)))
         self._conn.commit()
         return ref
 
@@ -298,7 +414,8 @@ class Store:
             id=row["id"], run_id=row["run_id"], kind=row["kind"],
             source_url=row["source_url"], retrieved_at=row["retrieved_at"],
             media_type=row["media_type"], length=row["length"], sha256=row["sha256"],
-            state=row["state"], expired_at=row["expired_at"])
+            state=row["state"], expired_at=row["expired_at"],
+            pinned=bool(row["pinned"]))
 
     def read_artifact(self, artifact_id: str) -> bytes | None:
         """Bytes if still stored, None if expired. Verification re-resolves anchors in the
@@ -316,38 +433,79 @@ class Store:
 
     def enforce_retention(self, *, retention_days: int | None = None,
                           max_mib: int | None = None) -> dict[str, Any]:
-        """Bound storage growth (A9.7.2) by expiring bytes, never rows.
+        """Bound storage growth by expiring bytes, never rows (A9.7.2, A11.6).
 
-        Age first, then size — oldest first — until the store is under its ceiling.
+        Age first, then size, oldest-first, and **never a pinned artifact**: the homepage's
+        demonstrations must still resolve for a grader arriving two weeks after deployment
+        (A11.3). Every eviction is recorded — evidence disappearing quietly is the thing
+        this is meant to prevent, so a silent sweep would defeat its own purpose.
         """
         # `or` here would turn an explicit 0 — "expire everything now" — into the default.
         retention_days = (settings.artifact_retention_days if retention_days is None
                           else retention_days)
         max_mib = settings.artifact_store_max_mib if max_mib is None else max_mib
+        ceiling = max_mib * 1024 * 1024
+
         cutoff = time.time() - retention_days * 86_400
-        expired_by_age = self._expire(
-            self._conn.execute(
-                "SELECT id FROM artifacts WHERE state='stored' AND retrieved_at < ?",
-                (cutoff,)).fetchall())
+        aged = self._conn.execute(
+            "SELECT id, length FROM artifacts "
+            "WHERE state='stored' AND pinned=0 AND retrieved_at < ?", (cutoff,)).fetchall()
+        expired_by_age, bytes_by_age = self._expire(aged)
+        if expired_by_age:
+            self._record_retention("age", expired_by_age, bytes_by_age,
+                                   {"retention_days": retention_days})
 
         total = self._stored_bytes()
-        expired_by_size = 0
-        if total > max_mib * 1024 * 1024:
+        expired_by_size, bytes_by_size = 0, 0
+        if total > ceiling:
             for row in self._conn.execute(
-                    "SELECT id, length FROM artifacts WHERE state='stored' "
-                    "ORDER BY retrieved_at ASC"):
-                if total <= max_mib * 1024 * 1024:
+                    "SELECT id, length FROM artifacts WHERE state='stored' AND pinned=0 "
+                    "ORDER BY retrieved_at ASC").fetchall():
+                if total <= ceiling:
                     break
-                self._expire([row])
+                n, freed = self._expire([row])
                 total -= row["length"]
-                expired_by_size += 1
+                expired_by_size += n
+                bytes_by_size += freed
+        if expired_by_size:
+            self._record_retention("size", expired_by_size, bytes_by_size,
+                                   {"max_mib": max_mib})
+
+        stored = self._stored_bytes()
+        fraction = stored / ceiling if ceiling else 0.0
+        warn_at = settings.artifact_store_warn_fraction
+        if fraction >= warn_at:
+            # Visible before evidence starts disappearing, not after (A11.6).
+            log.warning("artifact store at %.0f%% of its %d MiB ceiling (%d MiB stored); "
+                        "evidence will begin to be evicted at 100%%",
+                        fraction * 100, max_mib, stored // (1024 * 1024))
+        if total > ceiling:
+            log.error("artifact store still over its ceiling after a sweep: %d MiB of "
+                      "%d MiB, and the remainder is pinned", total // (1024 * 1024), max_mib)
         return {
             "expired_by_age": expired_by_age,
             "expired_by_size": expired_by_size,
-            "stored_bytes": self._stored_bytes(),
+            "bytes_freed": bytes_by_age + bytes_by_size,
+            "stored_bytes": stored,
             "retention_days": retention_days,
             "max_mib": max_mib,
+            "fraction_of_ceiling": round(fraction, 3),
+            "over_ceiling": total > ceiling,
+            "warn": fraction >= warn_at,
         }
+
+    def _record_retention(self, reason: str, artifacts: int, freed: int,
+                          detail: dict[str, Any]) -> None:
+        self._conn.execute(
+            "INSERT INTO retention_events (at, reason, artifacts, bytes, detail) "
+            "VALUES (?,?,?,?,?)",
+            (time.time(), reason, artifacts, freed, json.dumps(detail)))
+        self._conn.commit()
+        log.info("retention: expired %d artifacts (%d bytes) by %s", artifacts, freed, reason)
+
+    def retention_events(self, limit: int = 10) -> list[dict[str, Any]]:
+        return [dict(r) for r in self._conn.execute(
+            "SELECT * FROM retention_events ORDER BY at DESC LIMIT ?", (limit,))]
 
     def _stored_bytes(self) -> int:
         row = self._conn.execute(
@@ -355,31 +513,55 @@ class Store:
         ).fetchone()
         return int(row["n"])
 
-    def _expire(self, rows: Iterable[sqlite3.Row]) -> int:
-        n = 0
+    def _expire(self, rows: Iterable[sqlite3.Row]) -> tuple[int, int]:
+        """Reclaim bytes, keep the row. Returns (count, bytes freed)."""
+        n, freed = 0, 0
         for row in rows:
-            ref = self._conn.execute("SELECT path FROM artifacts WHERE id = ?",
-                                     (row["id"],)).fetchone()
+            ref = self._conn.execute(
+                "SELECT path, length, pinned FROM artifacts WHERE id = ?",
+                (row["id"],)).fetchone()
+            if ref and ref["pinned"]:
+                continue          # belt and braces: pinned never expires (A11.3)
             if ref and ref["path"]:
                 Path(ref["path"]).unlink(missing_ok=True)
             self._conn.execute(
                 "UPDATE artifacts SET state='expired', expired_at=?, path=NULL WHERE id=?",
                 (time.time(), row["id"]))
             n += 1
+            freed += ref["length"] if ref else 0
         if n:
             self._conn.commit()
-        return n
+        return n, freed
 
     def storage_status(self) -> dict[str, Any]:
-        stored = self._conn.execute(
-            "SELECT COUNT(*) AS n FROM artifacts WHERE state='stored'").fetchone()["n"]
-        expired = self._conn.execute(
-            "SELECT COUNT(*) AS n FROM artifacts WHERE state='expired'").fetchone()["n"]
+        counts = {row["k"]: row["n"] for row in self._conn.execute(
+            "SELECT state AS k, COUNT(*) AS n FROM artifacts GROUP BY state")}
+        pinned = self._conn.execute(
+            "SELECT COUNT(*) AS n FROM artifacts WHERE pinned=1").fetchone()["n"]
+        stored_bytes = self._stored_bytes()
+        ceiling = settings.artifact_store_max_mib * 1024 * 1024
+        fraction = round(stored_bytes / ceiling, 3) if ceiling else 0.0
+        probe = self.probe()
         return {
-            "artifacts_stored": stored,
-            "artifacts_expired": expired,
-            "stored_mib": round(self._stored_bytes() / 1024 / 1024, 1),
+            "artifacts_stored": counts.get("stored", 0),
+            "artifacts_expired": counts.get("expired", 0),
+            "artifacts_pinned": pinned,
+            "stored_mib": round(stored_bytes / 1024 / 1024, 1),
             "max_mib": settings.artifact_store_max_mib,
+            "fraction_of_ceiling": fraction,
+            "warn_fraction": settings.artifact_store_warn_fraction,
+            "approaching_ceiling": fraction >= settings.artifact_store_warn_fraction,
             "retention_days": settings.artifact_retention_days,
-            "note": "Expired artifacts keep their row, hash and length; only bytes are removed.",
+            "data_dir": str(self.artifact_dir),
+            "writable": probe["writable"],
+            "on_mounted_volume": probe["mounted"],
+            "mount_required": settings.require_persistent_store,
+            # Persistent means the evidence outlives a deploy. In development the store is
+            # an ordinary directory and this is honestly false rather than assumed true.
+            "persistent": probe["writable"] and probe["mounted"],
+            "write_probe": probe,
+            "recent_evictions": self.retention_events(5),
+            "note": ("Expired artifacts keep their row, hash, length and dates; only bytes "
+                     "are removed. Pinned artifacts (the homepage demonstrations) are never "
+                     "evicted."),
         }

@@ -115,8 +115,31 @@ shortcut-proof. If it returns 200, the wrong thing is deployed.
 | `ALLOW_PRIVATE_EGRESS` | **do not set** |
 | Domain | Generate Domain, e.g. `wf-agent.zeabur.app` |
 
-Optionally add a volume mounted at `/data` so runs and artifacts survive a redeploy.
-Without it the store starts empty on each release — acceptable, but it should be a decision.
+### The volume is not optional, and it must exist before this service starts (A11.1)
+
+**Attach a persistent volume to the `app` service and mount it at `/data`.** Do this
+*before* deploying the release that carries Amendment 11, because the app now refuses to
+start without it. That is deliberate: the alternative is writing evidence to the container
+filesystem, which works, looks correct, and deletes every artifact on the next deploy.
+
+The store makes two checks at startup, and both have to pass:
+
+1. **A write probe** — it writes, reads back, and deletes a marker. A path-existence check
+   passes on an unmounted directory, a read-only mount and a full disk alike.
+2. **A mount check** — the data directory's device id must differ from `/`. The image
+   creates `/data` itself, so without this the probe would happily succeed on ephemeral
+   storage. This is the check that catches "the volume was never attached".
+
+`DATA_DIR` is **not** set in the image; the default `/data/task1` lives in `app/config.py`.
+Set `DATA_DIR` only to override it. `REQUIRE_PERSISTENT_STORE=false` switches off check 2
+and belongs in local development only — setting it in production reintroduces exactly the
+silent data loss the volume was mounted to prevent.
+
+**The accepted cost (A11.2):** Zeabur switches a volume-mounted service from
+`RollingUpdate` to `Recreate`, so each deploy now takes a full cold start of downtime
+(~8 s measured, M1 report §4.1) instead of the overlapping rollout. This is paid during
+development and repaid during grading, and it must be stated in the analysis report rather
+than presented as free.
 
 **Build provenance.** `.dockerignore` excludes `.git`, so the commit is baked in as the
 `GIT_SHA` build argument. If Zeabur exposes the commit as `ZEABUR_GIT_COMMIT_SHA` at
@@ -186,6 +209,31 @@ image on the node** is the routine case, and **a full redeploy including the pul
 window a pushed version is exposed to. Check `/healthz` at the first `200` as well — if
 `browser.connected` is false there, the homepage is answering before the system can actually
 run anything, and the real cold start is longer than the HTTP number suggests.
+
+## Persistence checks after a deploy (A-29, A-30, A-31)
+
+```bash
+APP=https://wf-agent.zeabur.app
+
+# A-31: the store reports its own state, and health fails if it is not usable.
+curl -s $APP/healthz | python3 -c 'import json,sys; d=json.load(sys.stdin)["storage"]; \
+  print({k: d[k] for k in ("data_dir","writable","on_mounted_volume","persistent",
+                           "artifacts_pinned","fraction_of_ceiling")})'
+
+# A-29: note a run id now, redeploy, then confirm its artifact still resolves.
+curl -s $APP/api/runs/<run-id> | python3 -c 'import json,sys; \
+  print([(a["artifact_id"], a["state"]) for a in json.load(sys.stdin)["artifacts"]])'
+curl -s -o /dev/null -w "%{http_code}\n" $APP/api/artifacts/<artifact-id>   # expect 200
+
+# A-30: an expired artifact answers 410 with its metadata and a date, never 404.
+curl -s $APP/api/artifacts/<expired-id> | python3 -m json.tool | head -14
+```
+
+Expect from A-30: `state: expired`, `expired_on` set, and `source_url`, `retrieved_on`,
+`sha256` and `length` all still present. The run page shows **expired on `<date>`** with the
+hash retained, not an empty panel. The homepage demonstrations are pinned and never expire;
+each shows the date its evidence was captured, so a two-week-old demonstration reads as
+dated rather than current.
 
 ## Capacity this deployment has to fit in — measured, not estimated
 
