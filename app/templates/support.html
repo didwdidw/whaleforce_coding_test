@@ -64,6 +64,16 @@
       so the frontend stays inspectable when the provider is not reachable, and it is the
       baseline the analysis report compares against. Both go through the same verification,
       and each run records which one it took.</li>
+    {% if build.generic_loop %}
+    <li><strong>An experimental run is held to a weaker postcondition, and the difference
+      matters.</strong> The site and the binding rule are frozen before browsing, but the
+      label cannot be — nobody knows it in advance on a site we have never seen. So the
+      model points at where a value lives and names the label it is bound to; code reads the
+      value from that label, first on the live page and again from the stored artifact. That
+      is one rule over two captures, where a promised record gets two independent rules. It
+      catches a value not bound to its label and a page that changed under the run. It would
+      not catch the rule itself being wrong.</li>
+    {% endif %}
     <li><strong><code>verified</code> does not mean "true".</strong> It means the claim
       is consistent with a preserved artifact and passes deterministic type, unit, date and
       entity checks. A value that is correct in form but taken from the wrong row, entity or

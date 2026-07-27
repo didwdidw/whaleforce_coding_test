@@ -162,7 +162,21 @@ class Verifier:
 
         # A run that navigated somewhere else answers a different question, however clean
         # its trace looks. This check is what catches a mis-routed plan.
-        if not _same_page(ref.source_url, pc.target_url):
+        #
+        # An undeclared task freezes the *site* instead of the page: nobody knows which page
+        # of an unseen site holds the answer, so demanding the entry page would fail every
+        # honest run that navigated once. It is a weaker constraint that still catches the
+        # failure it exists for — evidence produced somewhere the task never named.
+        site_scope = (pc.inputs or {}).get("url_scope") == "site"
+        if site_scope and not _same_site(ref.source_url, pc.target_url):
+            checks.append(Check("artifact_source_matches_plan", False,
+                                {"artifact_source_url": ref.source_url,
+                                 "plan_target_site": pc.target_url, "scope": "site"}))
+            return Verdict(
+                TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
+                f"The evidence was captured on {ref.source_url}, which is not on the site "
+                f"the task named ({pc.target_url}).", checks)
+        if not site_scope and not _same_page(ref.source_url, pc.target_url):
             checks.append(Check("artifact_source_matches_plan", False,
                                 {"artifact_source_url": ref.source_url,
                                  "plan_target_url": pc.target_url}))
@@ -206,7 +220,7 @@ class Verifier:
                       segment: list[int], pc: Postcondition
                       ) -> tuple[ClaimResult, Any]:
         try:
-            value, span, anchor = self._extract(spec, tree)
+            value, span, anchor = self._extract(spec, tree, candidate)
         except AnchorNotFound as exc:
             if spec.relation is Relation.ELEMENT_ABSENT:
                 # The anchor resolving is the failure here: the element that had to be gone
@@ -255,7 +269,10 @@ class Verifier:
                 f"{theirs!r}.", bundle), None
         return ClaimResult(spec.name, True, None, "", bundle), value
 
-    def _extract(self, spec: ClaimSpec, tree) -> tuple[Any, str, str]:
+    def _extract(self, spec: ClaimSpec, tree,
+                 candidate: dict[str, Any]) -> tuple[Any, str, str]:
+        if spec.relation is Relation.LOCATED_LABEL:
+            return _located_label(tree, spec, candidate)
         if spec.relation is Relation.TABLE_ROW_CELL:
             return _table_row_cell(tree, spec)
         if spec.relation is Relation.COUNTER_ECHO:
@@ -586,6 +603,91 @@ def _sort_state(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
     return value, f"{spec.label}: {direction}", f"th[text()={spec.label!r}]/@class|@aria-sort"
 
 
+#: Anchor suffix a claim's located label is carried under in the candidate. The value and
+#: the label it was read from travel together or the pair means nothing.
+ANCHOR_SUFFIX = "_anchor"
+
+
+def _bound_to(label_element) -> list[tuple[str, str]]:
+    """What a label element binds to, by structure only — (value, how it was reached).
+
+    The same relations S-4.9 names, applied without knowing the site in advance: a header
+    cell binds the data cell of its row, a `dt` binds its `dd`, a `label[for]` binds the
+    control it names, and anything else binds its next element sibling. Nothing here reads
+    proximity on screen or the order of the document at large.
+    """
+    tag = label_element.tag if isinstance(label_element.tag, str) else ""
+    found: list[tuple[str, str]] = []
+    if tag in ("th", "td"):
+        row = label_element.getparent()
+        if row is not None and row.tag == "tr":
+            cells = row.xpath("./th|./td")
+            index = cells.index(label_element)
+            if index + 1 < len(cells):
+                found.append((norm(cells[index + 1].text_content()), "same row, next cell"))
+    if tag == "dt":
+        sibling = label_element.getnext()
+        if sibling is not None and sibling.tag == "dd":
+            found.append((norm(sibling.text_content()), "dt → dd"))
+    if tag == "label" and label_element.get("for"):
+        for target in label_element.xpath(f'//*[@id=$id]', id=label_element.get("for")):
+            found.append((norm(target.get("value") or target.text_content()),
+                          "label[for] → control"))
+    if not found:
+        sibling = label_element.getnext()
+        if sibling is not None and isinstance(sibling.tag, str):
+            found.append((norm(sibling.text_content()), "next element sibling"))
+    return [(value, how) for value, how in found if value]
+
+
+def _located_label(tree, spec: ClaimSpec, candidate: dict[str, Any]) -> tuple[Any, str, str]:
+    """Re-resolve the label the run located, and read what is bound to it (A13.2.3).
+
+    The run says "the answer is X, and I read it next to the label L". This finds L in the
+    stored artifact and reads what is bound to it independently. The model chose where to
+    look; it does not get to decide what was there.
+    """
+    wanted = norm(str(candidate.get(spec.name + ANCHOR_SUFFIX, "")))
+    if not wanted:
+        raise AnchorNotFound(
+            "The run produced no label for this claim, so there is nothing to bind the "
+            "value to. An answer with no anchor is a reading, not a verification")
+    matches = [el for el in tree.iter()
+               if isinstance(el.tag, str)
+               and norm(el.text_content()).lower() == wanted.lower()
+               and not any(norm(child.text_content()).lower() == wanted.lower()
+                           for child in el.iterdescendants() if isinstance(child.tag, str))]
+    if not matches:
+        raise AnchorNotFound(f"No element in the artifact reads {wanted!r}")
+    values = {}
+    for element in matches:
+        # A label is routinely wrapped — `<th><a>Stable release</a></th>` — and the link
+        # binds to nothing, so the innermost match alone failed on every Wikipedia infobox
+        # while the label was plainly there. Climb only while the enclosing element says
+        # exactly the same thing, and stop at the first level that actually binds; going
+        # all the way out reaches a container whose "next sibling" is unrelated.
+        node = element
+        while node is not None:
+            bound = _bound_to(node)
+            if bound:
+                for value, how in bound:
+                    values.setdefault(value, how)
+                break
+            parent = node.getparent()
+            node = (parent if parent is not None and isinstance(parent.tag, str)
+                    and norm(parent.text_content()).lower() == wanted.lower() else None)
+    if not values:
+        raise AnchorNotFound(
+            f"The label {wanted!r} is in the artifact but nothing is structurally bound to "
+            f"it, so the value beside it on screen cannot be tied to it")
+    if len(values) > 1:
+        raise AnchorAmbiguous(
+            f"The label {wanted!r} binds to {len(values)} different values "
+            f"({sorted(values)}). Choosing one would be a guess.")
+    span, how = next(iter(values.items()))
+    return _coerce(span, spec.value_type), span, f"label({wanted!r}) → {how}"
+
+
 def _element_absent(tree, spec: ClaimSpec) -> tuple[Any, str, str]:
     found = tree.xpath(spec.container) if spec.container else []
     if found:
@@ -684,6 +786,19 @@ def _same_page(source_url: str | None, target_url: str) -> bool:
     a, b = urlsplit(source_url), urlsplit(target_url)
     return ((a.scheme, a.netloc, unquote(a.path).rstrip("/"))
             == (b.scheme, b.netloc, unquote(b.path).rstrip("/")))
+
+
+def _same_site(source_url: str | None, target_url: str) -> bool:
+    """Same scheme and host. The constraint an undeclared task can honestly freeze.
+
+    Host comparison ignores a leading `www.`, because the task names a site the way a
+    person writes it and the site may answer on either spelling.
+    """
+    if not source_url:
+        return False
+    a, b = urlsplit(source_url), urlsplit(target_url)
+    strip = lambda host: host.lower().removeprefix("www.")  # noqa: E731
+    return a.scheme == b.scheme and strip(a.netloc) == strip(b.netloc)
 
 
 def _missing_actions(run: Run, pc: Postcondition) -> list[str]:

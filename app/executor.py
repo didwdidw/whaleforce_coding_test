@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 from urllib.parse import urlsplit
 
+from lxml import html as lxml_html
 from playwright.async_api import BrowserContext, Page
 
 from app import egress
@@ -126,6 +127,24 @@ OUT_OF_SCOPE = (
 )
 
 
+#: How an undeclared task names where to start. An explicit URL first; otherwise a bare
+#: hostname, which is how people actually write one ("on www.gutenberg.org, find…").
+#: Parentheses are part of the path often enough to matter — Wikipedia disambiguates with
+#: them — so a closing one is kept when the URL opened it. Cutting it produced a URL that
+#: 404s, and the run then spent model calls recovering from our own truncation.
+URL_IN_TASK = re.compile(r"https?://(?:[^\s,;\"']|\([^\s,;\"')]*\))+")
+HOST_IN_TASK = re.compile(
+    r"\b((?:[a-z0-9][a-z0-9-]*\.)+(?:com|org|net|edu|gov|int|io|ai|co|dev|info|me|"
+    r"uk|de|fr|jp|tw|cn|eu))\b(/[^\s,;\"')]*[^\s,;\"')?.!])?")
+
+#: Words a goal is never *about*, so the reducer is not told to keep the page around them.
+GOAL_STOPWORDS = frozenset({
+    "the", "and", "for", "with", "that", "this", "from", "into", "onto", "its", "it's",
+    "tell", "show", "find", "read", "get", "give", "list", "what", "which", "how", "many",
+    "much", "does", "did", "are", "was", "were", "you", "your", "please", "then", "there",
+    "then", "about", "page", "site", "website", "com", "org", "www", "http", "https",
+})
+
 # Words that are never a search term on their own.
 STOPWORDS = frozenset({
     "the", "a", "an", "for", "it", "this", "that", "all", "any", "some", "our", "my",
@@ -194,6 +213,8 @@ class ExecutionContext:
     #: What the last action actually produced, fed back so the planner can tell a step that
     #: worked from one that did nothing.
     last_observed: str = ""
+    #: The markup of the element the last `extract` pointed at.
+    last_fragment: str = ""
 
     def deadline_exceeded(self) -> bool:
         return self.run.budget.elapsed_seconds > settings.budgets.wall_clock_seconds
@@ -291,29 +312,52 @@ class Executor:
                 f"No page was requested and no network activity occurred.")
             return
 
-        operation, candidates, hits = self.route(run.task)
-        plan = self._select_plan(run.task) if operation else None
-        if plan is None:
-            ambiguous = len(candidates) > 1
-            entry = self._step(
-                run, StepKind.NOTE,
-                f"Routing matched {len(candidates)} operations" if ambiguous
-                else "No operation matched this task",
-                candidates=candidates, markers=hits)
+        foreign = self.names_a_site_we_do_not_serve(run.task)
+        operation, candidates, hits = ("generic", [], {}) if foreign else self.route(run.task)
+        plan = (self._plan_generic(run.task) if foreign else
+                self._select_plan(run.task) if operation else None)
+        if plan is None and len(candidates) > 1:
+            # Two promised operations match, so which one was asked for is genuinely
+            # unanswerable. Refusing to choose is the decision; it is not "no script".
+            entry = self._step(run, StepKind.NOTE,
+                               f"Routing matched {len(candidates)} operations",
+                               candidates=candidates, markers=hits)
             self._finish_step(run, entry, ok=False)
             self._terminate(
                 run, TerminalStatus.UNSUPPORTED, FailureClass.POLICY_REFUSED,
-                (f"This task matches more than one operation ({', '.join(candidates)}), so "
-                 f"which one was asked for is ambiguous. Choosing one would produce an "
-                 f"answer to a question that may not have been asked, so the run stopped "
-                 f"before browsing. Rephrase to name a single operation."
-                 if ambiguous else
-                 "This task does not map to any operation this build can plan for, so it "
-                 "stopped before browsing rather than guessing. This is a gap in the "
-                 "build, not a policy decision about the task: attempting an arbitrary "
-                 "read-only site through the generic loop is not in this milestone. "
-                 "Recognised inputs are listed on the submit form."))
+                f"This task matches more than one operation ({', '.join(candidates)}), so "
+                f"which one was asked for is ambiguous. Choosing one would produce an "
+                f"answer to a question that may not have been asked, so the run stopped "
+                f"before browsing. Rephrase to name a single operation.")
             return
+
+        if plan is None:
+            # Not a promised record. It is attempted anyway, by the generic loop — "we have
+            # no script for this" is a fact about us, never a policy refusal of the task.
+            plan = self._plan_generic(run.task)
+            entry = self._step(
+                run, StepKind.NOTE,
+                f"No promised record matches; attempting as {Tier.EXPERIMENTAL.value}"
+                if plan else "No promised record matches and no entry point was named",
+                candidates=candidates, markers=hits,
+                entry_url=plan.entry_url if plan else "")
+            self._finish_step(run, entry, ok=plan is not None)
+            if plan is None:
+                self._terminate(
+                    run, TerminalStatus.UNSUPPORTED, FailureClass.POLICY_REFUSED,
+                    "This task names no page or site to start from, and no promised "
+                    "operation recognises it, so there is nowhere to begin. Picking a "
+                    "starting page the task never named would answer a question nobody "
+                    "asked. Name a URL or a site — for example \"on example.org, …\" — and "
+                    "it will be attempted best-effort as an experimental run.")
+                return
+            if not self._provider.configured():
+                self._terminate(
+                    run, TerminalStatus.BLOCKED, FailureClass.PROVIDER_ERROR,
+                    "A task outside the promised records is driven entirely by the model, "
+                    "and no provider credential is readable, so there is no deterministic "
+                    "path to fall back to. The promised operations are unaffected.")
+                return
 
         low = run.task.lower()
         asked_for_planner = bool(PLANNER_MARKER.search(low)) or settings.planner_forced
@@ -374,9 +418,15 @@ class Executor:
         """
         if asked_for_planner:
             return True, "requested"
+        if plan.operation == "generic":
+            # There is no script for a site nobody declared; that is what makes it generic.
+            return True, "undeclared task, which only the generic loop can attempt"
         if asked_for_script:
             return False, "deterministic path requested as the comparison baseline"
-        if not plan.entry_url:
+        if not plan.entry_url or not plan.postcondition.claims:
+            # Nothing for a model to plan toward: a plan with no claims is a policy
+            # demonstration, and driving it with the model spends quota to reach a refusal
+            # that was decided before the first fetch.
             return False, "policy demonstration, not a browsing task"
         if not settings.planner_default_on_real_sites:
             return False, "model-driven default disabled by configuration"
@@ -525,10 +575,8 @@ class Executor:
                 self._store.save_run(run)
 
                 if proposal.action == "abstain":
-                    self._terminate(
-                        run, TerminalStatus.UNSUPPORTED, FailureClass.POLICY_REFUSED,
-                        f"The planner abstained rather than acting on a guess: "
-                        f"{proposal.args.get('reason', '')}")
+                    await self._abstain(ctx, plan, step,
+                                        str(proposal.args.get("reason", "")), history)
                     return
                 if proposal.action == "finish":
                     break
@@ -564,6 +612,40 @@ class Executor:
             if plan.read_step is not None and not already_read:
                 await plan.read_step(ctx)
             await self._verify(run, ctx)
+
+    async def _abstain(self, ctx: ExecutionContext, plan: Plan, step: int, reason: str,
+                       history: list[str]) -> None:
+        """Stop without answering, and say enough for the stop to be checkable (A2.2).
+
+        Three things, all of them observations rather than adjectives: the step it stopped
+        at, the page state it was looking at when it stopped, and which part of the frozen
+        postcondition could not be reached. Generic text is not an abstention; it is a
+        refusal wearing one's clothes, and it is indistinguishable from a defect.
+
+        The failure class is `postcondition_unmet`, not `policy_refused`. Nothing about
+        policy stopped this run — it browsed, it looked, and it could not get there.
+        """
+        run = ctx.run
+        try:
+            title = (await ctx.page.title())[:120]
+        except Exception:  # noqa: BLE001 - a page that cannot report is still a state
+            title = "(page title unavailable)"
+        url = ctx.page.url
+        await self._capture(ctx, f"abstained-step-{step}")
+        unmet = ", ".join(c.name for c in plan.postcondition.claims) or "the declared goal"
+        entry = self._step(run, StepKind.NOTE, f"Abstained at step {step}",
+                           reason=reason, url=url, title=title,
+                           steps_taken=history[-5:], unmet=unmet)
+        self._finish_step(run, entry, ok=False)
+        self._terminate(
+            run, TerminalStatus.UNSUPPORTED, FailureClass.POSTCONDITION_UNMET,
+            f"Stopped at step {step} without answering, rather than guessing. "
+            f"Reason given: {reason or '(none stated)'}. "
+            f"Last observed page: {title!r} at {url}. "
+            f"Unverified part of the frozen postcondition: {unmet}. "
+            f"Actions taken before stopping: "
+            f"{'; '.join(history[-5:]) if history else 'none'}. "
+            f"A snapshot of the page as it was at that moment is stored with this run.")
 
     async def _goal_already_met(self, ctx: ExecutionContext, plan: Plan) -> bool:
         """Whether the loop can stop, decided by code against the frozen postcondition.
@@ -654,6 +736,7 @@ class Executor:
             return cause
 
         self._finish_step(run, entry, url=ctx.page.url, observed=observed,
+                          fragment=ctx.last_fragment if proposal.action == "extract" else "",
                           repair=("recovery" if entry.is_recovery else
                                   "retry" if entry.is_retry else "first attempt"))
         self._store.save_trace_entry(run.id, entry)
@@ -716,6 +799,11 @@ class Executor:
             element = await page.wait_for_selector(selector, state="attached",
                                                    timeout=timeout)
             text = (await element.inner_text())[:200] if element else ""
+            # The markup of what was pointed at, kept on the trace. An undeclared run has no
+            # scripted read step, so this fragment is where its candidate comes from — read
+            # by code, from the live page, at the moment the model pointed.
+            ctx.last_fragment = ((await element.evaluate("el => el.outerHTML"))[:40_000]
+                                 if element else "")
             await page.wait_for_timeout(150)
             return text
         else:
@@ -1598,6 +1686,128 @@ class Executor:
                     entry_url=BOOK_CATEGORY_NONFICTION,
                     terms=("results", "showing", "next", "Nonfiction"),
                     read_step=read_listing)
+
+    # ---- the undeclared path (A13.2) -------------------------------------------
+
+    @staticmethod
+    def resolve_entry(task: str) -> str:
+        """Where an undeclared task says to start, or "" if it never says.
+
+        Not being able to resolve one is a real outcome with its own explanation, not a
+        fallback to guessing a search engine — picking a starting page the task never named
+        is how a run ends up answering a question nobody asked.
+        """
+        explicit = URL_IN_TASK.search(task)
+        if explicit:
+            return explicit.group(0).rstrip(".,;:'\"")
+        host = HOST_IN_TASK.search(task.lower())
+        if host:
+            return f"https://{host.group(1)}{host.group(2) or '/'}"
+        return ""
+
+    @classmethod
+    def names_a_site_we_do_not_serve(cls, task: str) -> str:
+        """The task points at a host that is neither the fixture nor a promised record's.
+
+        Keyword routing is deliberately loose — `find` is a marker for the fixture search —
+        and that is fine while every task is one of ours. It stops being fine the moment a
+        task names somewhere else: "on www.gutenberg.org, **find** the Science Fiction
+        bookshelf" was captured by the fixture's search plan and refused for having no
+        search term, on a site the plan had never heard of. Where the task says to go
+        settles it before any keyword does.
+        """
+        entry = cls.resolve_entry(task)
+        if not entry:
+            return ""
+        host = urlsplit(entry).netloc.lower().removeprefix("www.")
+        ours = {urlsplit(settings.fixture_base_url).netloc.lower().removeprefix("www.")}
+        ours |= {r.site.lower().removeprefix("www.") for r in PROMISED_RECORDS}
+        return "" if host in ours else entry
+
+    @staticmethod
+    def goal_terms(task: str) -> tuple[str, ...]:
+        """What the reducer should keep the page around. The task's own content words —
+        on a site nobody has declared, they are the only signal we have about relevance."""
+        words = [w for w in re.findall(r"[A-Za-z0-9'£$€.-]{3,}", task)
+                 if w.lower().strip("'.-") not in GOAL_STOPWORDS]
+        seen: dict[str, None] = {}
+        for word in words:
+            seen.setdefault(word.strip("'.-"), None)
+        return tuple(seen)[:12]
+
+    def _plan_generic(self, task: str) -> Plan | None:
+        """A postcondition for a task on a site we have never seen (A13.2).
+
+        It is deliberately weaker than a promised record's and deliberately not absent. What
+        is frozen before browsing: the site the evidence must come from, and that whatever
+        the run reports has to be re-readable by code from a label the run located in the
+        stored artifact. What is not frozen — cannot be — is which label that will be.
+
+        A run that finds the answer somewhere with no structural binding fails to verify and
+        abstains. That is the intended behaviour, not a shortfall to be patched: an answer
+        with nothing holding it to the page is the plausible-but-wrong result this whole
+        system is built to refuse.
+        """
+        entry = self.resolve_entry(task)
+        if not entry:
+            return None
+        # What completion requires, stated in the frozen goal rather than left implicit.
+        # Without it the loop finishes the moment the value is visible in the view, no
+        # `extract` is ever proposed, and there is no label to verify against — a correct
+        # fail-closed outcome reached for a reason that was ours, not the page's.
+        pc = Postcondition(
+            goal=(f"{task.strip()}\n\nTo complete this task you MUST emit `extract` "
+                  f"pointing at the element that holds the value, with `label_anchor` set "
+                  f"to the exact visible text of the label it is bound to, before you "
+                  f"finish. Code re-reads the value from that label; a run that finishes "
+                  f"without one cannot be verified and is scored as a failure."),
+            operation="generic",
+            target_url=entry,
+            inputs={"entry_url": entry, "url_scope": "site",
+                    "binding": "value re-read by code from a label located in the artifact"},
+            claims=(ClaimSpec(name="answer", label="", relation=Relation.LOCATED_LABEL,
+                              value_type="string"),),
+        )
+        return Plan("generic", f"undeclared task on {urlsplit(entry).netloc}", pc, (),
+                    entry_url=entry, terms=self.goal_terms(task),
+                    read_step=self._read_generic)
+
+    async def _read_generic(self, ctx: ExecutionContext) -> None:
+        """The candidate for an undeclared run: the value code reads, beside the label the
+        model named, inside the element the model pointed at.
+
+        The model points; it never reports. What it points at is usually a container — the
+        reduced view offers a table by reference, not each of its cells — so taking the
+        pointed element's text verbatim compares a whole infobox against one value and fails
+        every time for the wrong reason. So the same binding rule the verifier uses is
+        applied here, to the markup of that element as it was live.
+
+        **This is weaker than the declared path and the difference is worth naming.** There,
+        the executor reads through a scripted selector and the verifier re-resolves an
+        independent anchor: two rules. Here it is one rule over two captures — the live
+        fragment at the moment of the extract, and the stored artifact afterwards. It still
+        catches a value that is not bound to its label, and a page that changed underneath
+        the run. It would not catch the rule itself being wrong.
+        """
+        from app.verifier import AnchorAmbiguous, AnchorNotFound, _located_label
+
+        ctx.candidate = {}
+        for entry in reversed(ctx.run.trace):
+            if entry.kind is not StepKind.EXTRACT or not entry.ok:
+                continue
+            anchor = str((entry.detail.get("args") or {}).get("label_anchor", "")).strip()
+            fragment = str(entry.detail.get("fragment", ""))
+            if not anchor or not fragment:
+                continue
+            spec = ClaimSpec(name="answer", label="", relation=Relation.LOCATED_LABEL,
+                             value_type="string")
+            try:
+                value, _span, _path = _located_label(
+                    lxml_html.fromstring(fragment), spec, {"answer_anchor": anchor})
+            except (AnchorNotFound, AnchorAmbiguous, ValueError):
+                continue
+            ctx.candidate = {"answer": value, "answer_anchor": anchor}
+            return
 
     def _plan_wiki_special(self, low: str) -> Plan:
         """A task a person would reasonably ask, on a path a real site forbids.

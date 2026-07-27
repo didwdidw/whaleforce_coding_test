@@ -38,15 +38,24 @@ view that has already thrown the answer away can hide behind one. So: an element
 itself names now outranks proximity to an anchor region, repeated identical affordances are
 capped so that unique elements are not crowded out, and elements are described by the shared
 `app.identity` fields rather than by a list this module maintains alone.
+
+v1.4 stops trimming to numbers nobody chose. The caps were picked before any real page was
+measured, and on a Wikipedia article they cut the infobox off six rows in: the model was
+shown a truncated table, correctly said the value was not there, and the view it had been
+sent was a third of the size the token budget allowed. The view is now grown to fit that
+budget and records what it was allowed and what it used, so "the model was not shown enough"
+is a number in the trace rather than a guess.
 """
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
+from app.config import settings
 from app.identity import COLLECT_JS
 
-RULE_VERSION = "reduce/v1.3"
+RULE_VERSION = "reduce/v1.4"
 
 REDUCE_TEMPLATE = r"""
 (args) => {
@@ -302,14 +311,52 @@ REDUCE_JS = build_reduce_js()
 DEFAULTS = {"maxInteractive": 60, "maxAnchorRegions": 4, "maxRowsPerRegion": 6,
             "maxPerAffordance": 6}
 
+#: Increasing amounts of the page, tried in order while the result still fits the call's
+#: token budget. The caps were fixed numbers picked before any real page was measured, and
+#: on a Wikipedia article they cut the infobox off six rows in — the model was shown a
+#: truncated table and correctly said the value was not there, while the view it was sent
+#: was a third of the size it was allowed to be. Trimming to a number nobody chose against a
+#: budget is how a cap becomes a silent answer.
+LADDER: tuple[dict[str, int], ...] = (
+    {"maxAnchorRegions": 4, "maxRowsPerRegion": 6},
+    {"maxAnchorRegions": 6, "maxRowsPerRegion": 14},
+    {"maxAnchorRegions": 8, "maxRowsPerRegion": 30},
+)
+
+#: Fraction of the per-call input budget the view may occupy, leaving room for the goal, the
+#: history and the system prompt, none of which shrink when the page grows.
+VIEW_BUDGET_FRACTION = 0.55
+
+
+def view_budget_chars() -> int:
+    """Roughly four characters to a token, which is what the M0 measurement observed."""
+    return int(settings.budgets.max_input_tokens_per_call * 4 * VIEW_BUDGET_FRACTION)
+
 
 async def reduce_page(page, terms, **overrides) -> dict[str, Any]:
-    """The reduced view, plus what it cost to produce it."""
-    args = {**DEFAULTS, **overrides, "terms": [t for t in terms if t]}
-    view = await page.evaluate(REDUCE_JS, args)
-    view["rule_version"] = RULE_VERSION
-    view["limits"] = args
-    return view
+    """The reduced view, plus what it cost to produce it.
+
+    Grown to fit rather than fixed: the largest rung of the ladder whose view still fits the
+    budget wins, and the chosen limits are recorded on the view so the trace says how much
+    of the page the model was actually shown.
+    """
+    async def build(extra: dict[str, Any]) -> dict[str, Any]:
+        args = {**DEFAULTS, **extra, **overrides, "terms": [t for t in terms if t]}
+        view = await page.evaluate(REDUCE_JS, args)
+        view["rule_version"] = RULE_VERSION
+        view["limits"] = args
+        return view
+
+    budget = view_budget_chars()
+    chosen = await build(LADDER[0])
+    for rung in LADDER[1:]:
+        bigger = await build(rung)
+        if len(json.dumps(bigger, default=str)) > budget:
+            break
+        chosen = bigger
+    chosen["view_chars"] = len(json.dumps(chosen, default=str))
+    chosen["view_budget_chars"] = budget
+    return chosen
 
 
 def reduction_record(view: dict[str, Any], artifact_id: str | None) -> dict[str, Any]:

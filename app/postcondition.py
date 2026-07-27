@@ -47,6 +47,12 @@ class Relation(str, enum.Enum):
     #: value to a name. S-4.9 names "same row, adjacent cell" among others; a sorted table's
     #: top row is bound to its column, not to a row header.
     TABLE_COLUMN_CELL = "table_column_cell"
+    #: The weaker binding an undeclared task is entitled to (A13.2.3): the run locates a
+    #: label, and code re-resolves *that* label in the artifact and reads what is
+    #: structurally bound to it. What is frozen before browsing is the rule, not the label
+    #: — on a site nobody has declared, the label cannot be known in advance. Weaker than
+    #: naming the anchor at plan time, and not the same thing as no check at all.
+    LOCATED_LABEL = "located_label"
     #: A table's own statement of how it is currently ordered. The counterpart of
     #: PAGER_POSITION for sorting: the page says what it did, and that is what gets compared
     #: against the frozen input — not the order we assumed a click would produce.

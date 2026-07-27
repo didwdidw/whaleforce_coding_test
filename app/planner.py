@@ -54,6 +54,10 @@ Rules you cannot change and must not restate:
   observation already listed under ACTIONS ALREADY TAKEN. Repeating an action that already
   succeeded makes no progress and spends the step budget.
 - You do not report the answer. Deterministic code reads and verifies it after you finish.
+- `extract` points at the element holding the value **itself** — the cell, not the table that
+  contains it — and `label_anchor` is the exact visible text of the label that value is
+  bound to. Code re-reads the value from that label and compares; pointing at a container
+  makes the two readings disagree and the run fails.
 
 Reply with a single JSON object:
 {"action": ..., "args": {...}, "why": "<one sentence>",

@@ -285,6 +285,20 @@ def _spec(label: str, relation: Relation) -> ClaimSpec:
     return ClaimSpec(name="v", label=label, relation=relation, value_type="string")
 
 
+DISAGREEING_DEFINITIONS = """
+<html><body>
+  <dl><dt>Stock</dt><dd>22 available</dd></dl>
+  <dl><dt>Stock</dt><dd>none left</dd></dl>
+</body></html>
+"""
+
+AGREEING_DEFINITIONS = """
+<html><body>
+  <dl><dt>Stock</dt><dd>22 available</dd></dl>
+  <dl><dt>Stock</dt><dd>22 available</dd></dl>
+</body></html>
+"""
+
 #: (extractor, html that must raise, html that must resolve, label, relation)
 AMBIGUITY_CASES = (
     ("_table_row_cell", AMBIGUOUS_TABLE, AGREEING_TABLE, "UPC", Relation.TABLE_ROW_CELL),
@@ -292,7 +306,21 @@ AMBIGUITY_CASES = (
      Relation.TABLE_COLUMN_CELL),
     ("_sort_state", DISAGREEING_SORT_STATE, AGREEING_SORT_STATE, "GICS Sector",
      Relation.SORT_STATE),
+    ("_located_label", DISAGREEING_DEFINITIONS, AGREEING_DEFINITIONS, "Stock",
+     Relation.LOCATED_LABEL),
 )
+
+
+def _call(name: str, html_text: str, label: str, relation: Relation):
+    """`_located_label` takes the anchor the run located; the rest take it from the spec.
+    The label is the same either way, which is the point of including it here."""
+    from app import verifier
+
+    tree = lxml_html.fromstring(html_text)
+    spec = _spec("" if relation is Relation.LOCATED_LABEL else label, relation)
+    if relation is Relation.LOCATED_LABEL:
+        return verifier._located_label(tree, spec, {"v_anchor": label})
+    return getattr(verifier, name)(tree, spec)
 
 
 def test_every_place_that_can_refuse_as_ambiguous_has_a_case():
@@ -318,7 +346,7 @@ def test_disagreeing_anchors_refuse_rather_than_pick_one(name, bad, _good, label
     from app import verifier
 
     with pytest.raises(verifier.AnchorAmbiguous):
-        getattr(verifier, name)(lxml_html.fromstring(bad), _spec(label, relation))
+        _call(name, bad, label, relation)
 
 
 @pytest.mark.parametrize("name,_bad,good,label,relation", AMBIGUITY_CASES,
@@ -326,10 +354,7 @@ def test_disagreeing_anchors_refuse_rather_than_pick_one(name, bad, _good, label
 def test_an_anchor_that_repeats_but_agrees_still_resolves(name, _bad, good, label, relation):
     """The missing half. A label may legitimately appear more than once; what makes it
     unanswerable is the places disagreeing, not their number."""
-    from app import verifier
-
-    value, span, _path = getattr(verifier, name)(lxml_html.fromstring(good),
-                                                 _spec(label, relation))
+    value, span, _path = _call(name, good, label, relation)
     assert value is not None and span
 
 
