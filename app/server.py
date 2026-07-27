@@ -30,7 +30,7 @@ from app.coverage import CoverageLedger
 from app.demo import CHIPS, PLACEHOLDER, PRE_EXECUTED
 from app.executor import PROMISED_RECORDS, Executor
 from app.latency import summarise as latency_summary
-from app.models import Run, TerminalStatus, Tier, new_id
+from app.models import Run, RunState, TerminalStatus, Tier, new_id
 from app.provider import Provider, ProviderError
 from app.queue import AdmissionRefused, RunQueue
 from app.robots import RobotsCache
@@ -255,6 +255,10 @@ async def submit(request: Request, task: str = Form(...)) -> Response:
     try:
         position = state.queue.admit(run)
     except AdmissionRefused as refusal:
+        # A run refused at the door is over. Leaving it in `queued` left the API reporting a
+        # finished run as still waiting, and the run page polling for a state it would never
+        # reach — the load test hit it first, but a visitor on a busy deployment gets it.
+        run.state = RunState.DONE
         run.terminal_status = (TerminalStatus.BLOCKED)
         run.failure_class = refusal.failure_class
         run.explanation = refusal.message

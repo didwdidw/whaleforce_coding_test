@@ -1,0 +1,97 @@
+{
+ "provenance": {
+  "tool": "loadtest/1.0",
+  "base_url": "http://127.0.0.1:8099",
+  "git_sha": "1ad0427",
+  "configured_queue": {
+   "running": 0,
+   "queued": 0,
+   "concurrency": 2,
+   "depth": 2,
+   "capacity_free": 4,
+   "accepted": 341,
+   "refused_queue_full": 436,
+   "refused_session_quota": 0,
+   "completed": 341
+  },
+  "started_at": "2026-07-27T17:52:09Z",
+  "finished_at": "2026-07-27T17:53:03Z"
+ },
+ "saturation": {
+  "sweep": [
+   {
+    "burst": 2,
+    "admitted": 2,
+    "refused": 0,
+    "refused_as": []
+   },
+   {
+    "burst": 4,
+    "admitted": 3,
+    "refused": 1,
+    "refused_as": [
+     "queue_full"
+    ]
+   },
+   {
+    "burst": 5,
+    "admitted": 4,
+    "refused": 1,
+    "refused_as": [
+     "queue_full"
+    ]
+   },
+   {
+    "burst": 6,
+    "admitted": 4,
+    "refused": 2,
+    "refused_as": [
+     "queue_full"
+    ]
+   },
+   {
+    "burst": 10,
+    "admitted": 4,
+    "refused": 6,
+    "refused_as": [
+     "queue_full"
+    ]
+   }
+  ],
+  "saturation_point": 4,
+  "reading": "a burst of 4 is the first to be refused",
+  "depends_on_run_duration": "The onset is a property of the workload as well as the queue. These runs take well under a second, so some finish while the burst is still arriving and the queue drains underneath it. A model-driven run takes tens of seconds and nothing drains during a burst, so refusal begins at the first submission past the configured capacity (concurrency + depth)."
+ },
+ "throughput": {
+  "clients": 6,
+  "window_seconds": 45.53,
+  "completed": 326,
+  "refused_at_admission": 421,
+  "runs_per_minute": 429.61,
+  "queue_wait_seconds": {
+   "n": 326,
+   "median": 0.23,
+   "min": 0.0,
+   "max": 0.54
+  },
+  "run_seconds": {
+   "n": 326,
+   "median": 0.21,
+   "min": 0.08,
+   "max": 0.56
+  },
+  "load_profile": "fixture tasks on the deterministic path \u2014 no model call"
+ },
+ "model_driven_projection": {
+  "concurrency": 2,
+  "median_model_driven_run_seconds": 7.02,
+  "projected_runs_per_minute": 17.09,
+  "basis": "arithmetic from the concurrency limit and the median model-driven run duration measured by the eval harness; not observed under load"
+ },
+ "cold_start": {
+  "seconds_to_first_response": 2.33,
+  "seconds_to_healthy": 2.33,
+  "measured_on": "a local process with an empty data directory",
+  "note": "Container cold start adds image pull and container scheduling, which are the platform's and are not measured here."
+ }
+}
