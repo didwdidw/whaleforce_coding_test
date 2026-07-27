@@ -76,7 +76,7 @@ class App:
         self.robots = RobotsCache()
         self.executor = Executor(self.supervisor, self.store, self.robots)
         self.coverage = CoverageLedger(self.store)
-        self.provider = Provider()
+        self.provider = Provider(ledger=self.store)
         #: Set at startup. A deployment with no credential is a degraded deployment, not a
         #: dead one: everything deterministic still runs, and the planner path reports a
         #: named failure instead of the service refusing to boot.
@@ -379,6 +379,7 @@ async def healthz(response: Response) -> dict[str, Any]:
         # Presence and tier only. Never a value, a prefix, or a length — a length is a fact
         # about the secret and this endpoint is public.
         "credentials": state.provider.credential_state(),
+        "provider_spend": state.provider.spend_state(),
         "planner": state.planner_status,
         # Which declared statuses this deployment has actually produced. `overdue` is the
         # list of paths nothing has ever reached, which is the shape an untested gate takes.

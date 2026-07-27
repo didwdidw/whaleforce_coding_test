@@ -1,8 +1,8 @@
 # The paid key on the grading host — what protects spend once absence no longer does
 
-**Status: a recommendation, not a decision.** It changes what money anonymous traffic can
-reach, so it is the product owner's call. Written now because the answer changes what M8
-looks like, and rebuilding it then is the expensive version.
+**Status: both recommendations approved by the product owner (2026-07-27).** The separate
+scored workload is **not built yet** — it goes into the spec first. The spend ceiling is
+built now, for the reason in §4.
 
 ## The question
 
@@ -40,6 +40,24 @@ still absence, just scoped to the container that matters.
 What it costs: the scored round is launched through that workload rather than by typing into
 the public URL. We were going to run those ourselves anyway.
 
+### Conditions attached to the approval
+
+1. **No public domain on that service.** Zeabur hands every service a free `*.zeabur.app`
+   name, and accepting one would put the paid credential behind a URL whose only protection
+   is that nobody has guessed it. The scored round is launched as a workload, not by
+   requesting a page, so it does not need a URL at all — and not having one is a stronger
+   statement than having an unadvertised one.
+2. **Verify the shared volume rather than assuming it.** `RWO` normally permits two pods on
+   the same node, but that is the easy half. The half to look at first is **two SQLite
+   writers**: both processes open the same database, and both would run
+   `enforce_retention()` on startup. Two concurrent sweeps evicting from the same table is a
+   race that ends with one process's expiry decisions applied to rows the other has already
+   changed. This needs a decision (WAL, an advisory lock, or retention owned by exactly one
+   role) before the second workload exists, not after.
+3. **RAM.** The box has ~1.7 GB spare and the app peaks at a measured 899.9 MiB. A second
+   container is tight, so **a scored round must not run alongside heavy load** — that
+   constraint belongs in the deploy runbook, not in someone's memory.
+
 ## What it does not solve
 
 The graders' own traffic then runs on the **free tier**, and the free tier is one full round
@@ -56,11 +74,18 @@ Mitigations that cost nothing:
   with zero provider calls.
 - **Stop testing against production before submission.** Operational, not architectural.
 
-## Recommendation 2 — build the ceiling now, whether or not it is ever needed
+## Recommendation 2 — the spend ceiling is load-bearing today
 
-If the answer later becomes "the public path must survive free-tier exhaustion", the
-absence-protection is gone by definition and something measured has to replace it. That
-something should exist and be exercised **before** the day it matters:
+Not speculative work against a policy that might change. The paid credential is **already in
+use** — the model comparison ran on it — and A8.10's USD 5 self-approval ceiling currently
+exists only as a number a person is holding in their head. Nothing at runtime enforces it.
+Nothing counts against it. A limit that is only remembered is not a limit; the engineering
+work here is turning a number in someone's head into something the code can refuse.
+
+The same mechanism happens to be what would replace the absence-protection if the public
+path ever needed paid access, but that is a consequence, not the reason.
+
+The ceiling:
 
 - a **cumulative USD-per-day ceiling**, stored in the volume-backed database so it survives
   restarts, checked **before** each call, not after;
@@ -70,13 +95,39 @@ something should exist and be exercised **before** the day it matters:
 - underneath the existing per-session cap, which already bounds one visitor to ~10 runs
   ≈ $0.04 at measured rates.
 
-Written under the current policy — free-only on the public path — the ceiling never fires.
-That is the point: it is a control that has been in place and observed doing nothing, rather
-than one written under time pressure on grading day.
+Under the current policy the *public* path never reaches it, because the public path never
+reaches a paid credential at all. Development and evaluation do, and that is where the USD 5
+ceiling has been unenforced since the first paid call.
 
 **Standing rule, unchanged until the owner changes it:** free → paid fallback is automatic
 for development and evaluation, and forbidden on the public demo path, which stays
 `blocked / provider_quota`.
+
+## 5. The vulnerability this work exposed
+
+Recorded here as evidence for the analysis report, not as an aside.
+
+While writing the test that proves the store cannot reach the key directory, the first run
+**deleted the key file**. The cause was not a boundary that was insufficiently strict. It
+was **arbitrary file deletion and arbitrary file read**:
+
+- `Store._expire()` unlinked whatever path an artifact row held. The path came from the
+  database and was never checked against the store directory.
+- `Store.read_artifact()` read and returned whatever path the row held, and that return
+  value is served over HTTP by `/api/artifacts/{id}`.
+
+Together: any influence over that column is file deletion and file disclosure on the host,
+in a product whose central claim is a defensible security posture. It has been present since
+M2, when the store was written.
+
+The part that belongs in the report is not the bug. It is that **107 passing tests did not
+find it**, and the test that did was written because someone asked for proof rather than
+assurance. Everything before it tested the store doing its job correctly; nothing tested it
+being pointed somewhere it did not belong. That gap has the same shape as the M1 lesson —
+verifying structure and assuming content — one layer down.
+
+Both paths now resolve the path and require it to be inside the artifact directory; a row
+that points outside loses its bytes and keeps its file, and the refusal is logged.
 
 ## What is already true today
 

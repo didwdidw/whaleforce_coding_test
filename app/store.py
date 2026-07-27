@@ -30,6 +30,10 @@ from app.models import (
 
 log = logging.getLogger(__name__)
 
+
+def _utc_day() -> str:
+    return time.strftime("%Y-%m-%d", time.gmtime())
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
     id                 TEXT PRIMARY KEY,
@@ -100,6 +104,19 @@ CREATE TABLE IF NOT EXISTS retention_events (
 );
 CREATE INDEX IF NOT EXISTS artifacts_run ON artifacts (run_id);
 CREATE INDEX IF NOT EXISTS artifacts_state ON artifacts (state, retrieved_at);
+
+-- Cumulative provider spend, per UTC day and per credential tier. A8.10's USD 5 ceiling
+-- existed only as a number someone was holding in their head; this is what lets the code
+-- refuse rather than remember.
+CREATE TABLE IF NOT EXISTS provider_spend (
+    day   TEXT NOT NULL,
+    tier  TEXT NOT NULL,
+    usd   REAL NOT NULL DEFAULT 0,
+    calls INTEGER NOT NULL DEFAULT 0,
+    input_tokens  INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, tier)
+);
 
 -- Which terminal statuses and failure classes have ever actually been produced. An empty
 -- failure_class is stored as '' rather than NULL so the primary key stays meaningful.
@@ -378,6 +395,41 @@ class Store:
     def status_coverage(self) -> list[dict[str, Any]]:
         return [dict(r) for r in self._conn.execute(
             "SELECT * FROM status_coverage ORDER BY first_seen_at")]
+
+    # ---- provider spend ---------------------------------------------------------
+
+    def record_spend(self, tier: str, usd: float, input_tokens: int,
+                     output_tokens: int) -> None:
+        self._conn.execute(
+            """INSERT INTO provider_spend (day, tier, usd, calls, input_tokens, output_tokens)
+               VALUES (?,?,?,1,?,?)
+               ON CONFLICT(day, tier) DO UPDATE SET
+                 usd = usd + excluded.usd, calls = calls + 1,
+                 input_tokens = input_tokens + excluded.input_tokens,
+                 output_tokens = output_tokens + excluded.output_tokens""",
+            (_utc_day(), tier, usd, input_tokens, output_tokens))
+        self._conn.commit()
+
+    def spend(self, *, day: str | None = None) -> dict[str, Any]:
+        """Today's spend and the running total. Both matter: the daily figure is the
+        operational guard, the cumulative one is what A8.10's ceiling is written against."""
+        day = day or _utc_day()
+        today = self._conn.execute(
+            "SELECT COALESCE(SUM(usd),0) u, COALESCE(SUM(calls),0) c FROM provider_spend "
+            "WHERE day = ?", (day,)).fetchone()
+        total = self._conn.execute(
+            "SELECT COALESCE(SUM(usd),0) u, COALESCE(SUM(calls),0) c FROM provider_spend"
+        ).fetchone()
+        by_tier = {r["tier"]: round(r["usd"], 6) for r in self._conn.execute(
+            "SELECT tier, SUM(usd) usd FROM provider_spend GROUP BY tier")}
+        return {
+            "day": day,
+            "today_usd": round(today["u"], 6),
+            "today_calls": int(today["c"]),
+            "cumulative_usd": round(total["u"], 6),
+            "cumulative_calls": int(total["c"]),
+            "by_tier_usd": by_tier,
+        }
 
     # ---- artifacts -------------------------------------------------------------
 

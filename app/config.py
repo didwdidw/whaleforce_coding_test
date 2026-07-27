@@ -190,6 +190,13 @@ class ProviderPolicy:
     temperature: float = field(default_factory=lambda: _float("LLM_TEMPERATURE", 0.0))
     json_mode: bool = field(default_factory=lambda: _bool("LLM_JSON_MODE", True))
 
+    #: A8.10's self-approval ceiling, made enforceable. Cumulative across the life of the
+    #: store; the daily figure is the operational guard underneath it.
+    spend_ceiling_usd: float = field(
+        default_factory=lambda: _float("PROVIDER_SPEND_CEILING_USD", 5.0))
+    spend_ceiling_usd_per_day: float = field(
+        default_factory=lambda: _float("PROVIDER_SPEND_CEILING_USD_PER_DAY", 1.0))
+
     #: Which credentials a run may use. The deployed demo is free-tier only.
     credential_policy: str = field(
         default_factory=lambda: _str("CREDENTIAL_POLICY", "public_demo"))
@@ -255,6 +262,11 @@ class Settings:
     # over a public hostname, with no allow-list hole (S-2.8). Relaxed only for local dev.
     allow_private_egress: bool = field(
         default_factory=lambda: _bool("ALLOW_PRIVATE_EGRESS", False))
+
+    #: Force every routed task through the model-driven loop. Off by default: the
+    #: deterministic path needs no provider quota, which is what keeps the public
+    #: demonstrations working when the free tier is spent.
+    planner_forced: bool = field(default_factory=lambda: _bool("PLANNER_FORCED", False))
 
     @property
     def is_dev(self) -> bool:

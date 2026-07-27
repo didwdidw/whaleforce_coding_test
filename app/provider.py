@@ -194,6 +194,9 @@ class Provider:
     _lock: threading.Lock = field(default_factory=threading.Lock)
     _last_call: float = 0.0
     _quota_exhausted: set[CredentialTier] = field(default_factory=set)
+    #: Where spend is counted. Optional so the adapter still works without a store (the
+    #: model comparison runs outside the app), but the deployed path always has one.
+    ledger: Any = None
 
     # ---- credentials -----------------------------------------------------------
 
@@ -299,6 +302,8 @@ class Provider:
             return Completion(hit.text, Usage(), hit.model, hit.credential_tier,
                               cached=True, seconds=0.0, finish_reason=hit.finish_reason)
 
+        self._check_spend()
+
         last_error: ProviderError | None = None
         for tier in self.available_tiers():
             if tier in self._quota_exhausted:
@@ -315,6 +320,7 @@ class Provider:
                 continue
             if purpose != "startup":
                 budget.record(completion.usage, purpose)
+            self._record_spend(completion)
             if self.cache_enabled:
                 self._cache[cache_key] = completion
             return completion
@@ -329,6 +335,47 @@ class Provider:
         raise ProviderError(
             f"No usable credential for the {self.policy.value} policy. Expected a key file "
             f"in {settings.provider.key_dir} or {settings.provider.repo_key_dir}.")
+
+    def _check_spend(self) -> None:
+        """Refuse before the call, not after. A ceiling checked afterwards is a report."""
+        if self.ledger is None:
+            return
+        spend = self.ledger.spend()
+        p = settings.provider
+        if spend["cumulative_usd"] >= p.spend_ceiling_usd:
+            raise ProviderQuotaExhausted(
+                f"The cumulative provider spend ceiling of ${p.spend_ceiling_usd:.2f} has "
+                f"been reached (${spend['cumulative_usd']:.4f} spent over "
+                f"{spend['cumulative_calls']} calls). This is A8.10's self-approval limit "
+                f"enforced at runtime rather than remembered; raising it is a decision, not "
+                f"a configuration change.",
+                detail={"ceiling": "cumulative", **spend})
+        if spend["today_usd"] >= p.spend_ceiling_usd_per_day:
+            raise ProviderQuotaExhausted(
+                f"Today's provider spend ceiling of ${p.spend_ceiling_usd_per_day:.2f} has "
+                f"been reached (${spend['today_usd']:.4f} over {spend['today_calls']} "
+                f"calls). The run stops here rather than continuing to spend.",
+                detail={"ceiling": "daily", **spend})
+
+    def _record_spend(self, completion: Completion) -> None:
+        if self.ledger is None or completion.cached:
+            return
+        self.ledger.record_spend(completion.credential_tier.value, completion.usage.usd,
+                                 completion.usage.input_tokens,
+                                 completion.usage.output_tokens)
+
+    def spend_state(self) -> dict[str, Any]:
+        p = settings.provider
+        spend = self.ledger.spend() if self.ledger is not None else {}
+        return {
+            **spend,
+            "ceiling_usd": p.spend_ceiling_usd,
+            "ceiling_usd_per_day": p.spend_ceiling_usd_per_day,
+            "enforced": self.ledger is not None,
+            "note": ("Checked before every call. A8.10's ceiling was a number held in "
+                     "someone's head until this existed; exceeding it is a refusal, not a "
+                     "warning."),
+        }
 
     def _call(self, prompt: str, key: str, tier: CredentialTier,
               max_output_tokens: int | None) -> Completion:

@@ -18,14 +18,16 @@ Carried over from the M0 measurement version (`reduce/v0.2-preflight`) with a pr
 version identifier, so the token and cost figures measured at M0 still describe what is
 sent. v1.1 adds the current value of form fields: without it the view cannot distinguish a
 filled field from an empty one, and the model comparison recorded a "wrong action" that was
-really a blind spot in what we showed it.
+really a blind spot in what we showed it. v1.2 drops invisible anchor regions for the same
+class of reason — offering a `hidden` page block as a target produces a planner that keeps
+being told "not yet rendered" about something that will never render.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-RULE_VERSION = "reduce/v1.1"
+RULE_VERSION = "reduce/v1.2"
 
 REDUCE_JS = r"""
 (args) => {
@@ -75,6 +77,7 @@ REDUCE_JS = r"""
     seen.add(c);
     if (regions.length >= maxAnchorRegions) { bump('anchor_region_over_cap'); continue; }
 
+    if (!visible(c)) { bump('anchor_region_invisible'); continue; }
     const region = {ref: refFor(c), tag: c.tagName.toLowerCase(),
                     id: c.id || null, matched_on: raw.slice(0, 60)};
     if (c.tagName === 'TABLE') {

@@ -538,12 +538,26 @@ def _same_page(source_url: str | None, target_url: str) -> bool:
 
 
 def _missing_actions(run: Run, pc: Postcondition) -> list[str]:
+    """Whether the trace shows each declared action happening.
+
+    The target is matched against the selector, the resolved element's id, its name and its
+    visible text, because the same action can be reached two ways: the deterministic script
+    names `#next`, and the planner names a ref that resolves to it. Matching only the script's
+    spelling would fail every planner-driven run for taking exactly the right action.
+    """
     missing = []
     for action in pc.required_actions:
-        seen = sum(1 for t in run.trace
-                   if t.kind.value == action.kind and t.ok
-                   and (action.target in str(t.detail.get("selector", ""))
-                        or action.target.lower() in t.summary.lower()))
+        target = action.target.lstrip("#").lower()
+        seen = 0
+        for t in run.trace:
+            if t.kind.value != action.kind or not t.ok:
+                continue
+            element = t.detail.get("element") or {}
+            haystack = " ".join(str(x).lower() for x in (
+                t.detail.get("selector", ""), element.get("id") or "",
+                element.get("name") or "", element.get("text") or "", t.summary))
+            if target in haystack:
+                seen += 1
         if seen < action.times:
             missing.append(f"{action.kind} on {action.target} "
                            f"({seen}/{action.times} observed)")

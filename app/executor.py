@@ -33,14 +33,29 @@ from app.coverage import CoverageLedger
 from app.models import (
     DiagnosedCause, FailureClass, Run, RunState, StepKind, TerminalStatus, Tier, TraceEntry,
 )
+from app.models import StrategyFamily
+from app.planner import Planner, Proposal, ProposalRejected
 from app.postcondition import (
     AbsenceMode, ClaimSpec, Postcondition, Relation, RequiredAction,
 )
+from app.provider import Provider, ProviderError, RunBudget
+from app.reduce import reduce_page, reduction_record
 from app.robots import RobotsCache
 from app.store import Store
 from app.verifier import Verifier
 
 log = logging.getLogger(__name__)
+
+#: Which trace step kind each proposed action is recorded as.
+_STEP_KINDS = {
+    "click": StepKind.CLICK, "fill": StepKind.FILL, "select": StepKind.SELECT,
+    "press": StepKind.PRESS, "wait_for": StepKind.WAIT_FOR, "extract": StepKind.EXTRACT,
+}
+
+#: A task asks for the planner explicitly, or configuration forces it. The deterministic
+#: path stays the default: it needs no quota, and it is what the fixture demonstrations run
+#: on so that a visitor never depends on a provider being reachable.
+PLANNER_MARKER = re.compile(r"\b(use the planner|with the planner|planner mode)\b")
 
 # Phrases that put a task outside scope before any browsing happens (S-2.1).
 OUT_OF_SCOPE = (
@@ -74,13 +89,26 @@ OVERLAY_ANCHOR = '//*[contains(normalize-space(.), "Before you continue")][not(.
 
 @dataclass
 class Plan:
-    """A scripted sequence plus the postcondition it commits to. At M3 the planner produces
-    these from the model's candidates; the postcondition stays code-owned."""
+    """A postcondition plus two ways of satisfying it.
+
+    `steps` is the deterministic script. `entry_url`, `goal` and `terms` are what the
+    model-driven loop needs instead: where to start, what it is trying to achieve, and the
+    words the snapshot reducer should keep the page around.
+
+    The postcondition is the same object either way, and it is code-owned in both. That is
+    what makes the two paths comparable: same bar, different way of reaching it.
+    """
 
     operation: str
     label: str
     postcondition: Postcondition
     steps: tuple[Callable[["ExecutionContext"], Awaitable[None]], ...]
+    entry_url: str = ""
+    terms: tuple[str, ...] = ()
+    #: The final read, reused by the planned path once the model says it is finished. The
+    #: model drives the interaction; the candidate it will be judged on is still produced
+    #: by deterministic code, so a model cannot both act and report.
+    read_step: Callable[["ExecutionContext"], Awaitable[None]] | None = None
 
 
 @dataclass
@@ -92,6 +120,9 @@ class ExecutionContext:
     candidate: dict[str, Any] = field(default_factory=dict)
     #: The snapshot the claims were read from — verification re-resolves anchors in this.
     evidence_artifact: str | None = None
+    #: What the last action actually produced, fed back so the planner can tell a step that
+    #: worked from one that did nothing.
+    last_observed: str = ""
 
     def deadline_exceeded(self) -> bool:
         return self.run.budget.elapsed_seconds > settings.budgets.wall_clock_seconds
@@ -99,12 +130,15 @@ class ExecutionContext:
 
 class Executor:
     def __init__(self, supervisor: BrowserSupervisor, store: Store,
-                 robots: RobotsCache | None = None) -> None:
+                 robots: RobotsCache | None = None,
+                 provider: Provider | None = None) -> None:
         self._supervisor = supervisor
         self._store = store
         self._robots = robots or RobotsCache()
         self._verifier = Verifier(store)
         self._coverage = CoverageLedger(store)
+        self._provider = provider or Provider(ledger=store)
+        self._planner = Planner(self._provider)
 
     # ---- admission-time classification -----------------------------------------
 
@@ -196,8 +230,26 @@ class Executor:
                  "submit form."))
             return
 
+        planned = bool(PLANNER_MARKER.search(run.task.lower())) or settings.planner_forced
+        if planned and not plan.entry_url:
+            self._terminate(
+                run, TerminalStatus.UNSUPPORTED, FailureClass.POLICY_REFUSED,
+                f"The planner was requested but the {plan.operation} operation has no "
+                f"model-driven form: it is a policy demonstration, not a browsing task.")
+            return
+        if planned and not self._provider.configured():
+            # Named degradation rather than an obscure failure: the deterministic path is
+            # unaffected and says so.
+            self._terminate(
+                run, TerminalStatus.BLOCKED, FailureClass.PROVIDER_ERROR,
+                "No provider credential is readable, so the planner cannot run. Every "
+                "deterministic operation still works — submit the same task without asking "
+                "for the planner and it will execute and be verified.")
+            return
+
+        runner = self._run_planned(run, plan) if planned else self._run_plan(run, plan)
         try:
-            await asyncio.wait_for(self._run_plan(run, plan),
+            await asyncio.wait_for(runner,
                                    timeout=settings.budgets.wall_clock_seconds)
         except asyncio.TimeoutError:
             self._terminate(
@@ -268,6 +320,274 @@ class Executor:
         run.claims = [c.to_dict() for c in verdict.claims]
         self._store.save_run(run)
         self._terminate(run, verdict.status, verdict.failure_class, verdict.explanation)
+
+
+    # ---- the model-driven loop -------------------------------------------------
+
+    async def _run_planned(self, run: Run, plan: Plan) -> None:
+        """The same postcondition, reached by a model proposing one action at a time.
+
+        The division of labour is the point. The model sees a reduced view and proposes an
+        action; code decides whether that action is allowed, executes it, diagnoses what
+        went wrong, and produces the candidate that will be judged. The model never sets a
+        status and never writes the postcondition.
+        """
+        async with self._supervisor.context() as (context, generation):
+            run.browser_generation = generation
+            self._store.save_run(run)
+            page = await context.new_page()
+            await self._guard_page(run, page)
+            ctx = ExecutionContext(run=run, page=page, context=context, store=self._store)
+            self._freeze(run, plan)
+
+            if not await self._navigate(ctx, plan.entry_url):
+                return
+
+            budget = RunBudget()
+            history: list[str] = []
+            recovery: dict[str, Any] | None = None
+            families_tried: list[str] = []
+            step = 0
+
+            while True:
+                step += 1
+                if run.budget.steps >= settings.budgets.max_steps:
+                    self._terminate(
+                        run, TerminalStatus.FAILED, FailureClass.BUDGET_EXHAUSTED,
+                        f"The run reached its {settings.budgets.max_steps}-step budget "
+                        f"without reaching the frozen postcondition. Budgets are "
+                        f"fail-closed: no partial answer is emitted in their place.")
+                    return
+                if ctx.deadline_exceeded():
+                    self._terminate(run, TerminalStatus.FAILED, FailureClass.TIMEOUT,
+                                    "The run exceeded its wall-clock budget.")
+                    return
+
+                artifact_id = await self._capture(ctx, f"step-{step}")
+                view = await reduce_page(page, plan.terms)
+                purpose = "recovery" if recovery else "exploration"
+
+                prompt = self._planner.build_prompt(
+                    plan.postcondition.goal, view, step=step, history=history,
+                    recovery=recovery)
+                call = self._step(
+                    run, StepKind.NOTE,
+                    f"Model call ({purpose}) for step {step}",
+                    purpose=purpose,
+                    reduction=reduction_record(view, artifact_id),
+                    prompt_chars=len(prompt))
+                try:
+                    proposal = self._planner.propose(prompt, budget=budget,
+                                                     purpose=purpose, view=view)
+                except ProposalRejected as exc:
+                    # Outside the contract. Recorded and refused, never repaired into
+                    # something plausible.
+                    self._finish_step(run, call, ok=False, rejected=exc.reason,
+                                      response_head=exc.raw)
+                    self._terminate(
+                        run, TerminalStatus.FAILED, FailureClass.INTERNAL_ERROR,
+                        f"The planner returned a proposal outside its contract and it was "
+                        f"refused rather than repaired: {exc.reason}")
+                    return
+                except ProviderError as exc:
+                    self._finish_step(run, call, ok=False, provider_error=str(exc)[:300])
+                    self._provider_failure(run, exc)
+                    return
+
+                run.budget.input_tokens = budget.input_tokens
+                run.budget.output_tokens = budget.output_tokens
+                run.budget.usd = budget.usd
+                run.budget.llm_calls_exploration = budget.exploration_calls
+                run.budget.llm_calls_recovery = budget.recovery_calls
+                run.credential_tier = (proposal.completion.credential_tier.value
+                                       if proposal.completion else run.credential_tier)
+                self._finish_step(run, call, proposal=proposal.to_dict(),
+                                  budget=budget.to_dict())
+                self._store.save_run(run)
+
+                if proposal.action == "abstain":
+                    self._terminate(
+                        run, TerminalStatus.UNSUPPORTED, FailureClass.POLICY_REFUSED,
+                        f"The planner abstained rather than acting on a guess: "
+                        f"{proposal.args.get('reason', '')}")
+                    return
+                if proposal.action == "finish":
+                    break
+
+                ctx.last_observed = ""
+                outcome = await self._perform(ctx, proposal, recovery, families_tried)
+                # An action whose result the model never sees is one it cannot learn from:
+                # the first loop repeated a successful `extract` until the step budget ran
+                # out, because nothing in its history said the extraction had worked.
+                result = (f"ok: {ctx.last_observed[:120]!r}" if ctx.last_observed
+                          else "ok") if outcome is None else outcome.value
+                history.append(f"{proposal.action} {proposal.args} -> {result}")
+                if outcome is None:
+                    recovery = None
+                    families_tried = []
+                    continue
+
+                # Failed. The next call is a recovery call, from a separate reserve, and it
+                # is told which families have already been spent.
+                families_tried.append(proposal.strategy.value if proposal.strategy else "?")
+                recovery = {"cause": outcome.value, "families_tried": families_tried}
+                if budget.recovery_calls >= settings.budgets.recovery_calls:
+                    self._terminate(
+                        run, TerminalStatus.FAILED, FailureClass.BUDGET_EXHAUSTED,
+                        f"The recovery budget ({settings.budgets.recovery_calls} calls) is "
+                        f"exhausted after diagnosed cause '{outcome.value}'. The bar was "
+                        f"not lowered to finish: the run fails instead.")
+                    return
+
+            if plan.read_step is not None:
+                await plan.read_step(ctx)
+            await self._verify(run, ctx)
+
+    async def _perform(self, ctx: ExecutionContext, proposal: Proposal,
+                       recovery: dict[str, Any] | None,
+                       families_tried: list[str]) -> DiagnosedCause | None:
+        """Execute one proposed action. Returns None on success, or the diagnosed cause.
+
+        Whether this step counts as a retry or a recovery is decided here and recorded on
+        the entry: same family as the failure it follows is a retry, a different family is
+        a recovery (S-7.1, S-7.2). Neither is inferred later from the shape of the trace.
+        """
+        run = ctx.run
+        family_to = proposal.strategy
+        family_from = None
+        if recovery and families_tried:
+            previous = families_tried[-1]
+            family_from = next((f for f in StrategyFamily if f.value == previous), None)
+
+        # Which control was actually acted on, in a form the required-action check can
+        # read. The postcondition declares required actions as selectors; the planner works
+        # in refs, and without resolving one to the other every planner-driven run fails as
+        # `required_action_skipped` while having taken exactly the right action.
+        identity = await self._identify(ctx, str(proposal.args.get("ref", "")))
+        entry = self._step(
+            run, _STEP_KINDS.get(proposal.action, StepKind.NOTE),
+            f"{proposal.action} {proposal.args.get('ref', proposal.args.get('key', ''))}"
+            f" — {proposal.why[:120]}",
+            selector=identity.get("selector") or
+            f"[data-agent-ref={proposal.args.get('ref', '')!r}]",
+            element=identity, proposed_by="planner", args=proposal.args)
+        entry.family_from = family_from
+        entry.family_to = family_to
+        if recovery:
+            entry.diagnosed_cause = next(
+                (c for c in DiagnosedCause if c.value == recovery["cause"]),
+                DiagnosedCause.NONE)
+
+        try:
+            observed = await self._apply(ctx, proposal)
+        except Exception as exc:  # noqa: BLE001 - the failure is the input to a diagnosis
+            cause = await self._diagnose(ctx, proposal, exc)
+            self._finish_step(run, entry, ok=False, error=f"{type(exc).__name__}: {exc}"[:300],
+                              diagnosed_cause=cause.value,
+                              repair=("recovery" if entry.is_recovery else
+                                      "retry" if entry.is_retry else "first attempt"))
+            self._store.save_trace_entry(run.id, entry)
+            return cause
+
+        self._finish_step(run, entry, url=ctx.page.url, observed=observed,
+                          repair=("recovery" if entry.is_recovery else
+                                  "retry" if entry.is_retry else "first attempt"))
+        self._store.save_trace_entry(run.id, entry)
+        ctx.last_observed = observed
+        return None
+
+    async def _identify(self, ctx: ExecutionContext, ref: str) -> dict[str, Any]:
+        """Resolve a ref to something durable: its id, its name attribute, its text."""
+        if not ref:
+            return {}
+        try:
+            handle = await ctx.page.query_selector(f"[data-agent-ref='{ref}']")
+            if handle is None:
+                return {"ref": ref, "resolved": False}
+            info = await handle.evaluate(
+                "el => ({id: el.id || null, name: el.getAttribute('name'), "
+                "tag: el.tagName.toLowerCase(), "
+                "text: (el.innerText || el.value || '').trim().slice(0, 60)})")
+        except Exception:  # noqa: BLE001 - identification must not fail the action
+            return {"ref": ref, "resolved": False}
+        info["ref"] = ref
+        info["resolved"] = True
+        info["selector"] = f"#{info['id']}" if info.get("id") else (
+            f"[name={info['name']!r}]" if info.get("name") else
+            f"[data-agent-ref='{ref}']")
+        return info
+
+    async def _apply(self, ctx: ExecutionContext, proposal: Proposal) -> str:
+        """The only place a proposed action touches the browser. The allow-list is closed:
+        anything not named here never had a way to run."""
+        page = ctx.page
+        args = proposal.args
+        ref = str(args.get("ref", ""))
+        selector = f"[data-agent-ref='{ref}']"
+        timeout = 8_000
+        if proposal.action == "click":
+            await page.click(selector, timeout=timeout)
+        elif proposal.action == "fill":
+            await page.fill(selector, str(args.get("text", "")), timeout=timeout)
+        elif proposal.action == "select":
+            await page.select_option(selector, str(args.get("value", "")), timeout=timeout)
+        elif proposal.action == "press":
+            await page.keyboard.press(str(args.get("key", "")))
+        elif proposal.action == "wait_for":
+            await page.wait_for_selector(selector, state="visible", timeout=timeout)
+        elif proposal.action == "extract":
+            # The model may point at where a value lives; it does not get to report the
+            # value. The candidate the run is judged on comes from the plan's read step.
+            # `attached` rather than `visible`: the verifier re-reads from the stored DOM,
+            # so a value that is present but off-screen is still a legitimate target.
+            element = await page.wait_for_selector(selector, state="attached",
+                                                   timeout=timeout)
+            text = (await element.inner_text())[:200] if element else ""
+            await page.wait_for_timeout(150)
+            return text
+        else:
+            raise RuntimeError(f"unreachable action {proposal.action!r}")
+        await page.wait_for_timeout(150)
+        return ""
+
+    async def _diagnose(self, ctx: ExecutionContext, proposal: Proposal,
+                        exc: Exception) -> DiagnosedCause:
+        """A named cause from the closed set (S-7.6).
+
+        "The step threw an exception" is not a diagnosis, so the page is asked what is
+        actually true: is the element there at all, is it disabled, is something on top of
+        it. The exception text is the last resort, not the first.
+        """
+        ref = str(proposal.args.get("ref", ""))
+        selector = f"[data-agent-ref='{ref}']"
+        text = f"{type(exc).__name__}: {exc}".lower()
+        try:
+            handle = await ctx.page.query_selector(selector)
+            if handle is None:
+                return DiagnosedCause.ELEMENT_ABSENT
+            if not await handle.is_visible():
+                return DiagnosedCause.NOT_YET_RENDERED
+            if not await handle.is_enabled():
+                return DiagnosedCause.NOT_INTERACTABLE
+        except Exception:  # noqa: BLE001 - diagnosis must not fail the run itself
+            pass
+        if "intercepts pointer events" in text:
+            return DiagnosedCause.OBSCURED_BY_OVERLAY
+        if "strict mode violation" in text or "resolved to" in text:
+            return DiagnosedCause.AMBIGUOUS_MATCH
+        if "timeout" in text:
+            return DiagnosedCause.NOT_YET_RENDERED
+        if "navigation" in text:
+            return DiagnosedCause.NAVIGATION_BLOCKED
+        return DiagnosedCause.CONTENT_CHANGED
+
+    def _provider_failure(self, run: Run, exc: ProviderError) -> None:
+        """S-11.16: a provider that cannot serve the pinned model fails the run rather than
+        quietly substituting another one."""
+        self._terminate(
+            run, TerminalStatus.BLOCKED, exc.failure_class,
+            f"{exc.message} The pinned model is not substituted when it is unavailable: a "
+            f"silent fallback would make every recorded score unreproducible.")
 
     # ---- policy enforcement ----------------------------------------------------
 
@@ -501,7 +821,10 @@ class Executor:
 
         return Plan("GS-1", f"Fixture catalogue search for '{term or '(no term named)'}' "
                             f"(POST-only form)",
-                    pc, (open_form, fill_and_submit, read_results))
+                    pc, (open_form, fill_and_submit, read_results),
+                    entry_url=self._url("/", seed),
+                    terms=("search", "product name", str(term or ""), "results"),
+                    read_step=read_results)
 
     def _paginate_postcondition(self, target: int, seed: str, *,
                                 required: tuple[RequiredAction, ...]) -> Postcondition:
@@ -550,8 +873,11 @@ class Executor:
                                url_changed=url_before != after)
             self._finish_step(ctx.run, state, ok=url_before == after)
 
+        read = self._read_visible_page(target)
         return Plan("GS-2", f"Fixture pagination to page {target} (no URL change)",
-                    pc, (open_browse, advance, self._read_visible_page(target)))
+                    pc, (open_browse, advance, read),
+                    entry_url=self._url("/browse", seed),
+                    terms=("next", "page", "products"), read_step=read)
 
     def _plan_paginate_shortcut(self, low: str, seed: str) -> Plan:
         """The deliberate shortcut case S-4.4 requires.
@@ -769,7 +1095,11 @@ class Executor:
             self._finish_step(ctx.run, entry, product_code=code, stock_on_hand=stock)
 
         return Plan("GS-3", "Fixture overlay dismissal, then the underlying action",
-                    pc, (open_gated, probe_blocked, dismiss_and_act, read_code))
+                    pc, (open_gated, probe_blocked, dismiss_and_act, read_code),
+                    entry_url=self._url("/gated", seed),
+                    terms=("dismiss", "close", "reference code", "product code",
+                           "before you continue"),
+                    read_step=read_code)
 
     def _plan_notes(self, seed: str) -> Plan:
         pc = Postcondition(
