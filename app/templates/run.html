@@ -213,6 +213,12 @@
       {{ run.budget.llm_calls_recovery }} recovery</dd>
     <dt>Tokens</dt><dd>{{ run.budget.input_tokens }} in / {{ run.budget.output_tokens }} out</dd>
     <dt>Cost</dt><dd>${{ '%.6f' % run.budget.usd }}</dd>
+    <dt>Execution path</dt>
+      <dd>{% if run.execution_path == 'model_driven' %}model-driven — the plan came from the
+            model, step by step, against the reduced page
+          {% elif run.execution_path == 'scripted' %}deterministic script — no model in this
+            run's loop
+          {% else %}—{% endif %}</dd>
     <dt>Credential tier</dt><dd>{{ run.credential_tier or '—' }}</dd>
     <dt>Browser generation</dt><dd>{{ run.browser_generation or '—' }}</dd>
     <dt>Run id</dt><dd class="mono">{{ run.id }}</dd>

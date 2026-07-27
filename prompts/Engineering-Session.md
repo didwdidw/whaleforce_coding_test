@@ -606,3 +606,80 @@ support 頁還寫著 This build is M2、OP-4…OP-7 全標 not yet implemented
 另外「每個宣告的拒絕理由都要真的被某個 case 觸發過」那條測試是這輪最有用的東西，別只留在 tier 分類器上。清冊裡只有半邊覆蓋的那 3 條，照同一個形狀補
 
 清冊寫錯三條那段留著，跟 quiet-failures 放一起進 M8。同一件事的第二個實例，而且這次被稽核的自信是你自己的
+
+==========
+
+是的，以下是我跟 PM 的討論內容
+你讀一下，再結合你剛剛的觀察，看看還有哪些要改的一起改一改
+不用排序，最後都一定要做完才會交作業
+另外，接下來除非有什麼你覺得應該要跟我或是PM討論的關鍵性決策，或是需要我手動幫你部署
+不然不用每做到一個階段就停下來回報
+你自己做到一個段落就commit然後接著做下一個step就好
+
+我跟PM討論的內容:
+-------------------------
+Spec 更新：Amendment 13（docs/task1-spec.md §16，commit aa33654）。這是 M4 完成後對照
+原始作業做的方向審查，發現三處偏航，都指向同一件事：產品目前宣稱的形狀不等於它實際的形狀。
+先完整讀 A13.1–A13.6 與新增的 A-35…A-38，這裡是導讀與問題現況。
+
+問題一：T-DECLARED 從來沒有被指派過
+app/executor.py:186 的 classify() 對所有非拒絕任務一律回傳 Tier.EXPERIMENTAL。
+後果是 OP-4…OP-7 這四筆承諾紀錄跑出來全部帶著 app/templates/run.html:40 的實驗層橫幅，
+上面寫著「本結果為 best effort，已排除於回報的成功率之外」。
+系統親口否認自己的承諾面，S-1.3 的 headline success rate 沒有分子。
+→ A13.1：tier 必須是真正的三向分類，宣告層的 run 必須是被計入成功率的那一批，
+  實驗層橫幅只能出現在真正的實驗層 run 上。
+
+問題二：實驗層不會執行，它只是一個拒絕標籤
+關鍵字 router 沒命中的任務，在 executor.py:249 就以 unsupported / policy_refused 結束，
+完全沒有開瀏覽器，而且說明字串還是 M2 時代的「no model in the loop」，現在已經是假的。
+作業原文明寫 "reliably executes them across different sites" 與
+"We will verify with our own unseen tasks"，而 S-1.4 本來就要求 generic agent loop 當 fallback。
+A2.2 要求 abstention 說出停在哪一步、最後觀察到的頁面狀態、為什麼 postcondition 無法驗證 ——
+沒有實際 browse 過，這三件事一件都講不出來。
+Amendment 2 當初用實驗層回答「across different sites」，前提是實驗層真的會去試；
+現在的實作等於用站數回答，而站數是二。
+→ A13.2：公開、政策乾淨、read-only 而未命中承諾紀錄的任務，必須交給 generic model-driven loop 去試。
+  五個子條件全部要做：entry point 解析不出來時「解析不出來」本身就是 abstention 理由；
+  §2 政策照舊全部適用；postcondition 仍然在 browse 之前凍結且由 code 擁有（可以較弱，
+  但「弱但有檢查」不等於「沒有」）；abstention 必須帶真實觀察；實驗層結果仍不計入 headline rate。
+  特別注意：「我們沒有這個腳本」不是政策拒絕，不得回報成 unsupported / policy_refused。
+
+問題三：對外文案已經不實
+app/templates/index.html:9 寫「declared surface 之外的任務會被以 T-EXPERIMENTAL 嘗試」——今天不會。
+app/templates/support.html 仍把 OP-4…OP-7 標成 not yet implemented (M4)，而 M4 已完成。
+首頁輸入框 placeholder 仍是 fixture 任務。
+這是全案唯一一處「寫的比做的多」，而誠實揭露正是被直接評分的那一面。
+→ A13.3：所有使用者可見的字串必須描述當前正在跑的這個 build。
+  描述 build 狀態的字串就是一個宣稱，過時的宣稱就是不實的宣稱。
+
+另外兩件不算偏航但會影響評級的
+→ A13.4：planner 目前藏在「use the planner」這個暗語後面。
+  評審用自然語言送一個 OP-4 任務，看到的是一條寫死腳本，而 self-correction 的實質是
+  他們明列的第一個觀察點。真實站操作的預設路徑必須是 model-driven；
+  deterministic script 保留為 provider 不可用時的 fallback、fixture 示範路徑（不得依賴 provider）
+  與對照基準。trace 必須記錄這次走的是哪一條，分析報告要分開報兩條路徑的成功率。
+→ A13.5：eval/dev-set.md 目前是散文，沒有任何程式會跑它。
+  需要一個 harness 對已部署系統執行一個 split、比對每條 case 的 oracle，
+  輸出 per-case terminal status、failure class、evidence coverage 與 S-10.7 的 provenance
+  （git SHA、pinned model ID、eval-set hash）。同一支 harness 之後跑 A9.6 / A12.3 的計分 split。
+  沒有它就沒有 §10.3 的 hard gate、沒有 first-run 分數、分析報告也沒有數據來源。
+
+範圍的重要更新（A13.6）
+不要預設任何 milestone 會被犧牲。S-13.1 的犧牲順序只在日曆真的爆掉時才啟用，
+不得拿來當規劃預設。M5（locator memory 與 mutation gate）與 M6（safety suite）
+分別是自我維護與安全宣稱的證據，兩者都在作業裡被點名。
+M7 的 seam 留在範圍內，而且 Task 2 本身不預設不做 ——
+Task 1 的任何實作都不得建立在「Task 2 不會做」這個假設上。
+
+新增驗收項（黑箱）
+- A-35 用完全自然的語言送一個承諾紀錄任務，不加任何特殊措辭：run 是 T-DECLARED、
+  走 model-driven 路徑、沒有實驗層橫幅。
+- A-36 送一個承諾範圍外的公開唯讀任務：瀏覽器真的開了、trace 有真實步驟、
+  結果是帶實驗層標記的已驗證結果，或是說得出步驟與觀察狀態的 abstention。
+- A-37 沒有任何使用者可見字串誤述 build 狀態。
+- A-38 用 harness 跑 dev split 並重現它回報的數字，provenance 完整。
+
+建議順序：A13.1 與 A13.3 是小改動大後果，先清掉；接著 A13.4，因為它會改變 A13.2 要接的形狀；
+然後 A13.2 的 generic 路徑；再來 A13.5 的 harness，之後 M5 一路往下走。
+照慣例做完回報，有爭議或需要改 spec 就停下來問。

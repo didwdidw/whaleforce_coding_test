@@ -93,6 +93,12 @@ RECORD_BY_ROUTE: dict[str, PromisedRecord] = {r.route: r for r in PROMISED_RECOR
 #: on so that a visitor never depends on a provider being reachable.
 PLANNER_MARKER = re.compile(r"\b(use the planner|with the planner|planner mode)\b")
 
+#: The other direction: ask for the deterministic script explicitly. It is the comparison
+#: baseline for the analysis report, so it needs to be requestable on a real site without
+#: turning the provider off.
+SCRIPT_MARKER = re.compile(r"\b(without the planner|scripted path|scripted mode|"
+                           r"deterministic path)\b")
+
 # Phrases that put a task outside scope before any browsing happens (S-2.1).
 #
 # These match the *act being asked for*, not words that happen to appear. The first version
@@ -309,14 +315,16 @@ class Executor:
                  "Recognised inputs are listed on the submit form."))
             return
 
-        planned = bool(PLANNER_MARKER.search(run.task.lower())) or settings.planner_forced
-        if planned and not plan.entry_url:
+        low = run.task.lower()
+        asked_for_planner = bool(PLANNER_MARKER.search(low)) or settings.planner_forced
+        asked_for_script = bool(SCRIPT_MARKER.search(low))
+        if asked_for_planner and not plan.entry_url:
             self._terminate(
                 run, TerminalStatus.UNSUPPORTED, FailureClass.POLICY_REFUSED,
                 f"The planner was requested but the {plan.operation} operation has no "
                 f"model-driven form: it is a policy demonstration, not a browsing task.")
             return
-        if planned and not self._provider.configured():
+        if asked_for_planner and not self._provider.configured():
             # Named degradation rather than an obscure failure: the deterministic path is
             # unaffected and says so.
             self._terminate(
@@ -325,6 +333,14 @@ class Executor:
                 "deterministic operation still works — submit the same task without asking "
                 "for the planner and it will execute and be verified.")
             return
+
+        planned, why = self._choose_path(plan, asked_for_planner, asked_for_script)
+        run.execution_path = "model_driven" if planned else "scripted"
+        self._store.save_run(run)
+        entry = self._step(run, StepKind.NOTE,
+                           f"Execution path: {run.execution_path} ({why})",
+                           execution_path=run.execution_path, reason=why)
+        self._finish_step(run, entry)
 
         runner = self._run_planned(run, plan) if planned else self._run_plan(run, plan)
         try:
@@ -346,6 +362,29 @@ class Executor:
             log.exception("run %s failed", run.id)
             self._terminate(run, TerminalStatus.FAILED, FailureClass.INTERNAL_ERROR,
                             f"Unhandled defect: {type(exc).__name__}: {exc}")
+
+    def _choose_path(self, plan: Plan, asked_for_planner: bool,
+                     asked_for_script: bool) -> tuple[bool, str]:
+        """Which of the two paths runs, and why in words the trace can carry (A13.4).
+
+        Model-driven is the default for real-site operations. The deterministic script
+        keeps three jobs: the fixture demonstrations, which must not depend on a provider;
+        the fallback when no credential is readable; and the baseline the report compares
+        against.
+        """
+        if asked_for_planner:
+            return True, "requested"
+        if asked_for_script:
+            return False, "deterministic path requested as the comparison baseline"
+        if not plan.entry_url:
+            return False, "policy demonstration, not a browsing task"
+        if not settings.planner_default_on_real_sites:
+            return False, "model-driven default disabled by configuration"
+        if urlsplit(plan.entry_url).netloc == urlsplit(settings.fixture_base_url).netloc:
+            return False, "fixture demonstration, which must not depend on a provider"
+        if not self._provider.configured():
+            return False, "no provider credential readable, falling back to the script"
+        return True, "default for a promised record on a real site"
 
     async def _run_plan(self, run: Run, plan: Plan) -> None:
         async with self._supervisor.context() as (context, generation):
@@ -889,7 +928,8 @@ class Executor:
 
     @staticmethod
     def _strip_directives(low: str) -> str:
-        return PLANNER_MARKER.sub(" ", re.sub(r"\bseed[: ]+[a-z0-9-]+", " ", low))
+        stripped = re.sub(r"\bseed[: ]+[a-z0-9-]+", " ", low)
+        return SCRIPT_MARKER.sub(" ", PLANNER_MARKER.sub(" ", stripped))
 
     @staticmethod
     def _seed(low: str) -> str:

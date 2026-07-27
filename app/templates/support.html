@@ -13,7 +13,7 @@
     <tbody>
       {% for r in records %}
       <tr><td>{{ r.id }}</td><td>{{ r.site }}</td><td>{{ r.operation }}</td>
-          <td>{% if r.reachable %}<span class="badge b-ok">implemented (M4)</span>
+          <td>{% if r.reachable %}<span class="badge b-ok">implemented ({{ build.milestone }})</span>
               {% else %}<span class="badge b-warn">declared, not reachable</span>{% endif %}</td></tr>
       {% endfor %}
     </tbody>
@@ -21,8 +21,8 @@
   </div>
   <p class="sub" style="margin-top:14px">This table is rendered from the same list the
     admission check reads to decide <code>T-DECLARED</code>, so it cannot advertise an
-    operation the router cannot reach. It said "not yet implemented" for a full milestone
-    after these four shipped, because it was prose.</p>
+    operation the router cannot reach. It advertised these four as unimplemented for a full
+    milestone after they shipped, because it was prose.</p>
   <p class="sub" style="margin-top:14px">
     <strong>The fixture site is not on this list on purpose.</strong> It is our own
     evaluation environment — built by us, for mutation and safety testing — and it is not a
@@ -31,25 +31,39 @@
     GS-2 client-side pagination, GS-3 overlay dismissal) are gate evidence and appear in no
     success-rate figure.
   </p>
+  {% if build.generic_loop %}
   <p class="sub">
     Breadth is handled by the experimental tier rather than by counting declared sites: any
     public, policy-clean, read-only site may be attempted, and where a result cannot be
     verified the system abstains and says where it stopped. That is a chosen trade-off —
     depth on locator memory and the safety suite over breadth of declared sites.
   </p>
+  {% else %}
+  <p class="sub">
+    Breadth is <em>intended</em> to be handled by the experimental tier — any public,
+    policy-clean, read-only site attempted best-effort, abstaining where a result cannot be
+    verified. <strong>That path is not in this build.</strong> A task matching no promised
+    record stops before browsing today, which means breadth is currently answered by the
+    number of declared sites, and that number is two. Stated here rather than implied away.
+  </p>
+  {% endif %}
 </div>
 
 <div class="panel">
   <h2>Known limitations, concretely</h2>
   <ul style="font-size:13.5px;padding-left:20px;margin:0">
-    <li><strong>This build is M4.</strong> A model plans; it does not judge. Every status
-      still comes from deterministic re-extraction against the stored artifact, and the
-      executor cannot set a success status itself. Locator memory and the mutation gate
-      (M5) and the safety suite (M6) are not in this build.</li>
+    <li><strong>This build is {{ build.milestone }}.</strong> A model plans; it does not
+      judge. Every status still comes from deterministic re-extraction against the stored
+      artifact, and the executor cannot set a success status itself.
+      {% if not build.locator_memory %}Locator memory and the mutation gate (M5) are not in
+      this build.{% endif %}</li>
     <li><strong>Each promised record is reachable two ways</strong> — planned by the model,
-      and by a scripted plan that needs no provider quota. The scripted path is what the
-      pinned demonstrations run on, so the frontend stays inspectable when the provider is
-      not reachable. Both go through the same verification.</li>
+      which is {% if build.planner_is_default %}what a plain-language task gets by
+      default{% else %}not currently the default{% endif %}, and by a scripted plan that
+      needs no provider quota. The scripted path is what the pinned demonstrations run on,
+      so the frontend stays inspectable when the provider is not reachable, and it is the
+      baseline the analysis report compares against. Both go through the same verification,
+      and each run records which one it took.</li>
     <li><strong><code>verified</code> does not mean "true".</strong> It means the claim
       is consistent with a preserved artifact and passes deterministic type, unit, date and
       entity checks. A value that is correct in form but taken from the wrong row, entity or

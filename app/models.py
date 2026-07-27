@@ -220,6 +220,10 @@ class Run:
     credential_tier: str | None = None
     browser_generation: int | None = None
     pre_executed: bool = False
+    # Which of the two ways of satisfying the same postcondition actually ran. Recorded on
+    # the run, not just in the trace, because the analysis report has to give a success
+    # rate per path and a figure that mixes them describes neither.
+    execution_path: str | None = None
     # Why this run's outcome should not be read as clean. Only ever populated for the quiet
     # outcomes — a refusal or a verified absence — where being wrong and being right look
     # identical from outside. Empty is the normal case and means the audit found nothing,
@@ -261,6 +265,7 @@ class Run:
             "credential_tier": self.credential_tier,
             "browser_generation": self.browser_generation,
             "pre_executed": self.pre_executed,
+            "execution_path": self.execution_path,
         }
         if include_trace:
             d["trace"] = [t.to_dict() for t in self.trace]

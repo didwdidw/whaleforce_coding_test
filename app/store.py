@@ -54,7 +54,8 @@ CREATE TABLE IF NOT EXISTS runs (
     pre_executed       INTEGER NOT NULL DEFAULT 0,
     budget             TEXT,
     claims             TEXT,
-    suspicions         TEXT
+    suspicions         TEXT,
+    execution_path     TEXT
 );
 CREATE INDEX IF NOT EXISTS runs_created ON runs (created_at DESC);
 CREATE INDEX IF NOT EXISTS runs_session ON runs (session_id);
@@ -239,6 +240,9 @@ class Store:
         if "suspicions" not in run_columns:
             self._conn.execute("ALTER TABLE runs ADD COLUMN suspicions TEXT")
             self._conn.commit()
+        if "execution_path" not in run_columns:
+            self._conn.execute("ALTER TABLE runs ADD COLUMN execution_path TEXT")
+            self._conn.commit()
 
     def probe(self) -> dict[str, Any]:
         """Confirm the store is really writable by writing to it (A11.5).
@@ -283,8 +287,8 @@ class Store:
                                  finished_at, terminal_status, failure_class, explanation,
                                  postcondition, postcondition_hash, credential_tier,
                                  browser_generation, pre_executed, budget, claims,
-                                 suspicions)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                                 suspicions, execution_path)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                ON CONFLICT(id) DO UPDATE SET
                  state=excluded.state, started_at=excluded.started_at,
                  finished_at=excluded.finished_at, terminal_status=excluded.terminal_status,
@@ -294,7 +298,8 @@ class Store:
                  credential_tier=excluded.credential_tier,
                  browser_generation=excluded.browser_generation,
                  budget=excluded.budget, claims=excluded.claims,
-                 suspicions=excluded.suspicions""",
+                 suspicions=excluded.suspicions,
+                 execution_path=excluded.execution_path""",
             (run.id, run.task, run.tier.value, run.state.value, run.session_id,
              run.created_at, run.started_at, run.finished_at,
              run.terminal_status.value if run.terminal_status else None,
@@ -303,7 +308,8 @@ class Store:
              json.dumps(run.postcondition) if run.postcondition else None,
              run.postcondition_hash, run.credential_tier, run.browser_generation,
              int(run.pre_executed), json.dumps(run.budget.to_dict()),
-             json.dumps(run.claims), json.dumps(run.suspicions)),
+             json.dumps(run.claims), json.dumps(run.suspicions),
+             run.execution_path),
         )
         self._conn.commit()
 
@@ -384,6 +390,7 @@ class Store:
             budget=budget,
             claims=json.loads(row["claims"]) if row["claims"] else [],
             suspicions=json.loads(row["suspicions"]) if row["suspicions"] else [],
+            execution_path=row["execution_path"],
         )
 
     # ---- status coverage -------------------------------------------------------

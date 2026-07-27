@@ -1,19 +1,32 @@
 {% extends "base.html" %}
 {% block body %}
 
-<div class="milestone">{{ milestone }}</div>
+<div class="milestone">
+  {{ build.milestone }} — {{ build.records_reachable }} of {{ build.promised_records }}
+  promised records run on their real sites,
+  {% if build.planner_is_default %}planned by the model by default{% else %}deterministically
+  by default{% endif %}, and each is also reachable the other way. Every status below was
+  decided by code re-extracting the answer from the stored artifact through an anchor frozen
+  before the run started; the executor cannot set a success status itself.
+  {% if not build.generic_loop %}A task matching no promised record stops before browsing in
+  this build.{% endif %}
+</div>
 
 <div class="panel">
   <h2>Submit a task</h2>
   <p class="sub">Tier is decided before execution starts and is shown on the result. A task
-    matching one of the promised records runs as <code>T-DECLARED</code>; one that asks for
-    something outside policy is refused as <code>T-REFUSED</code> before any browsing.
-    <strong>In this build a task that matches neither stops before browsing</strong> rather
-    than being attempted — a gap in the build, stated as one, not a judgement about the
-    task. Nothing is ever answered by guessing.</p>
+    matching one of the {{ build.promised_records }} promised records runs as
+    <code>T-DECLARED</code>, planned by the model; one that asks for something outside
+    policy is refused as <code>T-REFUSED</code> before any browsing.
+    {% if build.generic_loop %}Anything else is attempted as <code>T-EXPERIMENTAL</code> —
+    best effort, and abstaining is a correct outcome there.
+    {% else %}<strong>In this build a task that matches neither stops before
+    browsing</strong> rather than being attempted — a gap in the build, stated as one, not
+    a judgement about the task.{% endif %}
+    Nothing is ever answered by guessing.</p>
   <form class="submit" method="post" action="/api/runs" id="submit-form">
     <input type="text" name="task" id="task" required
-           placeholder="e.g. Search the fixture catalogue for lantern">
+           placeholder="e.g. {{ placeholder }}">
     <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
       <button type="submit">Run</button>
       <span class="meta" id="submit-note" style="font-size:12.5px;color:var(--dim)"></span>
@@ -24,6 +37,9 @@
     <li><button type="button" class="ghost" onclick="fill(this)">{{ t }}</button></li>
     {% endfor %}
   </ul>
+  <p class="sub" style="margin-top:10px">The first four run live against the real sites and
+    are planned by the model. The fixture ones are the same tasks the pre-executed runs
+    below used, and they need no model at all.</p>
 </div>
 
 <div class="panel">
@@ -60,7 +76,7 @@
   <div class="scroll">
   <table>
     <thead><tr>
-      <th>Task</th><th>Tier</th><th>Outcome</th><th>Counts as success</th>
+      <th>Task</th><th>Tier</th><th>Path</th><th>Outcome</th><th>Counts as success</th>
       <th>Steps</th><th>Duration</th><th></th>
     </tr></thead>
     <tbody>
@@ -73,6 +89,8 @@
             {% endif %}
           {% endif %}</td>
         <td><span class="badge {% if r.tier.value == 'T-DECLARED' %}b-ok{% elif r.tier.value == 'T-REFUSED' %}b-bad{% else %}b-warn{% endif %}">{{ r.tier.value }}</span></td>
+        <td class="sub">{% if r.execution_path == 'model_driven' %}model-driven
+            {% elif r.execution_path == 'scripted' %}scripted{% else %}—{% endif %}</td>
         <td>
           {% if r.terminal_status %}
             <span class="badge {% if r.counts_as_success %}b-ok{% elif r.terminal_status.value in ('failed','blocked') %}b-bad{% else %}b-warn{% endif %}">{{ r.terminal_status.value }}</span>
@@ -88,7 +106,7 @@
         <td><a href="/runs/{{ r.id }}">inspect</a></td>
       </tr>
     {% else %}
-      <tr><td colspan="7" style="color:var(--dim)">Pre-executed runs are still starting.
+      <tr><td colspan="8" style="color:var(--dim)">Pre-executed runs are still starting.
         The browser takes a few seconds to launch on a cold container.</td></tr>
     {% endfor %}
     </tbody>

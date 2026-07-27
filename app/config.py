@@ -263,10 +263,15 @@ class Settings:
     allow_private_egress: bool = field(
         default_factory=lambda: _bool("ALLOW_PRIVATE_EGRESS", False))
 
-    #: Force every routed task through the model-driven loop. Off by default: the
-    #: deterministic path needs no provider quota, which is what keeps the public
-    #: demonstrations working when the free tier is spent.
+    #: Force every routed task through the model-driven loop, including the fixture
+    #: demonstrations. Off by default: those must keep working with no provider at all.
     planner_forced: bool = field(default_factory=lambda: _bool("PLANNER_FORCED", False))
+
+    #: The model plans real-site operations unless something stops it (A13.4). It used to
+    #: take a magic phrase, which meant a reviewer submitting a promised task in plain
+    #: English watched a hard-coded script and never saw the mechanism being graded.
+    planner_default_on_real_sites: bool = field(
+        default_factory=lambda: _bool("PLANNER_DEFAULT_ON_REAL_SITES", True))
 
     @property
     def is_dev(self) -> bool:

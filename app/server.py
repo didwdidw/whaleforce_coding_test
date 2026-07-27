@@ -24,9 +24,10 @@ from fastapi.templating import Jinja2Templates
 
 from app import egress
 from app.browser import BrowserSupervisor
+from app.buildstate import state as build_state
 from app.config import config_provenance, settings
 from app.coverage import CoverageLedger
-from app.demo import DEMO_TASKS
+from app.demo import CHIPS, PLACEHOLDER, PRE_EXECUTED
 from app.executor import PROMISED_RECORDS, Executor
 from app.models import Run, TerminalStatus, Tier, new_id
 from app.provider import Provider, ProviderError
@@ -36,10 +37,6 @@ from app.store import Store
 
 log = logging.getLogger(__name__)
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
-
-# Chosen so the homepage shows one of each outcome without anyone having to provoke it:
-# a verified answer, a proven absence, a right answer scored as a failure for skipping a
-# declared action, a partial where a label moved, and a refusal.
 
 
 def git_sha() -> str:
@@ -160,7 +157,7 @@ async def _seed_pre_executed() -> None:
     if state.store.recent_runs(limit=1, pre_executed=True):
         return
     await asyncio.sleep(1.0)
-    for task in DEMO_TASKS:
+    for task in PRE_EXECUTED:
         tier, _ = state.executor.classify(task)
         run = Run(id=new_id("run"), task=task, tier=tier, session_id="pre-executed",
                   pre_executed=True)
@@ -191,12 +188,9 @@ async def home(request: Request) -> HTMLResponse:
         "captured": captured,
         "queue": state.queue.snapshot().to_dict(),
         "browser": state.supervisor.status(),
-        "demo_tasks": DEMO_TASKS,
-        "milestone": "M4 — the four promised records run on their real sites, planned by "
-                     "the model and also reachable deterministically. Every status below "
-                     "was decided by code re-extracting the answer from the stored "
-                     "artifact through an anchor frozen before the run started; the "
-                     "executor still cannot set a success status itself.",
+        "demo_tasks": CHIPS,
+        "placeholder": PLACEHOLDER,
+        "build": build_state(),
     })
 
 
@@ -237,6 +231,7 @@ async def coverage(request: Request) -> HTMLResponse:
 async def support(request: Request) -> HTMLResponse:
     """The support matrix and limitations, reachable from the frontend (S-11.4)."""
     return TEMPLATES.TemplateResponse(request, "support.html", {
+        "build": build_state(),
         "records": [{"id": r.id, "site": r.site, "operation": r.operation,
                      "reachable": r.route in dict(Executor.ROUTES)}
                     for r in PROMISED_RECORDS],
