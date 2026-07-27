@@ -26,6 +26,8 @@ from app.browser import BrowserSupervisor
 from app.config import settings
 from app.coverage import CoverageLedger
 from app.executor import Executor
+from app.planner import Planner
+from app.provider import CredentialPolicy, Provider, ProviderError
 from app.models import FailureClass, Run, TerminalStatus, Tier, new_id
 from app.store import Store
 
@@ -253,6 +255,83 @@ def test_an_unhandled_defect_is_its_own_class_not_a_disguised_answer(executor):
     assert "injected defect" in run.explanation
 
 
+# --- the four classes that only exist once a model is in the loop ------------------
+#
+# None of these is provoked by burning free-tier quota: RPD is the one resource this
+# project cannot buy back. Three of them do not need injecting at all — the budget checks
+# and the spend ceiling fire *before* a credential is ever selected, so the real code path
+# runs with no network involved. Only `provider_error` needs a fault put in deliberately.
+
+class _NoNetworkProvider(Provider):
+    """Reports itself configured so the planned path runs, but every route to the network
+    is preceded by a check that fires first."""
+
+    def configured(self) -> bool:
+        return True
+
+
+class _FaultyProvider(_NoNetworkProvider):
+    """The injected fault. Nothing here is a real provider failure."""
+
+    def complete(self, prompt, *, budget, purpose, max_output_tokens=None):
+        raise ProviderError("injected fault: the pinned model returned HTTP 503")
+
+
+def _planned_run(executor_bundle, provider, task="Paginate to page 2 of the browse "
+                                                 "listing, use the planner"):
+    ex, store, loop = executor_bundle
+    ex._provider = provider
+    ex._planner = Planner(provider)
+    return run_task(executor_bundle, task)
+
+
+def test_context_budget_exceeded_is_produced_by_the_real_check(executor):
+    """A7.1: the assembled context is over the per-call cap, so the call is not sent. No
+    network, no quota — the check runs before a credential is even chosen."""
+    previous = settings.budgets.max_input_tokens_per_call
+    object.__setattr__(settings.budgets, "max_input_tokens_per_call", 10)
+    try:
+        run = _planned_run(executor, _NoNetworkProvider(policy=CredentialPolicy.DEVELOPMENT))
+    finally:
+        object.__setattr__(settings.budgets, "max_input_tokens_per_call", previous)
+    assert run.terminal_status is TerminalStatus.BLOCKED
+    assert run.failure_class is FailureClass.CONTEXT_BUDGET_EXCEEDED
+    assert "not sent" in run.explanation
+
+
+def test_token_budget_exhausted_is_produced_by_the_real_check(executor):
+    previous = settings.budgets.max_input_tokens_per_run
+    object.__setattr__(settings.budgets, "max_input_tokens_per_run", 1)
+    try:
+        run = _planned_run(executor, _NoNetworkProvider(policy=CredentialPolicy.DEVELOPMENT))
+    finally:
+        object.__setattr__(settings.budgets, "max_input_tokens_per_run", previous)
+    assert run.terminal_status is TerminalStatus.BLOCKED
+    assert run.failure_class is FailureClass.TOKEN_BUDGET_EXHAUSTED
+
+
+def test_provider_quota_comes_from_our_own_ceiling_not_from_the_provider(executor):
+    """A12.5. Deliberately *not* provoked by exhausting the free tier: the daily quota is
+    the one thing here that cannot be bought back. Our own spend ceiling produces the same
+    class through the same code path, and costs nothing."""
+    ex, store, loop = executor
+    store.record_spend("paid", 99.0, 10, 10)          # far over the ceiling
+    provider = _NoNetworkProvider(policy=CredentialPolicy.DEVELOPMENT, ledger=store)
+    run = _planned_run(executor, provider)
+    assert run.terminal_status is TerminalStatus.BLOCKED
+    assert run.failure_class is FailureClass.PROVIDER_QUOTA
+    assert "ceiling" in run.explanation
+
+
+def test_provider_error_is_the_one_that_has_to_be_injected(executor):
+    """S-11.16: the pinned model is not substituted when it is unavailable. A silent
+    fallback would make every recorded score unreproducible."""
+    run = _planned_run(executor, _FaultyProvider(policy=CredentialPolicy.DEVELOPMENT))
+    assert run.terminal_status is TerminalStatus.BLOCKED
+    assert run.failure_class is FailureClass.PROVIDER_ERROR
+    assert "not substituted" in run.explanation
+
+
 # --- the gate itself ---------------------------------------------------------------
 
 def _drive_non_browser_paths(ex, store) -> None:
@@ -325,8 +404,8 @@ def _drive_non_browser_paths(ex, store) -> None:
                   run_id=vrun2.id, task=vrun2.task, origin="test")
 
 
-def test_every_status_due_by_m2_is_reached_by_running_the_product(executor):
-    """The M2 gate. Not "the code contains a branch for it" — a run produced it."""
+def test_every_status_due_by_m3_is_reached_by_running_the_product(executor):
+    """The M2 and M3 gates. Not "the code contains a branch for it" — a run produced it."""
     ex, store, _ = executor
     tasks = [
         "Search the fixture catalogue for lantern",
@@ -360,8 +439,16 @@ def test_every_status_due_by_m2_is_reached_by_running_the_product(executor):
     _exhaust_wall_clock(executor)
     _inject_defect(executor)
     _drive_non_browser_paths(ex, store)
-    report = CoverageLedger(store).report()
+
+    # The four that only exist once a model is in the loop. Three run their real checks;
+    # `provider_error` is an injected fault, and the ledger records that distinction.
+    for produce in (test_context_budget_exceeded_is_produced_by_the_real_check,
+                    test_token_budget_exhausted_is_produced_by_the_real_check,
+                    test_provider_quota_comes_from_our_own_ceiling_not_from_the_provider,
+                    test_provider_error_is_the_one_that_has_to_be_injected):
+        produce(executor)
+    report = CoverageLedger(store, "M3").report()
     assert report["gate_passes"] is True, f"still unreachable: {report['overdue']}"
+    # Only the injection defence is still ahead of us; everything else has been produced.
     later = {r["value"] for r in report["failure_class"] if not r["due_now"]}
-    assert later == {"provider_quota", "provider_error", "token_budget_exhausted",
-                     "context_budget_exceeded", "injection_detected"}
+    assert later == {"injection_detected"}

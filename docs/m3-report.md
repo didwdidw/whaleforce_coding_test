@@ -1,13 +1,12 @@
 # M3 — The planner, and what happens when it is wrong
 
-**Date:** 2026-07-27 · **Gate (§13 M3): the mechanism is in place and demonstrated.**
-Recoveries are cross-family and carry a named diagnosed cause; retry and recovery are
-distinguishable in the trace; the exploration/recovery budget split is enforced by the
-provider adapter rather than by discipline at call sites.
-
-Not yet closed: the four M3-due failure classes have not all been produced by a run, so the
-coverage gate still reports them overdue. That is the honest state and it is visible on
-`/coverage` rather than described here.
+**Date:** 2026-07-27 · **Gate (§13 M3): PASS.** Recoveries are cross-family and carry a
+named diagnosed cause; retry and recovery are distinguishable in the trace; the
+exploration/recovery budget split is enforced by the provider adapter rather than by
+discipline at call sites. Every `terminal_status` and `failure_class` due by M3 has been
+produced by a run of the product, asserted in one store by
+`test_every_status_due_by_m3_is_reached_by_running_the_product`. Only
+`injection_detected` remains, and it is not due until M6.
 
 ---
 
@@ -113,11 +112,32 @@ counting against it. It is now stored in the volume-backed database, checked **b
 call, and exceeding it is a refusal rather than a warning. Measured cost per planned run so
 far: **$0.0010–$0.0019**.
 
-## 6. What M4 inherits
+## 6. The four model-era failure classes, and how each was actually produced
 
-- The coverage gate will fail until `provider_quota`, `provider_error`,
-  `token_budget_exhausted` and `context_budget_exceeded` have each been produced. They are
-  reachable now; none has been walked.
-- Goal-completion detection (§3) is the first thing a real site will punish.
+Stated exactly, because "produced by a run" and "produced by a *real* failure" are different
+claims and the difference is the honest part.
+
+| Class | How it was produced | Real path or injected? |
+|---|---|---|
+| `context_budget_exceeded` | per-call input cap set to 10 tokens; the assembled context exceeds it and **the call is not sent** | **Real.** A7.1's check runs before a credential is even selected — no network, no quota |
+| `token_budget_exhausted` | per-run input budget set to 1 token | **Real**, same reason |
+| `provider_quota` | our own spend ceiling, with the store pre-loaded past it | **Real path, our control.** Deliberately *not* produced by exhausting the free tier |
+| `provider_error` | a provider stub raising HTTP 503 | **Injected.** Nothing here was a genuine provider failure |
+
+**`provider_quota` was not produced by burning free-tier quota, on purpose.** RPD 500 is the
+one resource in this project that cannot be bought back, and spending a day of it to colour
+in a cell would be a poor trade. The spend ceiling (A12.5) raises the same exception class
+through the same executor path at no cost, which is a better demonstration anyway: it shows
+*our* control firing, not the provider's.
+
+`provider_error` is the only one with no honest way to reach it without a fault, so a fault
+was injected and is labelled as such here. A run that ends `blocked / provider_error` in
+production means something different from this test, and the report should not let the two
+read as the same evidence.
+
+## 7. What M4 inherits
+- Goal-completion detection (§3) is the first thing a real site will punish. Both candidate
+  fixes are prompt-and-loop changes; **the postcondition does not move**, which is what
+  makes either of them safe to try.
 - The postcondition for a real-site task still comes from code. Nothing here synthesises one
   from an arbitrary request, and pretending otherwise is what M4 must not do.

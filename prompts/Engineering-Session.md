@@ -520,3 +520,13 @@ A9.6 只管我們自己那一列。這樣公開容器確實永遠不需要付費
 現在先別建第二個 service。那個架構我要寫進 spec 才動，你先去做 M3 主體: executor 的模型驅動迴圈跟 recovery
 
 部署我來，Config Editor 也我來
+
+==========
+
+go ahead, 把那四個 failure class 走完，M3 gate 關掉
+
+Note: provider_quota 不要真的燒掉一天的免費配額去撞。RPD 500 是這個專案唯一買不回來的東西。用注入點做，然後在報告裡寫清楚它是注入達成的、不是自然發生的。其他三個同理，能注入就注入。
+
+衝過頭那個留到 M4 再選，兩個選項我都可以，但 postcondition 不准動
+那個 verification_mismatch 是這份報告裡最值錢的東西：模型不可靠，然後產品把它變成一次失敗而不是一個自信的錯答案
+M8 的 analysis report 要拿這條當主線，trace 那四行直接放進去

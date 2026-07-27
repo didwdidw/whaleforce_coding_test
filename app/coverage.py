@@ -61,7 +61,7 @@ class CoverageLedger:
     """Reads and writes the ledger. Recording is a side effect of terminating a run, so it
     cannot drift from what the product actually did."""
 
-    def __init__(self, store: Store, current_milestone: str = "M2") -> None:
+    def __init__(self, store: Store, current_milestone: str = "M3") -> None:
         self._store = store
         self.current = current_milestone
 
