@@ -93,7 +93,7 @@ What needs a key is the model-driven path, which is everything on a site we did 
 ### Tests and evaluation
 
 ```bash
-pytest                                    # 583 tests, ~25 s (a real browser runs
+pytest                                    # 592 tests, ~16 s (a real browser runs
                                           # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
@@ -121,12 +121,12 @@ measured on a site we wrote is us setting our own exam — so they were **withdr
 and kept as *mechanism evidence* (GS-1…GS-3 at `/support`), which appears in no success rate. The
 promise is what is left, on sites we do not control.
 
-| ID | Site | Operation | Why it is hard | Status, from `dev-deploy-aa1ee6c5d5eb-r2` |
-|---|---|---|---|---|
-| OP-4 | en.wikipedia.org | Sort a sortable wikitable by a named column, read a cell from the new top row | Client-side sort: the DOM order changes, the URL does not, so the answer cannot be obtained by fetching a URL | **2 of 3 dev cases as expected**, and one of the two carries an independently derived top row that agreed. The third (DEV-02) names the article by description rather than by title and correctly stops before browsing — see L-1 |
-| OP-5 | en.wikipedia.org | Expand a collapsed section/navbox and read a value not visible beforehand | The value is not in the DOM-visible state until a real interaction happens | **1 of 2 in `r2`**, 2 of 2 in `r1`. The one that moved is the redirect defect in §7, not the operation. No independent oracle either way: correctness here rests on our own verifier (A25.4) |
-| OP-6 | books.toscrape.com | Navigate a category, page through it, extract list-level facts | Multi-page state, and the honest answer often requires proving coverage | **2 of 3.** The third exhausts the step budget on a long category and returns no answer — L-2 |
-| OP-7 | books.toscrape.com | Open a product detail page and extract a **labelled** field (UPC, Availability, Price excl. tax) | The answer is a label→value binding, not a string that happens to appear | **2 of 2 in `r1`**, when the record was fixed to one product. It now takes the product from the task and reaches it by paging the listing, bounded to 6 pages — a title beyond that ends `unsupported` naming the bound rather than reporting the wrong book |
+| ID | Site | Operation | Why it is hard | Status | From |
+|---|---|---|---|---|---|
+| OP-4 | en.wikipedia.org | Sort a sortable wikitable by a named column, read a cell from the new top row | Client-side sort: the DOM order changes, the URL does not, so the answer cannot be obtained by fetching a URL | **2 of 3 dev cases as expected**, and one of the two carries an independently derived top row that agreed. The third (DEV-02) names the article by description rather than by title and correctly stops before browsing — see L-1 | `r2` |
+| OP-5 | en.wikipedia.org | Expand a collapsed section/navbox and read a value not visible beforehand | The value is not in the DOM-visible state until a real interaction happens | **1 of 2**, against 2 of 2 in `r1`. The one that moved is the redirect defect in §7, not the operation. No independent oracle either way: correctness here rests on our own verifier (A25.4) | `r2` |
+| OP-6 | books.toscrape.com | Navigate a category, page through it, extract list-level facts | Multi-page state, and the honest answer often requires proving coverage | **2 of 3.** The third exhausts the step budget on a long category and returns no answer — L-2 | `r2` |
+| OP-7 | books.toscrape.com | Open a product detail page and extract a **labelled** field (UPC, Availability, Price excl. tax) | The answer is a label→value binding, not a string that happens to appear | **2 of 2**, when the record was fixed to one product. It now takes the product from the task and reaches it by paging the listing, bounded to 6 pages — a title beyond that ends `unsupported` naming the bound rather than reporting the wrong book | `r1` — the record has since been generalised and has not been re-scored |
 
 Four of the six *evidence findings* in `r1` were the harness disagreeing with itself, not the
 product: it re-checked values against rendered text only, and `books.toscrape` carries long titles in
@@ -216,7 +216,7 @@ disputes and never wrote product code; and an **engineering session** that imple
 frozen spec and never decided what "correct" meant. The separation was the point. A single session
 that both defines success and reports success will report success — which is the same defect, one
 level up, as an agent that both answers and verifies. `docs/task1-spec.md` §16 is the record: every
-change to the spec is a numbered amendment appended to frozen text, twenty-five of them, each with
+change to the spec is a numbered amendment appended to frozen text, each with
 the defect that caused it.
 
 **What AI was clearly good at.** Writing the deterministic verifier, the RFC 9309 robots matcher, the
@@ -252,22 +252,32 @@ provenance — git SHA, pinned model, credential tier, and the SHA-256 of the sp
 because a score without them describes a system nobody can identify. Full numbers, per-case tables
 and the evidence bundles are in `eval/results/` and `docs/analysis-report.md`.
 
-The round below is `r1`, the first scored against the deployment: commit `e1d13cae4926`, model
-`gemini-3.1-flash-lite`, paid tier, dev split `8f584218…`, experimental split `790d9440…`.
+**The headline round is `r2`.** Its provenance, and `r1`'s beside it, because a score without them
+describes a system nobody can identify:
+
+| | `r1` | `r2` |
+|---|---|---|
+| What it is | the first round scored against the deployment | the same dev split re-scored on the corrected harness |
+| Commit | `e1d13cae4926` | `aa1ee6c5d5eb` |
+| Model | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` |
+| Credential tier | paid | paid |
+| Dev split file | `8f584218…` | `9c1a0dee…` (the corpus fix; the cases are unchanged) |
+| Experimental split file | `790d9440…` | *interrupted before it ran — see the analysis report §5.5* |
+| Ran | 2026-07-28 14:26–14:31 UTC | 2026-07-28 17:05–17:07 UTC |
 
 **Dev split — 15 cases, 14 declared.** Twelve of the fourteen ended in a status the case declared
 acceptable. The two that did not are both the product refusing rather than guessing: DEV-02 stops
 before browsing because the article is described and not named (L-1), and DEV-08 exhausts its step
 budget paging a long category and returns no answer (L-2).
 
-The **headline pass rate is lower than that — 6 of 11 in `r1`** — because a case passes only when the
+The **headline pass rate is lower than that — 9 of 11 in `r2`** — because a case passes only when the
 status is as expected *and* the harness can re-locate every verified value in the stored artifact.
-Four cases were demoted by the harness's own defect: it searched rendered text only, and the site
-carries long titles in the `title` attribute the product correctly read.
+The two that do not pass are tier disagreements (DEV-02, DEV-13), not wrong values.
 
-**Round `r2`, on the corrected harness, is 9 of 11**, with evidence findings down from six to two —
-and the two that remain are the DEV-02 and DEV-13 tier disagreements rather than anything about a
-value. `r1` stays committed as the record rather than being re-run away.
+**`r1` scored the same split at 6 of 11** and stays committed as the record rather than being re-run
+away. Four of its five misses were the harness's own defect: it searched rendered text only, and the
+site carries long titles in the `title` attribute the product correctly read. Evidence findings fell
+from six to two between the rounds.
 
 `r2` is **not** a single-variable change and the analysis report says so: the build it ran on also
 carries OP-7's parameter generalisation, the n-claim postcondition and locator memory. What separates
@@ -336,12 +346,12 @@ itself the point of the rule.
 | | The task | What happens |
 |---|---|---|
 | **L-1** | *"In the S&P 500 constituents table on Wikipedia, sort by CIK ascending and tell me which company is first."* | Stops before browsing: `unsupported / policy_refused`. The article is described, not named, and picking a starting page the task never named is how a run answers a question nobody asked. **Naming it does not finish the job either** — *"In the List of S&P 500 companies article on Wikipedia, …"* now reaches the right table and sorts it, then fails to recognise that the sort landed and spends its remaining steps re-searching for the article: `failed / budget_exhausted`. Both halves are executed against the deployment; an earlier version of this entry claimed the second one succeeded. |
-| **L-2** | *"How many books are listed on the last page of the Nonfiction category on books.toscrape.com?"* | Runs out of step budget while paging and stops with **no answer**. Paging to "the last page" costs a model call per page. The budget is fail-closed on purpose: the alternative is reporting whichever page it reached as though it were the last. |
+| **L-2** | *"How many books are listed on the last page of the Nonfiction category on books.toscrape.com?"* | Runs out of step budget while paging and stops with **no answer** (`failed / budget_exhausted`). Paging to "the last page" costs a model call per page. The budget is fail-closed on purpose: the alternative is reporting whichever page it reached as though it were the last. |
 | **L-3** | *"Is there any book in the Fiction category on books.toscrape.com priced over £50?"* | Reads 20 of the listing's own count of 65 and reports coverage **unproven** (`unverified`). Absence is only concluded from positive proof, and a multi-page category spans several artifacts while this build verifies against one. Single-page categories are answered. |
-| **L-4** | *"Use Wikipedia's search page to find articles mentioning 'convertible arbitrage'."* | Refuses before navigating and quotes the robots rule. Wikipedia disallows `/wiki/Special:Search`. The refusal is correct **and** it is a limitation: an ordinary question with no permitted route has no answer here. |
-| **L-5** | *"On www.gutenberg.org, find the 'Science Fiction' bookshelf and tell me how many ebooks it lists."* | Browses, then abstains naming the step, the page and the unsatisfied part of the postcondition. On a site never seen, the label cannot be frozen in advance, so sometimes there is nothing for code to re-read. Whether it succeeds is a property of the page — the experimental split measures that rate rather than asserting it. |
-| **L-6** | *"…the nonfiction category listing, second page, without the planner."* | Answers correctly — **on the deterministic path**. Both paths satisfy the same postcondition and are verified identically, but no model is in that loop, so it is not evidence of self-correction. Every run records its path and rates are reported per path. |
-| **L-7** | *"Search the fixture catalogue for a term that appears on no page"* | May abstain because **our own page reduction** dropped the element, not because the site lacked it. Runs are audited for that condition and badged. The audit only covers what we thought to look for. |
+| **L-4** | *"Use Wikipedia's search page to find articles mentioning 'convertible arbitrage'."* | Refuses before navigating (`blocked / robots_disallowed`) and quotes the robots rule. Wikipedia disallows `/wiki/Special:Search`. The refusal is correct **and** it is a limitation: an ordinary question with no permitted route has no answer here. |
+| **L-5** | *"On developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat, tell me the Chrome version listed in the browser compatibility table."* | Browses, then abstains (`unsupported / postcondition_unmet`) naming the step, the page and the unsatisfied part of the postcondition. The value sits in a grid whose label is an icon and a column position rather than text, so there is nothing for code to re-read. Whether an unseen page yields a bindable label is a property of the page — the experimental split measures that rate rather than asserting it. **This entry replaced a Project Gutenberg task that had started succeeding**; publishing an abstention that no longer happens is the same defect as publishing a remedy that never worked. |
+| **L-6** | *"Go to the nonfiction category listing on books.toscrape.com and read the second page of results, without the planner."* | Answers correctly (`succeeded_verified`) — but **on the deterministic path**. Both paths satisfy the same postcondition and are verified identically, but no model is in that loop, so it is not evidence of self-correction. Every run records its path and rates are reported per path. |
+| **L-7** | *"Search the fixture catalogue for a term that appears on no page"* | **Proves the absence** (`no_result_verified`): the empty-state element is located and the counter echoes the frozen term. The limitation is what stands behind that — **a page with no empty-state element**, where an abstention may have been caused by our own page reduction dropping the element rather than by the site. Those runs are audited and badged, and the audit only covers what we thought to look for. |
 
 **What executing the list actually found.** `python -m eval.limitations_check --base-url
 https://wf-agent.zeabur.app` runs every entry, and the remedy phrasing where one is claimed, against
@@ -419,9 +429,11 @@ rather than discovered as a gap. Amendment 25 is where each one was made.
   taxonomy — is load-bearing and tested. What does not exist is a safety split or an injection
   detector, so `injection_detected` is a declared status no code path currently reaches, and
   `/coverage` says so rather than leaving it to be assumed.
-- **Spend controls stopped where they were.** Total provider spend across every scored round is
-  **USD 0.0477**. The ceiling, the ledger and the credential topology are done and were over-done
-  relative to a bill that size.
+- **Spend controls stopped where they were.** Every spend total in this repository is generated into
+  one file, [`docs/spend-ledger.md`](docs/spend-ledger.md), because three documents each carrying
+  their own figure meant three figures that went stale on the same day. It is under a tenth of a
+  dollar. The ceiling, the ledger and the credential topology are done and were over-done relative
+  to a bill that size.
 - **Runtime `blocked` detection (login walls, 401/403/429 mid-run) is not built.** Pre-browse refusal
   of authentication and payment tasks *is* — those end `unsupported / policy_refused` before any
   navigation. What is missing is recognising an obstacle met *during* a run, which currently lands in
@@ -435,7 +447,11 @@ rather than discovered as a gap. Amendment 25 is where each one was made.
 - **`robots.txt` is enforced**, not consulted — RFC 9309 matching semantics with a dedicated CI job.
   A disallowed path produces `blocked / robots_disallowed` with the rule quoted.
 - **Every navigation re-resolves and re-checks the destination IP.** Private and loopback ranges are
-  refused, including via redirect. An SSRF probe is part of the safety suite.
+  refused, including via redirect, and the refusal names the range. The cases are in
+  `tests/test_policy.py` — loopback, RFC 1918, link-local `169.254.169.254`, IPv4-mapped private,
+  CGNAT, and the non-http schemes — plus a startup failure if the guard is ever switched off in
+  production. That is a test file, not the safety split §7 says is not built: there is no injection
+  detector and no adversarial sweep.
 - **Page text is untrusted data and can never alter goal, tier, policy, budget or memory.**
 - **Only public data is sent to the model provider**, behind a local gate that blocks credentials,
   tokens and private URLs before egress.
@@ -449,10 +465,10 @@ rather than discovered as a gap. Amendment 25 is where each one was made.
 
 | Path | What is in it |
 |---|---|
-| `app/` | The system. `postcondition.py` freezes, `executor.py` browses, `verifier.py` is the gate, `suspicion.py` audits quiet results, `robots.py` + `egress.py` are the policy boundary |
+| `app/` | The system. `postcondition.py` freezes, `executor.py` browses, `verifier.py` is the gate, `suspicion.py` audits quiet results, `memory.py` is the locator memory, `robots.py` + `egress.py` are the policy boundary |
 | `fixture/` | Our own site — POST-only search, JS pagination, blocking overlay, injection page. Exists so the hard interactions are reproducible without depending on a third party |
-| `eval/` | Harness, dev and experimental splits, results, provenance |
-| `docs/task1-spec.md` | The frozen engineering spec and all 25 amendments. **The reasoning trail is here** |
+| `eval/` | Harness, dev and experimental splits, results, provenance, `oracles.py` (OP-4's independent derivation), `spend_ledger.py` (the one spend total) |
+| `docs/task1-spec.md` | The frozen engineering spec and its amendments. **The reasoning trail is here** |
 | `docs/task1-discovery.md` | The original discovery reasoning, deliberately never updated |
 | `docs/analysis-report.md` | Performance, cost, scalability, and how correctness is verified |
 | `docs/task2-seam.md` | Task 2's contract — designed, deliberately not built (Amendment 25) |

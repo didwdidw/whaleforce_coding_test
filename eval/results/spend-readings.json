@@ -1,0 +1,25 @@
+{
+ "note": "Readings of the provider-spend ledgers, each taken by hand and recorded here with where it came from. This file plus the round provenance in eval/results/ is the only source of a money figure in this repository; docs/spend-ledger.md is generated from it by `python -m eval.spend_ledger`. Nothing else states a total.",
+ "readings": [
+  {
+   "service": "scored",
+   "taken_at": "2026-07-29T02:10:00Z",
+   "read_from": "provider_spend on the scored service's volume, read over ssh from the host filesystem (the service is loopback-bound and publishes no domain)",
+   "rows": [
+    {"day": "2026-07-28", "tier": "paid", "usd": 0.079756, "calls": 100}
+   ]
+  },
+  {
+   "service": "public app",
+   "taken_at": "2026-07-29T02:10:00Z",
+   "read_from": "provider_spend on the app service's volume, same method",
+   "rows": [
+    {"day": "2026-07-27", "tier": "free", "usd": 0.001015, "calls": 11},
+    {"day": "2026-07-28", "tier": "free", "usd": 0.043833, "calls": 56}
+   ]
+  }
+ ],
+ "unledgered": [
+  "Local development ran on the free tier against ephemeral stores (`tiers_usable_under_policy: [\"free\"]` in every dev-local provenance block), so those calls were never charged and no surviving ledger totals them. They are absent from the notional figure, which is therefore a floor rather than a total."
+ ]
+}

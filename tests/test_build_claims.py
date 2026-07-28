@@ -148,4 +148,65 @@ def test_the_support_page_lists_them(pages):
     body = pages["/support"]
     for limit in LIMITATIONS:
         assert limit.outcome in body
-    assert LIMITATIONS[0].task[:40] in body.replace("&#39;", "'").replace("&amp;", "&")
+        assert limit.task[:40] in body.replace("&#39;", "'").replace("&amp;", "&")
+
+
+# --- the published documents against the code they describe --------------------------
+
+REPO = pathlib.Path(__file__).parent.parent
+README = REPO / "README.md"
+ANALYSIS = REPO / "docs" / "analysis-report.md"
+
+
+def test_the_readme_limitations_table_carries_the_tasks_that_are_actually_executed():
+    """`app/limitations.py` is the list `eval.limitations_check` runs against the
+    deployment; the README table is prose beside it. They diverged — the table advertised a
+    Project Gutenberg task for L-5 while the executed entry was an MDN compatibility grid,
+    and the same section's own bullets said so three paragraphs further down. A limitations
+    section that contradicts itself is worse than none, so the table is checked against the
+    code rather than against a reviewer's attention."""
+    from app.limitations import LIMITATIONS
+
+    rows = dict(re.findall(r"^\|\s*\*\*(L-\d+)\*\*\s*\|(.+?)\|", README.read_text("utf-8"),
+                           re.M))
+    assert set(rows) == {limit.id for limit in LIMITATIONS}, "every entry has a row"
+    for limit in LIMITATIONS:
+        published = re.sub(r"\s+", " ", html.unescape(rows[limit.id])).strip().strip("*").strip('*"')
+        expected = re.sub(r"\s+", " ", limit.task).rstrip(".")
+        assert expected in published or published.rstrip('."') in expected, (
+            f"{limit.id}: the README advertises a task the executed list does not carry.\n"
+            f"  README: {published}\n  code:   {expected}")
+
+
+def test_the_readme_states_the_outcome_the_code_produces_for_each_limitation():
+    """The other half of the same divergence: L-7's row described an abstention while the
+    entry had become a proven absence. The task column and the outcome column have to be
+    about the same thing."""
+    from app.limitations import LIMITATIONS
+
+    rows = dict(re.findall(r"^\|\s*\*\*(L-\d+)\*\*\s*\|.+?\|(.+?)\|\s*$",
+                           README.read_text("utf-8"), re.M))
+    for limit in LIMITATIONS:
+        text = rows[limit.id].lower()
+        named = [word for word in (limit.outcome, limit.failure_class) if word
+                 and (word in text or word.replace("_", " ") in text)]
+        assert named, (f"{limit.id}: the row does not say the run ends in "
+                       f"`{limit.outcome}` / `{limit.failure_class}`")
+
+
+def test_no_published_document_states_a_spend_total_of_its_own():
+    """Three documents each carried one, all three went stale on the same day, and one was
+    false rather than merely old. The generated ledger is the only place a total lives."""
+    pattern = re.compile(r"(?i)total[^\n]{0,40}(?:spend|outlay)[^\n]{0,60}\d")
+    for path in (README, ANALYSIS):
+        found = pattern.findall(path.read_text("utf-8"))
+        assert not found, f"{path.name} states its own total: {found}"
+        assert "spend-ledger.md" in path.read_text("utf-8"), f"{path.name} must link to it"
+
+
+def test_the_committed_spend_ledger_is_up_to_date():
+    """`--check` is what turns the next stale total into a test failure instead of
+    something a reader finds."""
+    from eval.spend_ledger import main
+
+    assert main(["--check"]) == 0, "run `python -m eval.spend_ledger`"

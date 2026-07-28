@@ -131,11 +131,18 @@ number is 2 and not 4.
 | | |
 |---|---|
 | Median cost per model-driven run | **USD 0.0019** |
-| Full dev evaluation round (r1) | **USD 0.0477** |
-| Total spend across all development | **USD 0.0477** — confirmed against the ledger; `r1` is where effectively all of it was spent |
 | Runs on the deterministic path | **USD 0** — no model call |
+| Totals, per round and cumulative | **[`docs/spend-ledger.md`](spend-ledger.md)** |
 
-Every figure is billed spend. A ledger that counts free-tier usage at notional prices measures
+**Every total in this project is in one generated file, and this document quotes none of its own.**
+Three places used to carry a spend figure; all three went stale on the same day and one of them —
+*"total provider spend across every scored round"* — was false rather than merely old, because it
+predated a round. `python -m eval.spend_ledger` regenerates the ledger from the readings and the
+round provenance, and `--check` fails when the committed copy is out of date, so the next stale total
+is a test failure rather than something a reader finds. The per-round breakdown, including which
+split cost what, is there.
+
+Every figure there is billed spend. A ledger that counts free-tier usage at notional prices measures
 something real but it is not money, and treating the two as the same nearly blocked our public demo
 after ~125 runs having spent nothing. Both are tracked; only one is called cost.
 
@@ -169,8 +176,9 @@ At USD 0.0019 a run, **cost is not this product's constraint and we should not p
 engineered as though it were.** The interesting cost question is the opposite one: what would have to
 be true for this to get expensive. That is the scalability section.
 
-We over-invested here. Roughly five of the twenty-five spec amendments concern spend ceilings,
-ledgers and credential topology, protecting a total outlay under five cents. That is recorded in §6
+We over-invested here. Roughly five of the spec's amendments concern spend ceilings,
+ledgers and credential topology, protecting a total outlay under a tenth of a dollar (the ledger has
+the figure). That is recorded in §6
 as a process finding rather than hidden.
 
 ---
@@ -402,11 +410,12 @@ starting and pushed anyway.
 - Nothing was written under a name that would later read as a completed round, and no partial result
   was aggregated into anything.
 
-**Why it is in the main text.** Twenty-five amendments argue for this behaviour: that a push is a
+**Why it is in the main text.** A long line of amendments argues for this behaviour: that a push is a
 deployment, that a round is locked to the build it started on, that an interrupted paid split must
 fail closed rather than re-run itself. This is the first time any of it was triggered in the wild,
 by an actual mistake rather than by a test. A clean `r2` would have added one row of numbers; this
-file demonstrates that the mechanism fires. Three cents was a good price.
+file demonstrates that the mechanism fires. The round it cost is priced in the ledger, and it was a
+good price.
 
 The correction was procedural, not technical: the remaining rounds are run on a frozen commit with
 no pushes in between, and the test split is run **on its own** rather than sharing a round with a
@@ -496,7 +505,7 @@ honest about a two-day calendar.
 | **The validation split** | Its purpose was to keep the engineering session honest during development. Development ended. Test is run once against the deployment; validation is reported as unrun, with this reason |
 | **The mutation sweep (9 → 2 mutations)** | Two working mutations plus one healing demonstration is evidence. Nine is a research programme |
 | **Most of the safety suite** | **Not built, and declared as not built.** What exists is the egress guard, robots enforcement and the refusal taxonomy, all of which are load-bearing and tested. What does not exist is a safety split (`eval/safety-set.md`) or an injection detector — so `injection_detected` is a declared status **no code path currently reaches**, and `/coverage` says exactly that. The build-state flags are derived from whether the module and file exist, so the support page cannot advertise a suite that is not there |
-| **Further spend-ceiling and ledger work** | Total spend USD 0.0477. It was done, and it was over-done |
+| **Further spend-ceiling and ledger work** | Total spend is in [`docs/spend-ledger.md`](spend-ledger.md) and is under a tenth of a dollar. It was done, and it was over-done |
 | **Locator memory's full scope** | **Built, at the reduced scope, on the last day.** A table on the volume keyed by `(origin, operation, role)`, written back **only** from `succeeded_verified` runs, 14-day confirmation window, quarantine after three consecutive failures, counters on `/healthz`, and the run page badging each interaction *from memory* / *healed* / *freshly derived*. Not built: cross-site generalisation, ranking, a learned selector model, or any use of memory as a first resort on the model-driven path — it engages where a locator has stopped resolving, which is the case it exists for. The frontend derives the claim from the code, so if this is ever removed the page stops selling it |
 
 **Process finding, stated against ourselves.** Six of the last eight spec amendments concerned the
