@@ -564,12 +564,7 @@ def test_every_status_due_by_m3_is_reached_by_running_the_product(executor):
             if not r["due_now"]} == {"injection_detected"}
 
 
-def test_a_redirect_is_recorded_from_the_response_not_from_a_sampled_url(executor):
-    """Where a run *ended up* comes from the response, not from `page.url` read at one
-    instant. On identical inputs — `/wiki/Apple_Inc` redirecting to `/wiki/Apple_Inc.` —
-    one scored round recorded the post-redirect URL and the next recorded the pre-redirect
-    one, so `artifact_source_matches_plan` failed a correct run against its own artifact.
-    A hard gate decided by a race is not a gate."""
+def _navigate_for_real(executor, path: str) -> Run:
     ex, store, loop = executor
     run = Run(id=new_id("run"), task="probe", tier=Tier.EXPERIMENTAL)
     store.save_run(run)
@@ -581,10 +576,115 @@ def test_a_redirect_is_recorded_from_the_response_not_from_a_sampled_url(executo
             page = await context.new_page()
             await ex._guard_page(run, page)
             ctx = ExecutionContext(run=run, page=page, context=context, store=store)
-            await ex._navigate(ctx, f"{BASE}/moved")
+            await ex._navigate(ctx, f"{BASE}{path}")
 
     loop.run_until_complete(navigate())
+    return run
+
+
+def _verdict_for(executor, run: Run, *, plan_target: str, artifact_source: str):
+    """Run the real gate over a real navigation record."""
+    from app.postcondition import ClaimSpec, Postcondition, Relation
+    from app.verifier import Verifier
+
+    _ex, store, _loop = executor
+    pc = Postcondition(
+        goal="read a labelled field", operation="OP-7", target_url=f"{BASE}{plan_target}",
+        claims=(ClaimSpec("product_code", "Product code", Relation.TABLE_ROW_CELL, "code"),))
+    run.postcondition = pc.to_dict()
+    run.postcondition_hash = pc.sha256
+    store.save_run(run)
+    art = store.put_artifact(
+        run.id, "dom:step-1", b"<table><tr><th>Product code</th><td>WF-1013</td></tr></table>",
+        source_url=f"{BASE}{artifact_source}", media_type="text/html")
+    return Verifier(store).verify(run, artifact_id=art.id,
+                                  candidate={"product_code": "WF-1013",
+                                             "product_code_anchor": "Product code"})
+
+
+def _check(verdict, name):
+    return next(c for c in verdict.checks if c.name == name)
+
+
+def test_a_navigation_records_the_target_the_chain_and_the_final_url(executor):
+    """Three values, because the gate that reads them asks two questions (A26).
+
+    Recording one endpoint was the first attempt at this and it only moved the defect:
+    with a redirect in the way the plan's target and the landing are never equal, so a
+    single comparison can pass every redirect or fail every one, and which it does is a
+    property of which URL happened to be recorded rather than of the run."""
+    run = _navigate_for_real(executor, "/moved")
 
     nav = next(t for t in run.trace if t.kind is StepKind.NAVIGATE)
-    assert nav.detail["final_url"].endswith("/product/WF-1013"), nav.detail
-    assert nav.detail["url"].endswith("/moved")
+    assert nav.detail["url"].endswith("/moved"), "what the plan asked for"
+    assert nav.detail["final_url"].endswith("/product/WF-1013"), "where it ended"
+    chain = nav.detail["redirect_chain"]
+    assert [hop["url"].removeprefix(BASE) for hop in chain] == ["/moved", "/product/WF-1013"]
+    assert chain[0]["status"] == 301, "and by what the site answered"
+
+
+def test_a_redirect_the_plan_asked_for_passes_both_assertions(executor):
+    run = _navigate_for_real(executor, "/moved")
+
+    verdict = _verdict_for(executor, run, plan_target="/moved",
+                           artifact_source="/product/WF-1013")
+
+    assert verdict.status is TerminalStatus.SUCCEEDED_VERIFIED, verdict.explanation
+    assert _check(verdict, "artifact_source_is_a_url_the_run_reached").ok is True
+    landing = _check(verdict, "landing_explained_from_the_plan_target")
+    assert landing.ok is True
+    assert landing.detail["by"] == "an HTTP redirect chain from the plan's target"
+
+
+def test_the_right_final_url_by_a_route_the_plan_never_named_is_not_explained(executor):
+    """The negative case the second assertion exists for, and without which it is a check
+    that cannot fail: `/detour` ends at exactly the same page as `/moved`. Comparing final
+    URLs passes it. What is missing is any account of how a run that was supposed to start
+    at `/moved` got there — which is the shortcut this system scores as a failure."""
+    run = _navigate_for_real(executor, "/detour")
+
+    verdict = _verdict_for(executor, run, plan_target="/moved",
+                           artifact_source="/product/WF-1013")
+
+    assert verdict.status is TerminalStatus.FAILED
+    assert verdict.failure_class is FailureClass.VERIFICATION_MISMATCH
+    # The first assertion holds — the bytes really did come from a page the run was on.
+    assert _check(verdict, "artifact_source_is_a_url_the_run_reached").ok is True
+    landing = _check(verdict, "landing_explained_from_the_plan_target")
+    assert landing.ok is False
+    assert "no navigation to the plan's target" in landing.detail["why"]
+
+
+def test_a_move_that_never_touched_http_is_explained_by_the_declared_canonical(executor):
+    """The case that actually bit us, reproduced without Wikipedia.
+
+    `/wiki/Apple_Inc` answers **200 with no redirect at all** and rewrites the address bar
+    to `/wiki/Apple_Inc.` about two seconds later, from script. Measured, not assumed —
+    that is why recording the response's URL did not fix DEV-04: there is no HTTP hop to
+    record, and no instant at which reading `page.url` is right. The document's own
+    `rel=canonical` is the one recorded fact that does not depend on when it was read."""
+    run = _navigate_for_real(executor, "/soft-moved")
+
+    nav = next(t for t in run.trace if t.kind is StepKind.NAVIGATE)
+    assert len(nav.detail["redirect_chain"]) == 1, "no HTTP redirect happened"
+    assert nav.detail["canonical_url"].endswith("/product/WF-1013")
+
+    verdict = _verdict_for(executor, run, plan_target="/soft-moved",
+                           artifact_source="/product/WF-1013")
+    assert verdict.status is TerminalStatus.SUCCEEDED_VERIFIED, verdict.explanation
+    landing = _check(verdict, "landing_explained_from_the_plan_target")
+    assert landing.detail["by"].startswith("the canonical URL declared by the document")
+
+
+def test_evidence_from_a_page_no_navigation_reached_fails_the_first_assertion(executor):
+    """The other half, failing on its own: the bytes come from somewhere the run has no
+    record of having been. Whether that page is explainable from the plan does not arise."""
+    run = _navigate_for_real(executor, "/moved")
+
+    verdict = _verdict_for(executor, run, plan_target="/moved",
+                           artifact_source="/product/WF-1002")
+
+    assert verdict.status is TerminalStatus.FAILED
+    source = _check(verdict, "artifact_source_is_a_url_the_run_reached")
+    assert source.ok is False
+    assert "/product/WF-1002" in source.detail["artifact_source_url"]

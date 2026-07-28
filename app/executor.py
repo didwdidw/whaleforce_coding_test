@@ -97,6 +97,47 @@ def _origin(url: str) -> str:
     return f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else ""
 
 
+async def _redirect_chain(response: Any) -> list[dict[str, Any]]:
+    """Every hop the browser was sent along, oldest first, each with the status that sent it.
+
+    The chain is what turns "we ended up somewhere else" into "we were sent here, by these
+    responses". Without it the verifier can only compare two endpoints, and a landing it
+    cannot explain is indistinguishable from one it can.
+    """
+    if response is None:
+        return []
+    requests, request = [], getattr(response, "request", None)
+    while request is not None and len(requests) < 20:
+        requests.append(request)
+        request = getattr(request, "redirected_from", None)
+    hops: list[dict[str, Any]] = []
+    for request in reversed(requests):
+        try:
+            hop = await request.response()
+        except Exception:  # noqa: BLE001 - a hop we cannot read is recorded as unread
+            hop = None
+        hops.append({"url": request.url, "status": hop.status if hop else None})
+    return hops
+
+
+async def _canonical_url(page: Any) -> str:
+    """Where the document says it lives — `<link rel="canonical">`, read at navigate time.
+
+    Some moves never touch HTTP. `/wiki/Apple_Inc` answers 200 with no redirect and rewrites
+    the address bar from script a second or two later; there is no hop to record and no
+    moment at which reading the URL gives a stable answer. The document's own declaration is
+    the only recorded fact that survives, and it is read once here rather than sampled.
+
+    It is a claim made by an untrusted page, so it is *recorded*, never acted on: the
+    verifier accepts it only from the page the plan itself named, and only same-origin.
+    """
+    try:
+        return await page.evaluate(
+            "() => document.querySelector('link[rel=canonical]')?.href || ''") or ""
+    except Exception:  # noqa: BLE001 - a page that will not answer simply declares nothing
+        return ""
+
+
 #: Which trace step kind each proposed action is recorded as.
 _STEP_KINDS = {
     "click": StepKind.CLICK, "fill": StepKind.FILL, "select": StepKind.SELECT,
@@ -1104,14 +1145,17 @@ class Executor:
             await ctx.page.wait_for_load_state("load", timeout=5_000)
         except Exception:  # noqa: BLE001 - a page that never settles is still a page
             pass
-        # The response says where the request ended up; `page.url` says where the page is
-        # at the instant it is read. They agree except when they do not, and a run that
-        # sampled the pre-redirect URL fails `artifact_source_matches_plan` against its own
-        # artifact — a hard gate decided by a race. `/wiki/Apple_Inc` → `/wiki/Apple_Inc.`
-        # passed one scored round and failed the next on identical inputs.
+        # Three separate facts, because the gate that reads them asks two questions (A26).
+        # `url` is what the plan asked for; `redirect_chain` is every hop the browser was
+        # actually sent along; `final_url` is where the request ended and
+        # `page_url_at_navigate` where the page was afterwards. Recording only one of them
+        # forces the gate to choose between passing every redirect and failing every
+        # redirect, which is a coincidence rather than a check.
         self._finish_step(run, nav, status=response.status if response else None,
                           final_url=(response.url if response else "") or ctx.page.url,
-                          page_url_at_navigate=ctx.page.url)
+                          page_url_at_navigate=ctx.page.url,
+                          redirect_chain=await _redirect_chain(response),
+                          canonical_url=await _canonical_url(ctx.page))
         return await self._landed_somewhere_real(ctx, run, nav)
 
     #: Pages that answer 200 and are not the page anybody asked for. A title assembled from

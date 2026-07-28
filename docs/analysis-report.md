@@ -333,12 +333,51 @@ an appendix because the pattern is the finding rather than the count:
 | | The defect |
 |---|---|
 | 6 | The accessibility snapshot took its own trace entry, and every trace entry charges the step budget — so capture-heavy runs silently had half the browsing headroom they were designed with. Found by *executing the published limitations list*, not by a test |
-| 7 | `page.url` was sampled at one instant to record where a navigation ended up. On identical inputs — a frozen target of `/wiki/Apple_Inc` and a page that redirects to `/wiki/Apple_Inc.` — one scored round recorded the post-redirect URL and the next recorded the pre-redirect one, so a correct run failed `artifact_source_matches_plan` against **its own artifact**. The step now records the response's URL, which is not timing-dependent |
+| 7 | `page.url` was sampled at one instant to record where a navigation ended up. On identical inputs — a frozen target of `/wiki/Apple_Inc` and a page that ends up at `/wiki/Apple_Inc.` — one scored round recorded the later URL and the next recorded the earlier one, so a correct run failed `artifact_source_matches_plan` against **its own artifact**. Fixed in two attempts; the first did not hold, and that is the part worth reading |
 
-Number 7 is the one worth reading twice. It is not a wrong answer being accepted; it is a hard gate
-whose outcome depended on when a variable was read, which means every previous pass of that gate was
-worth slightly less than it looked. It cost one case in round r2 and it was found because the case
-had passed in r1 on inputs that had not changed.
+Number 7 is the one worth reading twice, and it took two goes.
+
+**The first fix was to record the response's URL** instead of `page.url`, on the reasoning that a
+response's URL is the end of the redirect chain and cannot be timing-dependent. That reasoning was
+sound and the premise was false. Measured afterwards with a browser rather than assumed:
+`https://en.wikipedia.org/wiki/Apple_Inc` answers **200, with no redirect at all**, and the address
+bar changes to `/wiki/Apple_Inc.` about **two seconds later**, from MediaWiki's own script. There was
+never an HTTP hop to record. So the first fix would have pinned the gate to `/wiki/Apple_Inc` — a URL
+that never matches the artifact — and turned an intermittent failure into a reliable one.
+
+**What made the first fix wrong is more general than that page.** The gate compared *one* frozen plan
+target against *one* recorded endpoint. Whenever anything moves the page — a 301, a canonical
+rewrite — those two are not equal, so a single comparison has only two available behaviours: pass
+every move or fail every move. Choosing which URL to record chooses between them. That is not a gate
+being repaired; it is a coincidence being swapped for a steadier coincidence.
+
+**Amendment 26 splits it into two assertions over three recorded values** — the plan's target, the
+full redirect chain with each hop's status, and where the navigation ended:
+
+1. **`artifact_source_is_a_url_the_run_reached`** — the bytes a claim is verified against came from
+   a page this run's trace can account for having been on. *Where did the evidence come from.*
+2. **`landing_explained_from_the_plan_target`** — that page is reached from the plan's target by a
+   recorded route: it is the target itself, or the end of a redirect chain that began there, or the
+   canonical URL the document served at the target declared for itself. *Is the landing accounted
+   for.*
+
+The third route is what the Wikipedia case needs and what no endpoint comparison could supply: when
+the move happens in script after the response, the document's own `rel=canonical` is the only
+recorded fact that does not depend on when it was read. It is a claim by an untrusted page, so it
+counts only from the page the *task* named and only same-origin — otherwise a third-party page could
+explain away evidence that came from somewhere else.
+
+Both assertions can fail alone, and the fixture carries a case for each, because an assertion that
+cannot fail is the defect in this table one row up. The one that matters is `/detour`: it 301s to
+**exactly the same page** as `/moved`. A run sent there arrives at the right final URL by a door the
+plan never opened — final-URL comparison passes it, and reaching the right answer by an unaccounted
+route is what this system scores as a failure.
+
+The wider point is the same one as the rest of this section: a hard gate whose outcome depends on
+when a variable was read is not a gate, so every earlier pass of it was worth slightly less than it
+looked — and a fix that merely stops it wobbling restores the appearance rather than the gate. It
+cost one case in round r2, and it was found because that case had passed in r1 on inputs that had not
+changed.
 
 ### 5.5 The one operational failure, and what the system did about it
 

@@ -155,6 +155,29 @@ guard on the file alone would hold for restarts, which are free, and fail for a 
 is the case that spends a whole round. The marker under `eval-results/.rounds/` is what the
 skip decision reads.
 
+### A leftover `.inflight` marker: what the next round does about it
+
+There is one on the volume right now — `r2-experimental.inflight.json`, from the round a
+push cut in half — so this is not hypothetical, and the answer must be known before an
+operator is standing at the dashboard about to start a paid round.
+
+**A marker is keyed on the round *and* the split** (`r<round>-<split>.inflight.json`).
+Starting **r3** therefore reads `r3-experimental.inflight.json`, which does not exist:
+
+| Situation | What happens | Operator action |
+|---|---|---|
+| A new `EVAL_ROUND` (r2 marker present, starting r3) | **Runs normally.** The refusal keys on this round's marker; another round's is not consulted | **None. Do not delete anything.** |
+| The *same* `EVAL_ROUND` restarted after an interruption | **Refuses and holds**, naming the marker file and the log | Change `EVAL_ROUND` — or set `EVAL_FORCE=1`, which is the decision to pay for that split twice |
+
+**Do not delete a leftover marker.** It is not stale state to tidy up: it is the record that
+a paid split was started and produced nothing, and the round it belongs to can never be
+scored again under its own number without `EVAL_FORCE`. Deleting it converts "this round is
+spent and unfinished" into "this round was never run", which is exactly the confusion that
+makes a round get paid for twice. The refusal path exists so that nobody has to make that
+call under time pressure with a dashboard open — and the reason this table is here is that
+the alternative is an operator deciding, minutes before a scored round, whether it is safe
+to remove a file whose name contains the word `eval`.
+
 A restart or a redeploy **does not** re-run a split whose round has already been scored. A platform restart is free
 for the platform and not for us: an automatic restart loop would re-spend a paid split and overwrite
 the result it was spent on. To score again, change `EVAL_ROUND` and restart — or set `EVAL_FORCE=1`

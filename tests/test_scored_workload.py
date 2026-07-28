@@ -503,6 +503,26 @@ def test_a_split_that_died_mid_round_is_not_silently_re_run(results_dir, monkeyp
     assert calls == [], "a round that may already have been paid for is not re-run quietly"
 
 
+def test_another_rounds_leftover_marker_does_not_block_this_one(results_dir, monkeypatch):
+    """The disposition an operator would otherwise have to decide at the dashboard.
+
+    r2's experimental split was cut in half and its marker is still on the volume. If the
+    refusal keyed on the split alone, starting r3 would hold — and somebody would delete a
+    scoring file by hand, minutes before a paid round, to get past it. It keys on the round
+    as well, so r3 simply runs and the record of r2's unfinished split stays where it is."""
+    calls = []
+    _staged(monkeypatch, calls)
+    scored_workload.inflight_marker("dev", "2").parent.mkdir(parents=True, exist_ok=True)
+    scored_workload.mark_round_started("dev", "2", "abc123")
+
+    scored_workload.run(["dev"], port=8080, round_id="3", force=False, deadline=1.0,
+                        startup_deadline=1.0, idle=False)
+
+    assert len(calls) == 1, "r3 is not held by r2's marker"
+    assert scored_workload.inflight_marker("dev", "2").exists(), (
+        "and r2's record of a paid, unfinished split is not tidied away by r3")
+
+
 def test_a_finished_split_leaves_no_inflight_marker(results_dir, monkeypatch):
     calls = []
     _staged(monkeypatch, calls)

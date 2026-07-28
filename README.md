@@ -361,12 +361,20 @@ runs therefore had half the browsing headroom they were designed with. One captu
 
 **And one more, found by scoring the same split twice.** DEV-04 passed in `r1` and failed in `r2` on
 inputs that had not changed. The cause was not the operation: the run's frozen target was
-`/wiki/Apple_Inc`, the article redirects to `/wiki/Apple_Inc.`, and the navigation step recorded
-where the page was *at the instant `page.url` was read* — post-redirect in one round, pre-redirect in
-the next. A correct run then failed the check that its evidence came from the planned page, against
-its own artifact. The step now records the response's URL, which does not depend on timing, and the
-fixture has a redirecting route so a test holds it. A hard gate whose outcome depends on when a
-variable was read is not a gate, and every earlier pass of it was worth slightly less than it looked.
+`/wiki/Apple_Inc`, the evidence came from `/wiki/Apple_Inc.`, and the navigation step recorded where
+the page was *at the instant `page.url` was read*. A correct run failed the check that its evidence
+came from the planned page, against its own artifact.
+
+The first fix — record the response's URL, which cannot depend on timing — was wrong, and how it was
+wrong is the interesting part. Measured with a browser rather than assumed, `/wiki/Apple_Inc` answers
+**200 with no redirect at all**; the address bar changes about two seconds later, from the site's own
+script. Pinning the gate to the response would have made a flickering failure a permanent one. The
+real defect was that one frozen target compared against one recorded endpoint can only pass every
+redirect or fail every one. **Amendment 26** splits it into two assertions over three recorded values
+— where the evidence came from, and whether that landing is accounted for from the plan's target by a
+redirect chain or the document's own declared canonical URL. The fixture carries a case for each,
+including a route that reaches the right page by a door the plan never opened. Full account in the
+analysis report §5.4.
 
 The list is only worth something if it is executable. It is now, and it stays that way — the check is
 re-run before submission, and its report is committed beside the eval results.

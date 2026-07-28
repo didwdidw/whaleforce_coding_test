@@ -711,3 +711,56 @@ r2 的 dev split 正在跑，.inflight 標記寫的是 git_sha: aa1ee6c5d5eb，�
 要你決定的：(a) 讓它自然收尾、拿到什麼算什麼（degraded 就 degraded，照 A21.2 留著當紀錄）；還是 (b) 等塵埃落定後改 EVAL_ROUND=3 重跑一次乾淨的。我建議 (b)，因為 r2 的用途就是拿一個可歸因的 headline，degraded 的檔案答不了那個問題 —— 但 r2 的 degraded 檔仍該留著，它是「推 = 部署」這條規則的實證。
 
 ==========
+
+==========
+
+目前進度
+請幫我裁決，並且告訴我我下一步該做什麼
+
+三件事做完，都只有 commit，沒有 push。
+
+1. test split 步驟一 —— 做好了
+
+檔案已經在 scored volume 上，我全程沒有讀到內容：用雜湊在你的 Desktop 上認出檔案（task1-test-set.md），然後 cat | ssh tee 串流過去，位元組沒有進過我的 context。
+
+/…_data-service-…/task1/holdout/test-set.md
+8748 bytes
+sha256 43ee8ce52acf6470309148c3ca282be63977622a934776f97f40908d2b54e34e   ← 與 manifest 相符
+
+順帶：validation 的檔案也在 ~/Desktop/task1-validation-set.md（只比對雜湊，沒動它）。剩下的是你的步驟 2–4：EVAL_SPLITS=test、EVAL_CASES_TEST=/data/task1/holdout/test-set.md、新的 EVAL_ROUND、先 dry run。
+
+2. r2 的結局比我預測的好，而且有一個真的發現
+
+dev split 在容器被換掉之前跑完了，寫成乾淨檔名、沒有 degraded 區塊：
+
+┌───────────────────┬──────┬──────────────────────────────────────────┐
+│                   │  r1  │                    r2                    │
+├───────────────────┼──────┼──────────────────────────────────────────┤
+│ headline declared │ 6/11 │ 9/11                                     │
+├───────────────────┼──────┼──────────────────────────────────────────┤
+│ evidence findings │ 6    │ 2（只剩 DEV-02 / DEV-13 的 tier 不一致） │
+└───────────────────┴──────┴──────────────────────────────────────────┘
+
+四筆計分器偽陽性消失了，跟 artifact 重放預測的完全一樣。DEV-01 帶著第一筆真實輪次的 OP-4 oracle 結果：獨立推導出的第一列與 run 相符 —— verified-but-wrong 在 OP-4 上第一次變成可否證的，而它站住了。experimental split 被切在中間，.inflight 留著。結果檔和 bundle（14.4 MiB）都 commit 了。
+
+但 DEV-04 從 pass 變 fail，而原因比那一題重要。 輸入完全沒變：凍結目標 /wiki/Apple_Inc、artifact 抓在 /wiki/Apple_Inc.。r1 的 navigate step 記到重導向後的 URL，r2 記到重導向前的 —— 於是一個正確的 run 在 artifact_source_matches_plan 上 ge.url 講的是「讀取的那一瞬間頁面在哪」，response講的是「請求最後到了哪」。改成記 response 的 URL，並在 fixture 加了一條
+
+一道結果取決於變數何時被讀取的硬閘門不是閘門 —— 而且它之前每一次通過都比 analysis report §5.4 成為第 7 個「壞掉的量測儀器」。
+
+3. 凍結期間的文件工作
+- §5.5「那一次操作失誤」寫進正文，照你要的寫法：被告知輪次開始、四分鐘後照樣推、推就是部署。系統怎麼反應才是重點 —— dev 已過邊界寫成乾淨檔名、experimental 留下 .in讓下次拒絕而不是默默再花錢。沒有寫成「模擬了一次中斷」。- §5.3.1 r2 歸因：承認 r2 同時含計分器修正與三項產品改動，因為要做隔離的 前就花掉了 —— 明寫是排序失誤。然後指向 artifact 重放：r1 自己的bytes、早於修正、不可能被修正影響，剛好解釋五筆缺口中的四筆。
+- 脫鉤掃描（除了你修的那筆）：測試數 528→583、failure class「fifteen」→eighteen（有三個是 amendment 加的）、壞掉儀器計數 five→seven、support matrix 的來源輪次、README §6
+還寫著 6/11。
+
+待你
+
+1. 逐句驗收的結果 —— 我等著改。
+2. 凍結後：r3（dev,experimental）→ r4（test），中間不推。我不會再 push，
+
+累計花費約 USD 0.20（r2 dev 花了 ~$0.02）。
+
+==========
+
+所以我這端現在不用改環境變數然後 re-deploy wf-scored 嗎
+
+另外，把你講的這些打包一下變成我可以直接貼給 engineering agent 的 prompt

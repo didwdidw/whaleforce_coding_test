@@ -123,8 +123,16 @@ def test_replay_a_misroute_is_rejected(store):
     """"Dismiss the overlay on the fixture gated page and read the reference code" returned
     `Page 2 of 3 · 14 products` — a correct pager reading for a question nobody asked."""
     pc = _overlay_postcondition()
+    navigated = _step(1, StepKind.NAVIGATE, "Navigate to /browse")
+    # Recorded the way a real navigation records it, so the misroute is rejected by the
+    # assertion it is actually about — the landing being unaccounted for — rather than by
+    # the trace happening to be silent about where the run went (A26).
+    navigated.detail.update({"url": f"{FIXTURE_HOST}/browse",
+                             "final_url": f"{FIXTURE_HOST}/browse",
+                             "redirect_chain": [{"url": f"{FIXTURE_HOST}/browse",
+                                                 "status": 200}]})
     run = _run(store, "Dismiss the overlay on the fixture gated page and read the reference code",
-               pc, [_step(1, StepKind.NAVIGATE, "Navigate to /browse"),
+               pc, [navigated,
                     _step(2, StepKind.CLICK, "Click 'Next' (1 of 1)", "#next"),
                     _step(3, StepKind.EXTRACT, "Read the visible rows on page 2")])
     art = _artifact(store, run, "replay-a-browse-page2.html", f"{FIXTURE_HOST}/browse")
@@ -135,11 +143,13 @@ def test_replay_a_misroute_is_rejected(store):
 
     assert verdict.status is TerminalStatus.FAILED
     assert verdict.counts_as_success is False
-    source_check = next(c for c in verdict.checks
-                        if c.name == "artifact_source_matches_plan")
-    assert source_check.ok is False
-    assert "/browse" in source_check.detail["artifact_source_url"]
-    assert "/gated" in source_check.detail["plan_target_url"]
+    # The landing is the half that fails: the bytes did come from a page the run was on,
+    # and nothing accounts for that page being reached from the one the plan named.
+    landing = next(c for c in verdict.checks
+                   if c.name == "landing_explained_from_the_plan_target")
+    assert landing.ok is False
+    assert "/browse" in landing.detail["artifact_source_url"]
+    assert "/gated" in landing.detail["plan_target_url"]
 
 
 def test_replay_a_also_fails_without_the_url_check(store):

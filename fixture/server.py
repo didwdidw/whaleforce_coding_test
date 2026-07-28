@@ -274,6 +274,35 @@ def moved() -> RedirectResponse:
     return RedirectResponse("/product/WF-1013", status_code=301)
 
 
+@app.get("/detour")
+def detour() -> RedirectResponse:
+    """The same destination by a route no plan named (A26).
+
+    Its whole purpose is to be the *wrong* way to arrive somewhere right. A gate that only
+    compares the final URL against the plan passes this, because the final URL is identical
+    to `/moved`'s — and a run that reached the page through a door the task never opened is
+    the shortcut this system scores as a failure. Without it, "the landing was explained"
+    is a check that cannot fail."""
+    return RedirectResponse("/product/WF-1013", status_code=301)
+
+
+@app.get("/soft-moved", response_class=HTMLResponse)
+def soft_moved(seed: str = Query("none")) -> HTMLResponse:
+    """A move the browser makes *after* the response, which is the case that actually bit us.
+
+    `/wiki/Apple_Inc` answers 200 with no redirect at all and rewrites the address bar to
+    `/wiki/Apple_Inc.` about two seconds later, from script. There is no HTTP hop to record
+    and no instant at which sampling the URL is correct — so the document's own declaration
+    of where it lives is what makes the landing explainable."""
+    doc = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+           '<link rel="canonical" href="/product/WF-1013">'
+           '<title>Moved · Task 1 Fixture</title></head><body>'
+           '<p>This page belongs at <a href="/product/WF-1013">WF-1013</a>.</p>'
+           '<script>setTimeout(function(){history.replaceState(null,"",'
+           '"/product/WF-1013");},50);</script></body></html>')
+    return HTMLResponse(doc)
+
+
 @app.get("/robots.txt", response_class=Response)
 def robots() -> Response:
     """The test hook is Disallowed, so a run that reads it is a robots violation as well
