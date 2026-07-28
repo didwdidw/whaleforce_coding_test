@@ -18,8 +18,15 @@ case "$ROLE" in
     exec python -m uvicorn fixture.server:app --host 0.0.0.0 --port "$PORT" \
          --log-level "${LOG_LEVEL:-info}"
     ;;
+  scored)
+    # Runs the eval splits with the billing credential against a loopback-only server, so
+    # nothing scored ever travels the public path and the paid key never lands on the
+    # container that serves anonymous traffic (A12.3, A18.10). Publishing a domain on this
+    # service would break the property it exists to hold.
+    exec python -m eval.scored_workload
+    ;;
   *)
-    echo "Unknown APP_ROLE '$ROLE'. Expected 'app' or 'fixture'." >&2
+    echo "Unknown APP_ROLE '$ROLE'. Expected 'app', 'fixture' or 'scored'." >&2
     exit 64
     ;;
 esac

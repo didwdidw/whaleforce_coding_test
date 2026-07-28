@@ -13,6 +13,7 @@ import contextlib
 import json
 import logging
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -420,6 +421,54 @@ async def reachability(url: str) -> Response:
                          "origin_up": True, "http_status": result.status,
                          "final_url": result.final_url, "bytes": result.length,
                          "sha256": result.sha256, "reason": f"HTTP {result.status}"})
+
+
+#: A result file's name, and nothing that could be a path. The scored workload writes into
+#: one directory and this reads out of that directory; no name it accepts can leave it.
+RESULT_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.json$")
+
+
+def _result_files() -> list[Path]:
+    directory = settings.eval_results_dir
+    if not directory.is_dir():
+        return []
+    return sorted((p for p in directory.iterdir()
+                   if p.is_file() and RESULT_NAME.match(p.name)),
+                  key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+@app.get("/api/eval-results")
+async def eval_results() -> dict[str, Any]:
+    """Split results produced by the scored workload (A12.3, A18.10).
+
+    That workload holds the paid credential and is not reachable over HTTP from outside
+    the host, so the only way its results reach anyone is the volume it shares with this
+    process. Held-out splits carry no per-case detail — the harness withholds it at the
+    point the file is written, not here (S-10.4).
+    """
+    files = []
+    for path in _result_files():
+        summary: dict[str, Any] = {"file": path.name, "bytes": path.stat().st_size}
+        try:
+            report = json.loads(path.read_text(encoding="utf-8"))
+            meta = report.get("provenance") or {}
+            summary.update({"split": meta.get("split"), "git_sha": meta.get("git_sha"),
+                            "finished_at": meta.get("finished_at"),
+                            "degraded": bool(meta.get("degraded"))})
+        except (OSError, ValueError) as exc:
+            summary["error"] = f"unreadable: {exc}"
+        files.append(summary)
+    return {"directory": str(settings.eval_results_dir), "files": files}
+
+
+@app.get("/api/eval-results/{name}")
+async def eval_result(name: str) -> Response:
+    if not RESULT_NAME.match(name):
+        return JSONResponse({"error": "bad_name"}, status_code=400)
+    path = settings.eval_results_dir / name
+    if not path.is_file():
+        return JSONResponse({"error": "not_found"}, status_code=404)
+    return Response(path.read_bytes(), media_type="application/json")
 
 
 @app.get("/healthz")

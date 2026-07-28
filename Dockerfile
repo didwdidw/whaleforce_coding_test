@@ -35,6 +35,10 @@ COPY preflight/ ./preflight/
 COPY app/ ./app/
 COPY fixture/ ./fixture/
 COPY tests/ ./tests/
+# The scored workload (APP_ROLE=scored) runs the splits inside the deployment, so the
+# harness and the visible splits ship in the image. Held-out split files are not in the
+# repository at all and are mounted at score time, never baked in.
+COPY eval/ ./eval/
 COPY entrypoint.sh ./
 RUN chmod +x entrypoint.sh
 
@@ -51,7 +55,9 @@ RUN mkdir -p /data
 # with --disable-dev-shm-usage; if that ever changes, the deployment must raise --shm-size
 # or mount a larger /dev/shm, or the container passes every test and dies under load.
 
-# APP_ROLE selects which service this container runs: `app` or `fixture`. APP_ENV defaults
+# APP_ROLE selects which service this container runs: `app`, `fixture` or `scored`. Only
+# the first two are published on a domain — `scored` holds the billing credential and binds
+# loopback only (A12.3). APP_ENV defaults
 # to production, so ALLOW_PRIVATE_EGRESS cannot silently disable the SSRF guard here — the
 # app refuses to start in that combination.
 # The build context excludes .git, so provenance is baked in here instead. Pass it with

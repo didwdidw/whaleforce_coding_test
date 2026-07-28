@@ -23,7 +23,15 @@
   "session_policy": "one session per case",
   "started_at": "2026-07-28T02:20:58Z",
   "case_schema": "browser_task",
-  "finished_at": "2026-07-28T02:21:58Z"
+  "finished_at": "2026-07-28T02:21:58Z",
+  "degraded": {
+   "not_a_capability_measurement": true,
+   "reasons": [
+    "the provider refused or failed the call on 12 case(s) (DEV-01, DEV-03, DEV-04, DEV-05, DEV-06, DEV-07, DEV-08, DEV-09, DEV-10, DEV-11, DEV-12, DEV-15): those cases measure the provider, not the system"
+   ],
+   "consequence": "No figure in the analysis report may be sourced from this file. It is kept because a degraded run is a real observation, and deleting the inconvenient run is how a result set becomes a highlight reel.",
+   "applied_retroactively": "A18.7 landed after this file was written; the block is computed from the file's own case results rather than typed in. The twelve provider-side failures here are free-tier rate limiting reported as `provider_error`, which is the misclassification the tier cooldown fixed."
+  }
  },
  "aggregate": {
   "headline_declared": {

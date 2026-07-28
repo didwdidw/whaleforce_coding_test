@@ -338,6 +338,16 @@ class Settings:
     def db_path(self) -> Path:
         return self.data_dir / "runs.sqlite3"
 
+    @property
+    def eval_results_dir(self) -> Path:
+        """Where the scored workload leaves split results (A12.3, A18.10).
+
+        On the shared volume, beside the artifacts the same runs produced: the workload
+        that scores is not reachable from outside the host, so its results have to come
+        out through the store both processes share.
+        """
+        return self.data_dir / "eval-results"
+
 
 def config_provenance() -> dict[str, Any]:
     """Which settings came from the environment and which fell back to a default.

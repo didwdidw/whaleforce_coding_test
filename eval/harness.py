@@ -631,6 +631,52 @@ def provenance(deployment: Deployment, cases_path: pathlib.Path,
     }
 
 
+def degradation(meta: dict[str, Any], results: list[dict[str, Any]],
+                split: str) -> dict[str, Any] | None:
+    """Whether the system was impaired while this split ran (A18.7).
+
+    It goes inside the file, not in the filename and not in the directory's README: a
+    filename gets copied off the number it qualifies and a README gets skipped, and the
+    rule is that the qualifier travels with the number. A file carrying this block is not
+    a capability measurement and must not be the source of a figure in the report.
+    """
+    reasons = []
+    # Both classes say the model call did not happen for a reason on the provider's side.
+    # Neither is a fact about the agent, and one of them used to be the other: a rate limit
+    # was reported as `provider_error` until the tier cooldown landed.
+    provider_side = [r["case"] for r in results
+                     if r.get("failure_class") in ("provider_quota", "provider_error")]
+    if provider_side:
+        reasons.append(f"the provider refused or failed the call on "
+                       f"{len(provider_side)} case(s) ({', '.join(provider_side)}): those "
+                       f"cases measure the provider, not the system")
+    if meta.get("planner_available") is False:
+        reasons.append("the planner was unavailable, so every model-driven case was "
+                       "decided by something other than the model")
+    errors = [r["case"] for r in results if r.get("suite_error")]
+    if errors:
+        reasons.append(f"the suite could not run {len(errors)} case(s) "
+                       f"({', '.join(errors)}): a precondition of the case failed")
+    unfinished = [r["case"] for r in results if r.get("timed_out_waiting")]
+    if unfinished:
+        reasons.append(f"{len(unfinished)} case(s) were still running when the harness "
+                       f"stopped waiting ({', '.join(unfinished)})")
+    policy = (meta.get("credentials") or {}).get("policy")
+    if split in ("validation", "test") and policy != "scored":
+        reasons.append(f"a held-out split ran under credential policy {policy!r}, not "
+                       f"'scored' (A9.6): it could have died of free-tier exhaustion")
+    if not reasons:
+        return None
+    return {
+        "not_a_capability_measurement": True,
+        "reasons": reasons,
+        "consequence": ("No figure in the analysis report may be sourced from this file. "
+                        "It is kept because a degraded run is a real observation, and "
+                        "deleting the inconvenient run is how a result set becomes a "
+                        "highlight reel."),
+    }
+
+
 # ---- entry point -----------------------------------------------------------------
 
 def _suite_error(case: dict[str, str], schema: CaseSchema,
@@ -709,6 +755,9 @@ def run_split(base_url: str, split: str, cases_path: pathlib.Path,
                   f"{'PASS' if result['passed'] else 'FAIL'}")
 
     meta["finished_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    degraded = degradation(meta, results, split)
+    if degraded:
+        meta["degraded"] = degraded
     report = {"provenance": meta, "aggregate": aggregate(results)}
     # Per-case detail is withheld for the held-out splits only: their content must not reach
     # the session that must not see it. Dev and experimental are visible splits.

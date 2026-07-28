@@ -13,3 +13,12 @@ one worth reading.
 
 A score is only meaningful with the provenance block beside it (S-10.7): the commit, the
 model, the credential tier, the split's own hash. All of that is inside each file.
+
+A file produced while the system was impaired carries `provenance.degraded` **inside itself**
+(A18.7), listing what was wrong and stating that no figure in the analysis report may be
+sourced from it. This table and the filenames are conveniences; the file is the record,
+because a filename gets separated from the number it qualifies and a README gets skipped.
+
+Splits run against the deployment come from the scored workload, not the public URL
+(A18.10, `docs/runbook-scored-workload.md`), and are named
+`<split>-deploy-<git_sha>-r<round>.json`.

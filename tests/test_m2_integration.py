@@ -159,6 +159,12 @@ def test_the_same_case_with_the_predicate_inverted_is_caught(executor, monkeypat
     applies the predicate backwards. Nothing about the shape of this run is wrong. Only
     the verifier re-deriving the matching set from the artifact, without looking at what
     the run reported, separates it from the run above.
+
+    What this gate catches, stated so nobody later reads more into it: the execution side
+    and the verification side share one comparison function, so this proves the predicate
+    was **applied backwards**, not that the predicate is **itself right**. A predicate that
+    means the wrong thing means it identically on both sides and passes here; that is what
+    freezing it in the postcondition and printing it in the answer are for.
     """
     import app.executor as executor_module
 
