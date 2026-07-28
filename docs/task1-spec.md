@@ -1819,3 +1819,117 @@ scheduling and image pull is a reason the number cannot be *decomposed*, not a r
 - [ ] **A-53** A Mode B enumeration returns a verified positive answer with a cited coverage anchor,
   and a deliberately predicate-inverted run over the same case is caught as
   `verification_mismatch` (A17.11, A17.12).
+
+### Amendment 18 — The tier mechanism's first two catches, and the natural-language surface (2026-07-28)
+
+Extends **S-1.3**, **S-3.1**, **§5.2**, **A17.5**, **A17.14**, **A12.3**, **A14.8**. A17.5 required
+the case-declared tier and the run's self-reported tier to be two independent readings. They now are,
+and the first two disagreements are both resolved **against the implementation**: in each the case
+file is right. The DEV-02 disagreement also exposes a narrowing of the product's headline claim that
+matters more than the tier label does.
+
+#### DEV-02 — a record is `site × operation`, not `page × operation`
+
+**A18.1** The task *"In the S&P 500 constituents table on Wikipedia, sort by CIK ascending and tell
+me which company is first"* **is T-DECLARED**. It names the site and it names the operation, which is
+what S-3.1 makes the unit of promise; the article is a **parameter** of OP-4, not part of the
+record's identity. Failing to resolve the parameter is a failure *inside* a declared record, not
+evidence that the task was never in one. The case declaration stands; the tier assignment changes.
+
+**A18.2** `unsupported / policy_refused` is the wrong outcome and the wrong class. Nothing in this
+task violates §2. **`entry_point_unresolved` is added to the closed `failure_class` set in §5.2**
+(A14.11 mechanism, `terminal_status` untouched). Classing "we could not work out where to start" as a
+policy refusal inflates the refusal rate A14.3 measures with runs that were never refused, which is
+the same defect as A17.8.
+
+#### The narrowing this exposed
+
+The assignment's first sentence is *"accepts natural language task descriptions and reliably executes
+them across different sites"*, and it says the graders verify with their own unseen tasks. A system
+that requires the user to name a page by exact title, or paste a URL, has quietly moved the boundary
+of "natural language" to somewhere the assignment did not put it. *"The S&P 500 constituents table on
+Wikipedia"* is not ambiguous to a person, and phrasing of that shape will be a large fraction of what
+arrives from a grader. L-1 is an honest limitation; it is also a limitation we should not keep.
+
+**A18.3 The entry point MAY be resolved by the model and MUST be verified by code.** The model may
+propose a **candidate entry point**; deterministic code then navigates to it and **verifies that the
+landed page satisfies the task's description** — the structures the task refers to are present and
+resolvable — **before any claim is built on it**. This is the same division §4 already runs on
+everywhere else: the model proposes, code decides. A candidate whose landed page cannot be confirmed
+against the description is not a starting page; the run ends `failed / entry_point_unresolved`,
+naming what it looked for and did not find.
+
+**A18.4** Entry-point resolution is bounded by every constraint already in force and adds none:
+the candidate MUST be within the origin the task named (A17.1), every hop is re-checked by the egress
+guard (S-2.6) and by robots (A10), and the verified entry point is recorded in the trace with how it
+was arrived at (A13.4). Navigating to an article by title is **not** a shortcut — OP-4's required
+action is the sort, not the navigation (S-4.1).
+
+**A18.5** This is sequenced **after the deployment and the cold-start measurement, before M5 is
+called done**. It is not a reason to delay the deploy.
+
+#### DEV-13 — T-REFUSED means no page was fetched
+
+**A18.6** The case declaration stands: a task whose only route is a robots-disallowed path is
+**T-REFUSED**. The rule, stated precisely so it is not a matter of taste:
+
+> Tier is assigned before browsing. It MAY be revised **exactly once**, and only **downward to
+> T-REFUSED**, at the moment a §2 policy decision refuses the run **before any page has been
+> fetched**. A run that never fetched a page because policy forbade it is T-REFUSED whatever the
+> pre-plan classifier guessed. There is no transition **into** T-DECLARED or T-EXPERIMENTAL mid-run —
+> a promise-bearing tier is never entered after execution has begun.
+
+This keeps S-1.3's "decided before execution starts" true (no page was fetched) and stops T-REFUSED
+from decaying into a label with almost no members while real policy refusals accumulate elsewhere.
+
+#### Measurements taken under degraded conditions
+
+**A18.7** A results file produced while the system was degraded — provider quota exhausted, a
+dependency down, a partial run — MUST carry that condition **inside the file's own provenance
+block**, not only in its filename and a directory README. Filenames get copied and READMEs get
+skipped; A17.13's rule is that the qualifier travels with the number, and a filename is not where it
+travels. Such a file MUST NOT be the source of any figure in the analysis report.
+
+#### Cold start is two numbers, and one of them may be zero
+
+**A18.8** A17.14 conflated two things that are not the same measurement. Both are required:
+
+1. **Deploy to usable** — trigger to first successful *task completion*, wall clock. This is our
+   operational downtime per deploy, which A11.2 made unavoidable by mounting a volume.
+2. **Cold arrival** — what a grader experiences reaching a URL nobody has touched for hours. This is
+   only non-zero if the deployment can actually go cold. **Whether it can MUST be established, not
+   assumed**: if the platform never evicts or scales this workload to zero, the report says so and
+   says how that was confirmed. "We did not measure it because it does not happen" is acceptable;
+   "we did not measure it" is not.
+
+**A18.9** The **first task after an idle period** is reported separately from the steady-state
+median. It is the one a grader forms their impression on, and burying it inside a median describes
+nobody's experience (A17.13).
+
+#### Eval traffic does not run on the public path
+
+**A18.10** Splits run against the deployment go through the A12.3 scored workload on its internal
+endpoint with the **billing** credential — not the public URL, whose container never holds that
+credential (A12.2). Free-tier throttling is therefore not a reason to batch or defer an eval split;
+if a split is being throttled, the split is pointed at the wrong endpoint. At the measured per-run
+cost (A9.4) a full dev + experimental round is under USD 0.10, well inside A12.5's ceiling and
+A8.10's self-approval limit — cost is not a variable in this decision either.
+
+#### The limitations list must keep describing reality
+
+**A18.11** Fixing a published limitation obligates **replacing** it, not deleting it. When A18.3
+lands, L-1 is rewritten to whatever entry-point resolution actually still cannot do — and the
+assignment asks for problematic cases *with concrete examples*, so a list that shrinks toward empty
+is a claim we would have to defend rather than a sign of progress (A14.8).
+
+#### Acceptance additions (§14)
+
+- [ ] **A-54** DEV-02 is scored as T-DECLARED by both readings, and a task that describes rather than
+  names its page reaches a verified answer through a code-verified entry point (A18.1, A18.3).
+- [ ] **A-55** A run that cannot confirm any candidate entry point ends `failed /
+  entry_point_unresolved`, naming what it looked for — never `policy_refused` (A18.2).
+- [ ] **A-56** DEV-13 is scored as T-REFUSED by both readings, and no run is ever revised *into*
+  T-DECLARED or T-EXPERIMENTAL after execution has begun (A18.6).
+- [ ] **A-57** Both cold-start numbers appear in the report, with cold-arrival either measured or
+  stated as structurally zero with evidence, and the first-task-after-idle latency is reported
+  outside the steady-state median (A18.8, A18.9).
