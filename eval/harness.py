@@ -631,6 +631,12 @@ def provenance(deployment: Deployment, cases_path: pathlib.Path,
         "eval_set_file": cases_path.name,
         "planner_available": (health.get("planner") or {}).get("available"),
         "credentials": health.get("credentials"),
+        # A17.10: a cost or latency figure is only comparable against the caps it was
+        # measured under, and those caps have already been relaxed once. Answering "which
+        # cap was this?" from the commit history is reconstruction; the file should say.
+        "budgets": health.get("budgets"),
+        "prices_usd_per_1m": health.get("prices_usd_per_1m"),
+        "spend": health.get("provider_spend"),
         # No cookie is carried, so each case is its own session. The per-session run cap is
         # a public-demo control (S-11.12); applying it to a scoring run would cap a 15-case
         # split at 10 and the missing five would look like failures.

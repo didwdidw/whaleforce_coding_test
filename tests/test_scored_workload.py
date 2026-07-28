@@ -143,6 +143,16 @@ def _spend(today: float, cumulative: float | None = None) -> dict:
             else today}
 
 
+@pytest.fixture(autouse=True)
+def _scored_policy(monkeypatch):
+    """Forecasting only ever happens in the scored workload, and its daily ceiling is its
+    share of the system total (A22.2). Under the default `public_demo` policy this module
+    would price rounds against the reservation held for a process that cannot spend."""
+    monkeypatch.setattr(scored_workload, "settings",
+                        dataclasses.replace(settings, provider=dataclasses.replace(
+                            settings.provider, credential_policy="scored")))
+
+
 def test_a_round_is_priced_from_its_own_case_count():
     plan = scored_workload.forecast(["dev", "experimental"], _spend(0.0))
     assert plan["cases_priced"] == sum(n for n in plan["cases_per_split"].values() if n)
@@ -173,7 +183,8 @@ def test_the_round_is_refused_before_the_first_case_when_it_cannot_be_afforded()
 def test_an_affordable_round_with_an_unaffordable_tail_warns_and_proceeds(capsys):
     """Refusing on the worst case would refuse almost every round: the tail is ~20x the
     measured cost. It is said out loud instead, with what happens if it lands."""
-    plan = scored_workload.forecast(["dev", "experimental"], _spend(0.75))
+    ceiling = scored_workload.settings.provider.spend_ceiling_usd_per_day
+    plan = scored_workload.forecast(["dev", "experimental"], _spend(ceiling - 0.25))
     assert plan["affordable"] is True and plan["worst_case_affordable"] is False
     scored_workload.check_affordable(plan)
     assert "-degraded" in capsys.readouterr().out
@@ -403,3 +414,97 @@ def test_the_store_check_refuses_a_directory_it_cannot_write(tmp_path):
         assert "not writable" in str(exit_info.value)
     finally:
         mount.chmod(0o755)
+
+
+# ---- A22.3/A22.4: one declared ceiling, divided, and visible from either end -------
+
+def test_the_two_ceilings_come_from_one_declaration_and_add_up_to_the_promise():
+    """A22.1-A22.3. Two ceilings set independently drift, and neither process can read the
+    other's ledger, so the drift is invisible — which is how USD 1/day quietly became 2."""
+    from app import config
+
+    assert sum(config.DEPLOYED_CEILING_SHARE.values()) == pytest.approx(1.0)
+    total = config.SYSTEM_SPEND_CEILING_USD_PER_DAY
+    per_process = [
+        dataclasses.replace(settings.provider, credential_policy=policy
+                            ).spend_ceiling_usd_per_day
+        for policy in config.DEPLOYED_CEILING_SHARE
+    ]
+    assert sum(per_process) == pytest.approx(total)
+    assert total == pytest.approx(1.0)
+
+
+def test_the_old_per_service_ceiling_variable_is_refused_rather_than_ignored(monkeypatch):
+    """Leaving it silently inert would let an operator set it, see no error, and believe a
+    ceiling was applied — the same shape as the check that reported on a coincidence."""
+    import importlib
+
+    from app import config
+
+    monkeypatch.setenv("PROVIDER_SPEND_CEILING_USD_PER_DAY", "5.00")
+    with pytest.raises(RuntimeError) as raised:
+        importlib.reload(config)
+    assert "no longer does anything" in str(raised.value)
+    monkeypatch.delenv("PROVIDER_SPEND_CEILING_USD_PER_DAY")
+    importlib.reload(config)
+
+
+def test_a_health_endpoint_shows_the_system_total_not_only_its_own_share():
+    """A22.4: a promise a reader has to reconstruct by adding two services is not visible."""
+    from app.provider import Provider
+
+    state = Provider(ledger=None).spend_state()
+    assert state["system_ceiling_usd_per_day"] == pytest.approx(1.0)
+    assert state["ceiling_usd_per_day"] < state["system_ceiling_usd_per_day"]
+    assert state["system_split"]["scored"] + state["system_split"]["public_demo"] == 1.0
+    assert state["credential_policy"]
+
+
+# ---- A20.3: the round is locked to the build it started on ------------------------
+
+def test_a_round_whose_deployment_changed_underneath_it_is_degraded(results_dir, monkeypatch):
+    """A20.2 says nobody pushes during a round. A20.3 is what catches the day somebody
+    does: cases before and after the swap measured different systems."""
+    monkeypatch.setattr(scored_workload, "_healthz_sha", lambda base: "def456789abc")
+    reason = scored_workload.check_deployment_unchanged("http://test", "abc123456def")
+    assert "changed under the round" in reason
+    assert "abc123456def" in reason and "def456789abc" in reason
+
+
+def test_an_unreadable_commit_mid_round_is_also_a_finding(monkeypatch):
+    """Not being able to show the build was stable is not the same as showing it was."""
+    def unreadable(base):
+        raise OSError("connection refused")
+
+    monkeypatch.setattr(scored_workload, "_healthz_sha", unreadable)
+    reason = scored_workload.check_deployment_unchanged("http://test", "abc123456def")
+    assert "could not be re-read" in reason
+
+
+def test_a_stable_deployment_produces_no_finding(monkeypatch):
+    monkeypatch.setattr(scored_workload, "_healthz_sha", lambda base: "abc123456def")
+    assert scored_workload.check_deployment_unchanged("http://test", "abc123456def") is None
+
+
+def test_a_split_that_died_mid_round_is_not_silently_re_run(results_dir, monkeypatch):
+    """A container killed part-way through a paid split leaves no result, so the round
+    guard would decide it was never scored and pay for it again."""
+    calls = []
+    _staged(monkeypatch, calls)
+    scored_workload.inflight_marker("dev", "1").parent.mkdir(parents=True, exist_ok=True)
+    scored_workload.mark_round_started("dev", "1", "abc123")
+
+    with pytest.raises(SystemExit) as exit_info:
+        scored_workload.run(["dev"], port=8080, round_id="1", force=False, deadline=1.0,
+                            startup_deadline=1.0, idle=False)
+    assert "started and never finished" in str(exit_info.value)
+    assert calls == [], "a round that may already have been paid for is not re-run quietly"
+
+
+def test_a_finished_split_leaves_no_inflight_marker(results_dir, monkeypatch):
+    calls = []
+    _staged(monkeypatch, calls)
+    scored_workload.run(["dev"], port=8080, round_id="1", force=False, deadline=1.0,
+                        startup_deadline=1.0, idle=False)
+    assert len(calls) == 1
+    assert not scored_workload.inflight_marker("dev", "1").exists()

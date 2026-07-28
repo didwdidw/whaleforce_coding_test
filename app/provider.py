@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from app.config import settings
+from app.config import DEPLOYED_CEILING_SHARE, settings
 from app.models import FailureClass
 
 log = logging.getLogger(__name__)
@@ -399,10 +399,19 @@ class Provider:
             **spend,
             "ceiling_usd": p.spend_ceiling_usd,
             "ceiling_usd_per_day": p.spend_ceiling_usd_per_day,
+            # A22.4: the promise is a system number, and the two processes that divide it
+            # cannot see each other's ledger. A reader who has to add up two services to
+            # find the number we promised is not being shown the promise.
+            "credential_policy": p.credential_policy,
+            "share_of_system": p.ceiling_share_of_system,
+            "system_ceiling_usd_per_day": p.system_spend_ceiling_usd_per_day,
+            "system_split": dict(DEPLOYED_CEILING_SHARE),
             "enforced": self.ledger is not None,
             "note": ("Checked before every call. A8.10's ceiling was a number held in "
                      "someone's head until this existed; exceeding it is a refusal, not a "
-                     "warning."),
+                     "warning. This process's own spend is what appears above; the system "
+                     "total is the sum across the split, and no process can read the "
+                     "other's ledger."),
         }
 
     def _call(self, prompt: str, key: str, tier: CredentialTier,

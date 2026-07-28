@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import dataclasses
 import json
 import logging
 import os
@@ -523,6 +524,12 @@ async def healthz(response: Response) -> dict[str, Any]:
                               + ([] if state.supervisor.status()["connected"] else
                                  ["browser is not connected"])),
         "egress_guard": settings.egress_guard_state(),
+        # A17.10: the caps a cost or latency figure was measured under travel with it. The
+        # output cap has already been relaxed once, and answering "which cap was that run
+        # on?" from the commit history afterwards is reconstruction, not provenance.
+        "budgets": dataclasses.asdict(settings.budgets),
+        "prices_usd_per_1m": {"input": settings.provider.price_input_usd_per_1m,
+                              "output": settings.provider.price_output_usd_per_1m},
         "config_provenance": config_provenance(),
         # Presence and tier only. Never a value, a prefix, or a length — a length is a fact
         # about the secret and this endpoint is public.

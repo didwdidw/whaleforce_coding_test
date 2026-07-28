@@ -155,6 +155,30 @@ class BrowserPolicy:
     launch_args: tuple[str, ...] = ("--disable-dev-shm-usage", "--no-sandbox")
 
 
+#: A22.1 — the daily spend this project promises, for the system and not for a process.
+SYSTEM_SPEND_CEILING_USD_PER_DAY = _float("PROVIDER_SYSTEM_SPEND_CEILING_USD_PER_DAY", 1.0)
+
+#: A22.2/A22.3 — how that total is divided, declared once. Neither deployed process can
+#: read the other's ledger, so two ceilings set independently would drift with nothing able
+#: to notice. Fractions rather than dollars, so the total moves in exactly one place.
+#: `development` is absent deliberately: it runs on a developer's machine against its own
+#: store and is not one of the two processes sharing the promise.
+DEPLOYED_CEILING_SHARE = {"scored": 0.75, "public_demo": 0.25}
+
+if abs(sum(DEPLOYED_CEILING_SHARE.values()) - 1.0) > 1e-9:
+    raise RuntimeError(
+        f"The declared ceiling shares sum to {sum(DEPLOYED_CEILING_SHARE.values())}, not 1. "
+        f"The system's daily ceiling is what this project promises (A22.1); a split that "
+        f"does not add up to it is a raise nobody authorised.")
+
+if os.environ.get("PROVIDER_SPEND_CEILING_USD_PER_DAY"):
+    raise RuntimeError(
+        "PROVIDER_SPEND_CEILING_USD_PER_DAY is set, and it no longer does anything. Each "
+        "process's daily ceiling is derived from its share of the system total (A22.3); "
+        "setting it per service is how the two drifted apart in the first place. Use "
+        "PROVIDER_SYSTEM_SPEND_CEILING_USD_PER_DAY to move the total.")
+
+
 @dataclass(frozen=True)
 class QueuePolicy:
     """S-11.8: concurrency 2, queue depth 2, HTTP 429 when full. No unbounded queueing."""
@@ -198,8 +222,6 @@ class ProviderPolicy:
     #: store; the daily figure is the operational guard underneath it.
     spend_ceiling_usd: float = field(
         default_factory=lambda: _float("PROVIDER_SPEND_CEILING_USD", 5.0))
-    spend_ceiling_usd_per_day: float = field(
-        default_factory=lambda: _float("PROVIDER_SPEND_CEILING_USD_PER_DAY", 1.0))
 
     #: Which credentials a run may use. The deployed demo is free-tier only.
     credential_policy: str = field(
@@ -236,6 +258,21 @@ class ProviderPolicy:
     @property
     def effective_rpm(self) -> int:
         return max(1, self.requests_per_minute - self.rpm_safety_margin)
+
+    @property
+    def system_spend_ceiling_usd_per_day(self) -> float:
+        return SYSTEM_SPEND_CEILING_USD_PER_DAY
+
+    @property
+    def ceiling_share_of_system(self) -> float:
+        """This process's share of the promise, or the whole of it when it is not one of
+        the two that divide it — a developer's machine has its own store and its own day."""
+        return DEPLOYED_CEILING_SHARE.get(self.credential_policy, 1.0)
+
+    @property
+    def spend_ceiling_usd_per_day(self) -> float:
+        """Derived, never configured per process (A22.3)."""
+        return round(SYSTEM_SPEND_CEILING_USD_PER_DAY * self.ceiling_share_of_system, 6)
 
 
 @dataclass(frozen=True)

@@ -41,7 +41,7 @@ import urllib.request
 from app.config import settings
 from eval.harness import BROWSER_TASK, DEFAULT_CASES, parse_cases, run_split
 
-WORKLOAD_VERSION = "scored-workload/1.2"
+WORKLOAD_VERSION = "scored-workload/1.3"
 LOOPBACK = "127.0.0.1"
 #: The measured maximum cost of one run: the most expensive case of the dev split at
 #: `427cd96` ($0.0042; the mean was $0.0020). Configuration rather than a constant, because
@@ -256,6 +256,49 @@ def round_marker(split: str, round_id: str) -> pathlib.Path:
     return settings.eval_results_dir / ".rounds" / f"r{round_id}-{split}.json"
 
 
+def inflight_marker(split: str, round_id: str) -> pathlib.Path:
+    return settings.eval_results_dir / ".rounds" / f"r{round_id}-{split}.inflight.json"
+
+
+def mark_round_started(split: str, round_id: str, git_sha: str) -> None:
+    """Written before the first case and removed when the split finishes (A20.3).
+
+    A container that dies mid-split leaves this behind. The next start would otherwise see
+    no result, decide the split was never scored, and pay for it again — a restart is free
+    for the platform and is a second paid round for us. The discipline "do not let it
+    restart mid-round" is right and is not a mechanism; this is.
+    """
+    marker = inflight_marker(split, round_id)
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(json.dumps({"split": split, "round": round_id, "git_sha": git_sha,
+                                  "started_at_epoch": time.time()}, indent=1),
+                      encoding="utf-8")
+
+
+def _healthz_sha(base: str) -> str:
+    with urllib.request.urlopen(f"{base}/healthz", timeout=10) as response:
+        return (json.loads(response.read()).get("git_sha") or "unknown")[:12]
+
+
+def check_deployment_unchanged(base: str, started_sha: str) -> str | None:
+    """A20.3: the build the round started against, re-read at each split boundary.
+
+    Returns the reason the round is degraded, or `None`. A round whose deployment changed
+    underneath it measured two systems and reported one number.
+    """
+    try:
+        now = _healthz_sha(base)
+    except Exception as exc:  # noqa: BLE001 - an unreadable sha is itself the finding
+        return (f"the deployment's commit could not be re-read part-way through the round "
+                f"({exc}), so it cannot be shown that every case ran against the build the "
+                f"round started on ({started_sha})")
+    if now != started_sha:
+        return (f"the deployment changed under the round: it started on {started_sha} and "
+                f"is now on {now}. Cases before and after that point measured different "
+                f"systems, and one number cannot describe both")
+    return None
+
+
 def mark_round_done(split: str, round_id: str, git_sha: str, result: pathlib.Path) -> None:
     marker = round_marker(split, round_id)
     marker.parent.mkdir(parents=True, exist_ok=True)
@@ -306,13 +349,34 @@ def run(splits: list[str], *, port: int, round_id: str, force: bool,
                 print(f"[{WORKLOAD_VERSION}] {split}: no case file in this image "
                       f"({cases}); skipped. Held-out splits are mounted, not built in.")
                 continue
-            print(f"[{WORKLOAD_VERSION}] {split}: starting against {base}")
+            inflight = inflight_marker(split, round_id)
+            if inflight.exists() and not force:
+                _refuse(
+                    f"{split}: round r{round_id} was started and never finished — "
+                    f"{inflight} is still here. Something ended this container part-way "
+                    f"through a paid split. Re-running silently would spend the round a "
+                    f"second time, so it is not done silently: read "
+                    f"{settings.data_dir / 'logs' / 'scored-workload.log'}, then either "
+                    f"change EVAL_ROUND or set EVAL_FORCE=1 having decided to pay again.")
+            mark_round_started(split, round_id, git_sha)
+            print(f"[{WORKLOAD_VERSION}] {split}: starting against {base} on {git_sha}")
             report = run_split(base, split, cases, deadline,
                                verbose=split in ("dev", "experimental"),
                                schema=BROWSER_TASK)
+            drift = check_deployment_unchanged(base, git_sha)
+            if drift:
+                meta = report.setdefault("provenance", {})
+                block = meta.setdefault("degraded", {"not_a_capability_measurement": True,
+                                                     "reasons": []})
+                block["not_a_capability_measurement"] = True
+                block.setdefault("reasons", []).append(drift)
+                block["consequence"] = ("No figure in the analysis report may be sourced "
+                                        "from this file.")
+                print(f"[{WORKLOAD_VERSION}] {split}: DEGRADED — {drift}")
             if (report.get("provenance") or {}).get("degraded"):
                 out = result_path(split, git_sha, round_id, degraded=True)
             out.write_text(json.dumps(report, indent=1), encoding="utf-8")
+            inflight.unlink(missing_ok=True)
             mark_round_done(split, round_id, git_sha, out)
             written.append(out.name)
             print(f"[{WORKLOAD_VERSION}] {split}: written {out}")
