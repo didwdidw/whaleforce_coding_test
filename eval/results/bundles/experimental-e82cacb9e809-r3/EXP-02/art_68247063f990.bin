@@ -1,0 +1,30 @@
+- navigation:
+  - list:
+    - listitem:
+      - link "Scrape This Site":
+        - /url: /
+        - img
+        - text: Scrape This Site
+    - listitem:
+      - link " Sandbox":
+        - /url: /pages/
+    - listitem:
+      - link " Lessons":
+        - /url: /lessons/
+    - listitem:
+      - link " FAQ":
+        - /url: /faq/
+    - listitem:
+      - link "Login":
+        - /url: /login/
+- img
+- heading "Scrape This Site" [level=1]
+- paragraph:
+  - text: The internet's best resource for learning
+  - strong: web scraping
+  - text: .
+- link "Explore Sandbox":
+  - /url: /pages/
+- link " Begin Lessons →":
+  - /url: /lessons/
+- text: Lessons and Videos © Hartley Brody 2023

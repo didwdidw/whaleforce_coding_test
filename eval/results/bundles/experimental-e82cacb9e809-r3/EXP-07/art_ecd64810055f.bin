@@ -1,0 +1,212 @@
+- banner:
+  - link "Skip to main content":
+    - /url: "#content"
+  - link "Project Gutenberg":
+    - /url: /
+    - img "Project Gutenberg"
+  - textbox "Search books":
+    - /placeholder: Quick search
+  - button "Go!"
+  - button "Donate via PayPal"
+  - link "Donate":
+    - /url: /donate/
+  - text: About
+  - link "Frequently Downloaded":
+    - /url: /browse/scores/top
+  - link "Main Categories":
+    - /url: /ebooks/categories
+  - link "Reading Lists":
+    - /url: /ebooks/bookshelf/
+  - link "Search Options":
+    - /url: /ebooks/
+- list:
+  - listitem:
+    - link "Project Gutenberg":
+      - /url: /
+  - listitem:
+    - text: ›
+    - link "79,023 free eBooks":
+      - /url: /ebooks/
+  - listitem:
+    - text: ›
+    - link "35 by Jane Austen":
+      - /url: /ebooks/author/68
+- heading "Pride and Prejudice by Jane Austen" [level=1]
+- link "Book Cover":
+  - /url: /cache/epub/1342/pg1342-images.html
+  - img "Book Cover"
+- list:
+  - listitem:
+    - link "Share on Mastodon":
+      - /url: https://toot.kytta.dev/?text=Free%20book%20at%20Project%20Gutenberg%3A%20Pride%20and%20Prejudice%20by%20Jane%20Austen%20http%3A%2F%2Fwww.gutenberg.org%2Febooks%2F1342
+  - listitem:
+    - link "Share on Twitter":
+      - /url: https://twitter.com/share?url=http%3A%2F%2Fwww.gutenberg.org%2Febooks%2F1342&text=Pride%20and%20Prejudice%20by%20Jane%20Austen&count=none&lang=en&related=gutenberg_new%3AProject%20Gutenberg%20New%20Books
+  - listitem:
+    - link "Share on Facebook":
+      - /url: https://www.facebook.com/sharer.php?u=http%3A%2F%2Fwww.gutenberg.org%2Febooks%2F1342
+  - listitem:
+    - link "Share on Bluesky":
+      - /url: https://bsky.app/intent/compose?text=Free%20book%20at%20Project%20Gutenberg%3A%20Pride%20and%20Prejudice%20by%20Jane%20Austen%20http%3A%2F%2Fwww.gutenberg.org%2Febooks%2F1342
+  - listitem
+- group: QR code
+- text: "\"Pride and Prejudice\" by Jane Austen is a novel published in 1813. It follows Elizabeth Bennet, who must learn to see past first impressions and hasty judgments. With five daughters and an estate that can only pass to male heirs, the Bennet family faces financial pressure to marry well. When wealthy Mr. Darcy arrives in their countryside neighborhood, his pride and Elizabeth's prejudice set the stage for misunderstandings, hidden truths, and unexpected ... Read more"
+- link "Read online now":
+  - /url: /cache/epub/1342/pg1342-images.html
+- heading "Download for free" [level=2]
+- paragraph: For your e-reader or reading app — Kindle, Kobo, Apple Books, Calibre etc.
+- link "EPUB3 ★ Recommended for most devices":
+  - /url: /ebooks/1342.epub3.images
+- link "Send to Dropbox.":
+  - /url: /ebooks/send/dropbox/1342.epub3.images
+- link "Send to Google Drive.":
+  - /url: /ebooks/send/gdrive/1342.epub3.images
+- link "Send to OneDrive.":
+  - /url: /ebooks/send/msdrive/1342.epub3.images
+- text: 23.7 MB Kindle → Use
+- link "Send-to-Kindle":
+  - /url: /help/reading_options.html#kindle
+- text: Kobo, Nook etc. →
+- link "Transfer via USB":
+  - /url: /help/reading_options.html#kobo-nook-etc
+- text: Phone, tablet or computer → Open in a reading app
+- link "Reading guide":
+  - /url: /help/reading_options.html
+- group: Other formats & older devices
+- link "Readers also downloaded":
+  - /url: /ebooks/1342/also/
+- link "Best Books Ever Listings":
+  - /url: /ebooks/bookshelf/13
+- link "Harvard Classics":
+  - /url: /ebooks/bookshelf/40
+- link "Romance":
+  - /url: /ebooks/bookshelf/639
+- link "Novels":
+  - /url: /ebooks/bookshelf/645
+- link "Classics of Literature":
+  - /url: /ebooks/bookshelf/649
+- link "British Literature":
+  - /url: /ebooks/bookshelf/653
+- heading "About this eBook" [level=2]
+- table:
+  - rowgroup:
+    - row "Author Austen, Jane, 1775-1817":
+      - rowheader "Author"
+      - cell "Austen, Jane, 1775-1817":
+        - link "Austen, Jane, 1775-1817":
+          - /url: /ebooks/author/68
+    - row "Title Pride and Prejudice":
+      - rowheader "Title"
+      - cell "Pride and Prejudice"
+    - 'row "Note Wikipedia page about this book: en.wikipedia.org/wiki/Pride_and_Prejudice"':
+      - rowheader "Note"
+      - 'cell "Wikipedia page about this book: en.wikipedia.org/wiki/Pride_and_Prejudice"':
+        - text: "Wikipedia page about this book:"
+        - link "en.wikipedia.org/wiki/Pride_and_Prejudice":
+          - /url: https://en.wikipedia.org/wiki/Pride_and_Prejudice
+    - 'row "Note This title is also available as eBook #42671."':
+      - rowheader "Note"
+      - 'cell "This title is also available as eBook #42671."':
+        - text: This title is also available as eBook
+        - link "#42671":
+          - /url: /ebooks/42671
+        - text: .
+    - row "Credits Chuck Greif and the Online Distributed Proofreading Team at www.pgdp.net (This file was produced from images available at The Internet Archive)":
+      - rowheader "Credits"
+      - cell "Chuck Greif and the Online Distributed Proofreading Team at www.pgdp.net (This file was produced from images available at The Internet Archive)":
+        - text: Chuck Greif and the Online Distributed Proofreading Team at
+        - link "www.pgdp.net":
+          - /url: https://www.pgdp.net
+        - text: (This file was produced from images available at The Internet Archive)
+    - 'row "Reading Level Reading ease score: 69.2 (8th & 9th grade). Neither easy nor difficult to read."':
+      - rowheader "Reading Level"
+      - 'cell "Reading ease score: 69.2 (8th & 9th grade). Neither easy nor difficult to read."'
+    - row "Language English":
+      - rowheader "Language"
+      - cell "English"
+    - 'row "LoC Class PR: Language and Literatures: English literature"':
+      - rowheader "LoC Class"
+      - 'cell "PR: Language and Literatures: English literature"':
+        - 'link "PR: Language and Literatures: English literature"':
+          - /url: /ebooks/search/?query=lcc.pr
+    - row "Subject England -- Fiction":
+      - rowheader "Subject"
+      - cell "England -- Fiction":
+        - link "England -- Fiction":
+          - /url: /ebooks/subject/1702
+    - row "Subject Young women -- Fiction":
+      - rowheader "Subject"
+      - cell "Young women -- Fiction":
+        - link "Young women -- Fiction":
+          - /url: /ebooks/subject/2481
+    - row "Subject Love stories":
+      - rowheader "Subject"
+      - cell "Love stories":
+        - link "Love stories":
+          - /url: /ebooks/subject/2487
+    - row "Subject Sisters -- Fiction":
+      - rowheader "Subject"
+      - cell "Sisters -- Fiction":
+        - link "Sisters -- Fiction":
+          - /url: /ebooks/subject/2489
+    - row "Subject Domestic fiction":
+      - rowheader "Subject"
+      - cell "Domestic fiction":
+        - link "Domestic fiction":
+          - /url: /ebooks/subject/2514
+    - row "Subject Courtship -- Fiction":
+      - rowheader "Subject"
+      - cell "Courtship -- Fiction":
+        - link "Courtship -- Fiction":
+          - /url: /ebooks/subject/2578
+    - row "Subject Social classes -- Fiction":
+      - rowheader "Subject"
+      - cell "Social classes -- Fiction":
+        - link "Social classes -- Fiction":
+          - /url: /ebooks/subject/2906
+    - row "Category Text":
+      - rowheader "Category"
+      - cell "Text"
+    - row "eBook-No. 1342":
+      - rowheader "eBook-No."
+      - cell "1342"
+    - row "Release Date Jun 1, 1998":
+      - rowheader "Release Date"
+      - cell "Jun 1, 1998"
+    - row "Last Update Feb 10, 2026":
+      - rowheader "Last Update"
+      - cell "Feb 10, 2026"
+    - row "Copyright Public domain in the USA.":
+      - rowheader "Copyright"
+      - cell "Public domain in the USA."
+    - row "Downloads 173114 downloads in the last 30 days.":
+      - rowheader "Downloads"
+      - cell "173114 downloads in the last 30 days."
+- paragraph: Project Gutenberg eBooks are always free!
+- contentinfo:
+  - contentinfo:
+    - list:
+      - listitem:
+        - link "About Project Gutenberg":
+          - /url: /about/
+      - listitem:
+        - link "Privacy policy":
+          - /url: /policy/privacy_policy.html
+      - listitem:
+        - link "Permissions":
+          - /url: /policy/permission.html
+      - listitem:
+        - link "Terms of Use":
+          - /url: /policy/terms_of_use.html
+      - listitem:
+        - link "Accessibility":
+          - /url: /a11y/
+      - listitem:
+        - link "Contact Us":
+          - /url: /about/contact_information.html
+      - listitem:
+        - link "Help":
+          - /url: /help/
+    - link "ibiblio":
+      - /url: https://www.ibiblio.org/
+      - img "ibiblio"

@@ -1,0 +1,20 @@
+- link "Federal Register Home - The Daily Journal of the United States Government":
+  - /url: /
+  - img
+- heading "Request Access" [level=1]
+- paragraph:
+  - text: Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, programmatic access to these sites is limited to access to our extensive developer APIs. Please visit
+  - link "FederalRegister.gov API":
+    - /url: https://www.federalregister.gov/developers/documentation/api/v1
+  - text: documentation or
+  - link "eCFR.gov API":
+    - /url: https://www.ecfr.gov/developers/documentation/api/v1
+  - text: documentation to learn more about how to access the API.
+- paragraph: Your request has been flagged as potentially automated. If you are human user receiving this message, please complete the CAPTCHA (bot test) below and click "Request Access". You may occassionally be asked to complete the CAPTCHA again, this is normal and part of our security measures.
+- button "Request Access for 43.166.128.37" [disabled]
+- paragraph:
+  - emphasis: An official website of the United States government.
+- paragraph: If you experiencing issues with the CAPTCHA or want to request a wider IP range, you can use the "Site Help" button found in the lower, right of this page to make a request.
+- button "Open site help form":
+  - img
+  - text: Site Help

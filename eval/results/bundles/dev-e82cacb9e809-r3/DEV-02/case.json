@@ -1,0 +1,92 @@
+{
+ "case": "DEV-02",
+ "record": "OP-4",
+ "declared_tier": "T-DECLARED",
+ "tier_as_declared": false,
+ "precondition": {
+  "url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+  "checked": true,
+  "ok": true,
+  "reason": "HTTP 200",
+  "http_status": 200,
+  "robots": {
+   "allowed": true,
+   "directive": null,
+   "pattern": null,
+   "group_user_agent": "*",
+   "rule": "no rule matched",
+   "source": "matched",
+   "evaluated_url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+   "evaluated_path": "/wiki/List_of_S%26P_500_companies",
+   "evaluated_as": "whaleforcecodingtest-task1"
+  }
+ },
+ "suite_error": false,
+ "run_id": "run_0d184fcd799f",
+ "tier": "T-EXPERIMENTAL",
+ "execution_path": null,
+ "terminal_status": "unsupported",
+ "failure_class": "policy_refused",
+ "counts_as_success": false,
+ "outcome_kind": "refused_by_policy",
+ "attempted": false,
+ "expected": [
+  "succeeded_verified"
+ ],
+ "status_as_expected": false,
+ "evidence": {
+  "claims": 0,
+  "verified_claims": 0,
+  "independently_checked": 0,
+  "not_reproducible_here": [],
+  "findings": [
+   "declared tier T-DECLARED but the run reports T-EXPERIMENTAL"
+  ],
+  "notes": []
+ },
+ "duration_seconds": 0.03,
+ "latency": {
+  "queue_wait_seconds": 0.008,
+  "run_seconds": 0.027,
+  "total_seconds": 0.035,
+  "time_to_first_result_seconds": null,
+  "steps_measured": 2,
+  "steps_unmeasured": 0,
+  "step_ms": {
+   "median": 5,
+   "p90": 6,
+   "max": 6
+  },
+  "slowest_step": {
+   "seq": 1,
+   "kind": "policy_check",
+   "summary": "SSRF guard enabled",
+   "ms": 6
+  },
+  "model_seconds": 0,
+  "model_calls": 0,
+  "model_calls_cached": 0,
+  "reportable": true
+ },
+ "budget": {
+  "steps": 2,
+  "llm_calls_exploration": 0,
+  "llm_calls_recovery": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "usd": 0.0,
+  "started_at": 1785265152.3056226,
+  "ended_at": 1785265152.3326,
+  "elapsed_seconds": 0.03,
+  "output_cap_per_call": 2048,
+  "output_cap_per_run": 16000
+ },
+ "timed_out_waiting": false,
+ "oracle": {
+  "kind": "op4",
+  "comparable": false,
+  "why": "the run froze no article, column and direction to check against"
+ },
+ "passed": false,
+ "artifacts": []
+}

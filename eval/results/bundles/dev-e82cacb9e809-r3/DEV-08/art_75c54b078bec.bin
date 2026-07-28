@@ -1,0 +1,427 @@
+- banner:
+  - link "Books to Scrape":
+    - /url: ../../../../index.html
+  - text: We love being scraped!
+- list:
+  - listitem:
+    - link "Home":
+      - /url: ../../../../index.html
+  - listitem:
+    - text: /
+    - link "Books":
+      - /url: ../../books_1/index.html
+  - listitem: / Nonfiction
+- complementary:
+  - list:
+    - listitem:
+      - link "Books":
+        - /url: ../../books_1/index.html
+      - list:
+        - listitem:
+          - link "Travel":
+            - /url: ../travel_2/index.html
+        - listitem:
+          - link "Mystery":
+            - /url: ../mystery_3/index.html
+        - listitem:
+          - link "Historical Fiction":
+            - /url: ../historical-fiction_4/index.html
+        - listitem:
+          - link "Sequential Art":
+            - /url: ../sequential-art_5/index.html
+        - listitem:
+          - link "Classics":
+            - /url: ../classics_6/index.html
+        - listitem:
+          - link "Philosophy":
+            - /url: ../philosophy_7/index.html
+        - listitem:
+          - link "Romance":
+            - /url: ../romance_8/index.html
+        - listitem:
+          - link "Womens Fiction":
+            - /url: ../womens-fiction_9/index.html
+        - listitem:
+          - link "Fiction":
+            - /url: ../fiction_10/index.html
+        - listitem:
+          - link "Childrens":
+            - /url: ../childrens_11/index.html
+        - listitem:
+          - link "Religion":
+            - /url: ../religion_12/index.html
+        - listitem:
+          - link "Nonfiction":
+            - /url: index.html
+            - strong: Nonfiction
+        - listitem:
+          - link "Music":
+            - /url: ../music_14/index.html
+        - listitem:
+          - link "Default":
+            - /url: ../default_15/index.html
+        - listitem:
+          - link "Science Fiction":
+            - /url: ../science-fiction_16/index.html
+        - listitem:
+          - link "Sports and Games":
+            - /url: ../sports-and-games_17/index.html
+        - listitem:
+          - link "Add a comment":
+            - /url: ../add-a-comment_18/index.html
+        - listitem:
+          - link "Fantasy":
+            - /url: ../fantasy_19/index.html
+        - listitem:
+          - link "New Adult":
+            - /url: ../new-adult_20/index.html
+        - listitem:
+          - link "Young Adult":
+            - /url: ../young-adult_21/index.html
+        - listitem:
+          - link "Science":
+            - /url: ../science_22/index.html
+        - listitem:
+          - link "Poetry":
+            - /url: ../poetry_23/index.html
+        - listitem:
+          - link "Paranormal":
+            - /url: ../paranormal_24/index.html
+        - listitem:
+          - link "Art":
+            - /url: ../art_25/index.html
+        - listitem:
+          - link "Psychology":
+            - /url: ../psychology_26/index.html
+        - listitem:
+          - link "Autobiography":
+            - /url: ../autobiography_27/index.html
+        - listitem:
+          - link "Parenting":
+            - /url: ../parenting_28/index.html
+        - listitem:
+          - link "Adult Fiction":
+            - /url: ../adult-fiction_29/index.html
+        - listitem:
+          - link "Humor":
+            - /url: ../humor_30/index.html
+        - listitem:
+          - link "Horror":
+            - /url: ../horror_31/index.html
+        - listitem:
+          - link "History":
+            - /url: ../history_32/index.html
+        - listitem:
+          - link "Food and Drink":
+            - /url: ../food-and-drink_33/index.html
+        - listitem:
+          - link "Christian Fiction":
+            - /url: ../christian-fiction_34/index.html
+        - listitem:
+          - link "Business":
+            - /url: ../business_35/index.html
+        - listitem:
+          - link "Biography":
+            - /url: ../biography_36/index.html
+        - listitem:
+          - link "Thriller":
+            - /url: ../thriller_37/index.html
+        - listitem:
+          - link "Contemporary":
+            - /url: ../contemporary_38/index.html
+        - listitem:
+          - link "Spirituality":
+            - /url: ../spirituality_39/index.html
+        - listitem:
+          - link "Academic":
+            - /url: ../academic_40/index.html
+        - listitem:
+          - link "Self Help":
+            - /url: ../self-help_41/index.html
+        - listitem:
+          - link "Historical":
+            - /url: ../historical_42/index.html
+        - listitem:
+          - link "Christian":
+            - /url: ../christian_43/index.html
+        - listitem:
+          - link "Suspense":
+            - /url: ../suspense_44/index.html
+        - listitem:
+          - link "Short Stories":
+            - /url: ../short-stories_45/index.html
+        - listitem:
+          - link "Novels":
+            - /url: ../novels_46/index.html
+        - listitem:
+          - link "Health":
+            - /url: ../health_47/index.html
+        - listitem:
+          - link "Politics":
+            - /url: ../politics_48/index.html
+        - listitem:
+          - link "Cultural":
+            - /url: ../cultural_49/index.html
+        - listitem:
+          - link "Erotica":
+            - /url: ../erotica_50/index.html
+        - listitem:
+          - link "Crime":
+            - /url: ../crime_51/index.html
+- heading "Nonfiction" [level=1]
+- strong: "110"
+- text: results - showing
+- strong: "1"
+- text: to
+- strong: "20"
+- text: .
+- alert:
+  - strong: Warning!
+  - text: This is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no real meaning.
+- list:
+  - listitem:
+    - article:
+      - 'link "Worlds Elsewhere: Journeys Around Shakespeare’s Globe"':
+        - /url: ../../../worlds-elsewhere-journeys-around-shakespeares-globe_972/index.html
+        - 'img "Worlds Elsewhere: Journeys Around Shakespeare’s Globe"'
+      - paragraph:     
+      - 'heading "Worlds Elsewhere: Journeys Around ..." [level=3]':
+        - 'link "Worlds Elsewhere: Journeys Around ..."':
+          - /url: ../../../worlds-elsewhere-journeys-around-shakespeares-globe_972/index.html
+      - paragraph: £40.30
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "The Five Love Languages: How to Express Heartfelt Commitment to Your Mate"':
+        - /url: ../../../the-five-love-languages-how-to-express-heartfelt-commitment-to-your-mate_969/index.html
+        - 'img "The Five Love Languages: How to Express Heartfelt Commitment to Your Mate"'
+      - paragraph:     
+      - 'heading "The Five Love Languages: ..." [level=3]':
+        - 'link "The Five Love Languages: ..."':
+          - /url: ../../../the-five-love-languages-how-to-express-heartfelt-commitment-to-your-mate_969/index.html
+      - paragraph: £31.05
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - link "Reasons to Stay Alive":
+        - /url: ../../../reasons-to-stay-alive_959/index.html
+        - img "Reasons to Stay Alive"
+      - paragraph:     
+      - heading "Reasons to Stay Alive" [level=3]:
+        - link "Reasons to Stay Alive":
+          - /url: ../../../reasons-to-stay-alive_959/index.html
+      - paragraph: £26.41
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "#HigherSelfie: Wake Up Your Life. Free Your Soul. Find Your Tribe."':
+        - /url: ../../../higherselfie-wake-up-your-life-free-your-soul-find-your-tribe_957/index.html
+        - 'img "#HigherSelfie: Wake Up Your Life. Free Your Soul. Find Your Tribe."'
+      - paragraph:     
+      - 'heading "#HigherSelfie: Wake Up Your ..." [level=3]':
+        - 'link "#HigherSelfie: Wake Up Your ..."':
+          - /url: ../../../higherselfie-wake-up-your-life-free-your-soul-find-your-tribe_957/index.html
+      - paragraph: £23.11
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Unseen City: The Majesty of Pigeons, the Discreet Charm of Snails & Other Wonders of the Urban Wilderness"':
+        - /url: ../../../unseen-city-the-majesty-of-pigeons-the-discreet-charm-of-snails-other-wonders-of-the-urban-wilderness_952/index.html
+        - 'img "Unseen City: The Majesty of Pigeons, the Discreet Charm of Snails & Other Wonders of the Urban Wilderness"'
+      - paragraph:     
+      - 'heading "Unseen City: The Majesty ..." [level=3]':
+        - 'link "Unseen City: The Majesty ..."':
+          - /url: ../../../unseen-city-the-majesty-of-pigeons-the-discreet-charm-of-snails-other-wonders-of-the-urban-wilderness_952/index.html
+      - paragraph: £44.18
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Throwing Rocks at the Google Bus: How Growth Became the Enemy of Prosperity"':
+        - /url: ../../../throwing-rocks-at-the-google-bus-how-growth-became-the-enemy-of-prosperity_948/index.html
+        - 'img "Throwing Rocks at the Google Bus: How Growth Became the Enemy of Prosperity"'
+      - paragraph:     
+      - heading "Throwing Rocks at the ..." [level=3]:
+        - link "Throwing Rocks at the ...":
+          - /url: ../../../throwing-rocks-at-the-google-bus-how-growth-became-the-enemy-of-prosperity_948/index.html
+      - paragraph: £31.12
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "The Life-Changing Magic of Tidying Up: The Japanese Art of Decluttering and Organizing"':
+        - /url: ../../../the-life-changing-magic-of-tidying-up-the-japanese-art-of-decluttering-and-organizing_936/index.html
+        - 'img "The Life-Changing Magic of Tidying Up: The Japanese Art of Decluttering and Organizing"'
+      - paragraph:     
+      - heading "The Life-Changing Magic of ..." [level=3]:
+        - link "The Life-Changing Magic of ...":
+          - /url: ../../../the-life-changing-magic-of-tidying-up-the-japanese-art-of-decluttering-and-organizing_936/index.html
+      - paragraph: £16.77
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "The Gutsy Girl: Escapades for Your Life of Epic Adventure"':
+        - /url: ../../../the-gutsy-girl-escapades-for-your-life-of-epic-adventure_934/index.html
+        - 'img "The Gutsy Girl: Escapades for Your Life of Epic Adventure"'
+      - paragraph:     
+      - 'heading "The Gutsy Girl: Escapades ..." [level=3]':
+        - 'link "The Gutsy Girl: Escapades ..."':
+          - /url: ../../../the-gutsy-girl-escapades-for-your-life-of-epic-adventure_934/index.html
+      - paragraph: £37.13
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "The Electric Pencil: Drawings from Inside State Hospital No. 3"':
+        - /url: ../../../the-electric-pencil-drawings-from-inside-state-hospital-no-3_933/index.html
+        - 'img "The Electric Pencil: Drawings from Inside State Hospital No. 3"'
+      - paragraph:     
+      - 'heading "The Electric Pencil: Drawings ..." [level=3]':
+        - 'link "The Electric Pencil: Drawings ..."':
+          - /url: ../../../the-electric-pencil-drawings-from-inside-state-hospital-no-3_933/index.html
+      - paragraph: £56.06
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Spark Joy: An Illustrated Master Class on the Art of Organizing and Tidying Up"':
+        - /url: ../../../spark-joy-an-illustrated-master-class-on-the-art-of-organizing-and-tidying-up_927/index.html
+        - 'img "Spark Joy: An Illustrated Master Class on the Art of Organizing and Tidying Up"'
+      - paragraph:     
+      - 'heading "Spark Joy: An Illustrated ..." [level=3]':
+        - 'link "Spark Joy: An Illustrated ..."':
+          - /url: ../../../spark-joy-an-illustrated-master-class-on-the-art-of-organizing-and-tidying-up_927/index.html
+      - paragraph: £41.83
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Reskilling America: Learning to Labor in the Twenty-First Century"':
+        - /url: ../../../reskilling-america-learning-to-labor-in-the-twenty-first-century_922/index.html
+        - 'img "Reskilling America: Learning to Labor in the Twenty-First Century"'
+      - paragraph:     
+      - 'heading "Reskilling America: Learning to ..." [level=3]':
+        - 'link "Reskilling America: Learning to ..."':
+          - /url: ../../../reskilling-america-learning-to-labor-in-the-twenty-first-century_922/index.html
+      - paragraph: £19.83
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "In the Country We Love: My Family Divided"':
+        - /url: ../../../in-the-country-we-love-my-family-divided_901/index.html
+        - 'img "In the Country We Love: My Family Divided"'
+      - paragraph:     
+      - heading "In the Country We ..." [level=3]:
+        - link "In the Country We ...":
+          - /url: ../../../in-the-country-we-love-my-family-divided_901/index.html
+      - paragraph: £22.00
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Everydata: The Misinformation Hidden in the Little Data You Consume Every Day"':
+        - /url: ../../../everydata-the-misinformation-hidden-in-the-little-data-you-consume-every-day_891/index.html
+        - 'img "Everydata: The Misinformation Hidden in the Little Data You Consume Every Day"'
+      - paragraph:     
+      - 'heading "Everydata: The Misinformation Hidden ..." [level=3]':
+        - 'link "Everydata: The Misinformation Hidden ..."':
+          - /url: ../../../everydata-the-misinformation-hidden-in-the-little-data-you-consume-every-day_891/index.html
+      - paragraph: £54.35
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Call the Nurse: True Stories of a Country Nurse on a Scottish Isle"':
+        - /url: ../../../call-the-nurse-true-stories-of-a-country-nurse-on-a-scottish-isle_885/index.html
+        - 'img "Call the Nurse: True Stories of a Country Nurse on a Scottish Isle"'
+      - paragraph:     
+      - 'heading "Call the Nurse: True ..." [level=3]':
+        - 'link "Call the Nurse: True ..."':
+          - /url: ../../../call-the-nurse-true-stories-of-a-country-nurse-on-a-scottish-isle_885/index.html
+      - paragraph: £29.14
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Algorithms to Live By: The Computer Science of Human Decisions"':
+        - /url: ../../../algorithms-to-live-by-the-computer-science-of-human-decisions_880/index.html
+        - 'img "Algorithms to Live By: The Computer Science of Human Decisions"'
+      - paragraph:     
+      - 'heading "Algorithms to Live By: ..." [level=3]':
+        - 'link "Algorithms to Live By: ..."':
+          - /url: ../../../algorithms-to-live-by-the-computer-science-of-human-decisions_880/index.html
+      - paragraph: £30.81
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "The Power of Now: A Guide to Spiritual Enlightenment"':
+        - /url: ../../../the-power-of-now-a-guide-to-spiritual-enlightenment_855/index.html
+        - 'img "The Power of Now: A Guide to Spiritual Enlightenment"'
+      - paragraph:     
+      - 'heading "The Power of Now: ..." [level=3]':
+        - 'link "The Power of Now: ..."':
+          - /url: ../../../the-power-of-now-a-guide-to-spiritual-enlightenment_855/index.html
+      - paragraph: £43.54
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "The Omnivore''s Dilemma: A Natural History of Four Meals"':
+        - /url: ../../../the-omnivores-dilemma-a-natural-history-of-four-meals_854/index.html
+        - 'img "The Omnivore''s Dilemma: A Natural History of Four Meals"'
+      - paragraph:     
+      - 'heading "The Omnivore''s Dilemma: A ..." [level=3]':
+        - 'link "The Omnivore''s Dilemma: A ..."':
+          - /url: ../../../the-omnivores-dilemma-a-natural-history-of-four-meals_854/index.html
+      - paragraph: £38.21
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - link "The Genius of Birds":
+        - /url: ../../../the-genius-of-birds_843/index.html
+        - img "The Genius of Birds"
+      - paragraph:     
+      - heading "The Genius of Birds" [level=3]:
+        - link "The Genius of Birds":
+          - /url: ../../../the-genius-of-birds_843/index.html
+      - paragraph: £17.24
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "The Artist''s Way: A Spiritual Path to Higher Creativity"':
+        - /url: ../../../the-artists-way-a-spiritual-path-to-higher-creativity_839/index.html
+        - 'img "The Artist''s Way: A Spiritual Path to Higher Creativity"'
+      - paragraph:     
+      - 'heading "The Artist''s Way: A ..." [level=3]':
+        - 'link "The Artist''s Way: A ..."':
+          - /url: ../../../the-artists-way-a-spiritual-path-to-higher-creativity_839/index.html
+      - paragraph: £38.49
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - link "So You've Been Publicly Shamed":
+        - /url: ../../../so-youve-been-publicly-shamed_832/index.html
+        - img "So You've Been Publicly Shamed"
+      - paragraph:     
+      - heading "So You've Been Publicly ..." [level=3]:
+        - link "So You've Been Publicly ...":
+          - /url: ../../../so-youve-been-publicly-shamed_832/index.html
+      - paragraph: £12.23
+      - paragraph:  In stock
+      - button "Add to basket"
+- list:
+  - listitem: Page 1 of 6
+  - listitem:
+    - link "next":
+      - /url: page-2.html
+- contentinfo

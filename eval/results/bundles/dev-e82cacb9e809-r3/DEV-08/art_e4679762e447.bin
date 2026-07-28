@@ -1,0 +1,430 @@
+- banner:
+  - link "Books to Scrape":
+    - /url: ../../../../index.html
+  - text: We love being scraped!
+- list:
+  - listitem:
+    - link "Home":
+      - /url: ../../../../index.html
+  - listitem:
+    - text: /
+    - link "Books":
+      - /url: ../../books_1/index.html
+  - listitem: / Nonfiction
+- complementary:
+  - list:
+    - listitem:
+      - link "Books":
+        - /url: ../../books_1/index.html
+      - list:
+        - listitem:
+          - link "Travel":
+            - /url: ../travel_2/index.html
+        - listitem:
+          - link "Mystery":
+            - /url: ../mystery_3/index.html
+        - listitem:
+          - link "Historical Fiction":
+            - /url: ../historical-fiction_4/index.html
+        - listitem:
+          - link "Sequential Art":
+            - /url: ../sequential-art_5/index.html
+        - listitem:
+          - link "Classics":
+            - /url: ../classics_6/index.html
+        - listitem:
+          - link "Philosophy":
+            - /url: ../philosophy_7/index.html
+        - listitem:
+          - link "Romance":
+            - /url: ../romance_8/index.html
+        - listitem:
+          - link "Womens Fiction":
+            - /url: ../womens-fiction_9/index.html
+        - listitem:
+          - link "Fiction":
+            - /url: ../fiction_10/index.html
+        - listitem:
+          - link "Childrens":
+            - /url: ../childrens_11/index.html
+        - listitem:
+          - link "Religion":
+            - /url: ../religion_12/index.html
+        - listitem:
+          - link "Nonfiction":
+            - /url: index.html
+            - strong: Nonfiction
+        - listitem:
+          - link "Music":
+            - /url: ../music_14/index.html
+        - listitem:
+          - link "Default":
+            - /url: ../default_15/index.html
+        - listitem:
+          - link "Science Fiction":
+            - /url: ../science-fiction_16/index.html
+        - listitem:
+          - link "Sports and Games":
+            - /url: ../sports-and-games_17/index.html
+        - listitem:
+          - link "Add a comment":
+            - /url: ../add-a-comment_18/index.html
+        - listitem:
+          - link "Fantasy":
+            - /url: ../fantasy_19/index.html
+        - listitem:
+          - link "New Adult":
+            - /url: ../new-adult_20/index.html
+        - listitem:
+          - link "Young Adult":
+            - /url: ../young-adult_21/index.html
+        - listitem:
+          - link "Science":
+            - /url: ../science_22/index.html
+        - listitem:
+          - link "Poetry":
+            - /url: ../poetry_23/index.html
+        - listitem:
+          - link "Paranormal":
+            - /url: ../paranormal_24/index.html
+        - listitem:
+          - link "Art":
+            - /url: ../art_25/index.html
+        - listitem:
+          - link "Psychology":
+            - /url: ../psychology_26/index.html
+        - listitem:
+          - link "Autobiography":
+            - /url: ../autobiography_27/index.html
+        - listitem:
+          - link "Parenting":
+            - /url: ../parenting_28/index.html
+        - listitem:
+          - link "Adult Fiction":
+            - /url: ../adult-fiction_29/index.html
+        - listitem:
+          - link "Humor":
+            - /url: ../humor_30/index.html
+        - listitem:
+          - link "Horror":
+            - /url: ../horror_31/index.html
+        - listitem:
+          - link "History":
+            - /url: ../history_32/index.html
+        - listitem:
+          - link "Food and Drink":
+            - /url: ../food-and-drink_33/index.html
+        - listitem:
+          - link "Christian Fiction":
+            - /url: ../christian-fiction_34/index.html
+        - listitem:
+          - link "Business":
+            - /url: ../business_35/index.html
+        - listitem:
+          - link "Biography":
+            - /url: ../biography_36/index.html
+        - listitem:
+          - link "Thriller":
+            - /url: ../thriller_37/index.html
+        - listitem:
+          - link "Contemporary":
+            - /url: ../contemporary_38/index.html
+        - listitem:
+          - link "Spirituality":
+            - /url: ../spirituality_39/index.html
+        - listitem:
+          - link "Academic":
+            - /url: ../academic_40/index.html
+        - listitem:
+          - link "Self Help":
+            - /url: ../self-help_41/index.html
+        - listitem:
+          - link "Historical":
+            - /url: ../historical_42/index.html
+        - listitem:
+          - link "Christian":
+            - /url: ../christian_43/index.html
+        - listitem:
+          - link "Suspense":
+            - /url: ../suspense_44/index.html
+        - listitem:
+          - link "Short Stories":
+            - /url: ../short-stories_45/index.html
+        - listitem:
+          - link "Novels":
+            - /url: ../novels_46/index.html
+        - listitem:
+          - link "Health":
+            - /url: ../health_47/index.html
+        - listitem:
+          - link "Politics":
+            - /url: ../politics_48/index.html
+        - listitem:
+          - link "Cultural":
+            - /url: ../cultural_49/index.html
+        - listitem:
+          - link "Erotica":
+            - /url: ../erotica_50/index.html
+        - listitem:
+          - link "Crime":
+            - /url: ../crime_51/index.html
+- heading "Nonfiction" [level=1]
+- strong: "110"
+- text: results - showing
+- strong: "61"
+- text: to
+- strong: "80"
+- text: .
+- alert:
+  - strong: Warning!
+  - text: This is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no real meaning.
+- list:
+  - listitem:
+    - article:
+      - link "Between the World and Me":
+        - /url: ../../../between-the-world-and-me_513/index.html
+        - img "Between the World and Me"
+      - paragraph:     
+      - heading "Between the World and ..." [level=3]:
+        - link "Between the World and ...":
+          - /url: ../../../between-the-world-and-me_513/index.html
+      - paragraph: £56.91
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Being Mortal: Medicine and What Matters in the End"':
+        - /url: ../../../being-mortal-medicine-and-what-matters-in-the-end_512/index.html
+        - 'img "Being Mortal: Medicine and What Matters in the End"'
+      - paragraph:     
+      - 'heading "Being Mortal: Medicine and ..." [level=3]':
+        - 'link "Being Mortal: Medicine and ..."':
+          - /url: ../../../being-mortal-medicine-and-what-matters-in-the-end_512/index.html
+      - paragraph: £55.06
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "A Murder Over a Girl: Justice, Gender, Junior High"':
+        - /url: ../../../a-murder-over-a-girl-justice-gender-junior-high_511/index.html
+        - 'img "A Murder Over a Girl: Justice, Gender, Junior High"'
+      - paragraph:     
+      - heading "A Murder Over a ..." [level=3]:
+        - link "A Murder Over a ...":
+          - /url: ../../../a-murder-over-a-girl-justice-gender-junior-high_511/index.html
+      - paragraph: £13.20
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "For the Love: Fighting for Grace in a World of Impossible Standards"':
+        - /url: ../../../for-the-love-fighting-for-grace-in-a-world-of-impossible-standards_467/index.html
+        - 'img "For the Love: Fighting for Grace in a World of Impossible Standards"'
+      - paragraph:     
+      - 'heading "For the Love: Fighting ..." [level=3]':
+        - 'link "For the Love: Fighting ..."':
+          - /url: ../../../for-the-love-fighting-for-grace-in-a-world-of-impossible-standards_467/index.html
+      - paragraph: £45.13
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Finding God in the Ruins: How God Redeems Pain"':
+        - /url: ../../../finding-god-in-the-ruins-how-god-redeems-pain_466/index.html
+        - 'img "Finding God in the Ruins: How God Redeems Pain"'
+      - paragraph:     
+      - heading "Finding God in the ..." [level=3]:
+        - link "Finding God in the ...":
+          - /url: ../../../finding-god-in-the-ruins-how-god-redeems-pain_466/index.html
+      - paragraph: £46.64
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - link "The Man Who Mistook His Wife for a Hat and Other Clinical Tales":
+        - /url: ../../../the-man-who-mistook-his-wife-for-a-hat-and-other-clinical-tales_451/index.html
+        - img "The Man Who Mistook His Wife for a Hat and Other Clinical Tales"
+      - paragraph:     
+      - heading "The Man Who Mistook ..." [level=3]:
+        - link "The Man Who Mistook ...":
+          - /url: ../../../the-man-who-mistook-his-wife-for-a-hat-and-other-clinical-tales_451/index.html
+      - paragraph: £59.45
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - link "In Cold Blood":
+        - /url: ../../../in-cold-blood_432/index.html
+        - img "In Cold Blood"
+      - paragraph:     
+      - heading "In Cold Blood" [level=3]:
+        - link "In Cold Blood":
+          - /url: ../../../in-cold-blood_432/index.html
+      - paragraph: £49.98
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - link "Girl, Interrupted":
+        - /url: ../../../girl-interrupted_429/index.html
+        - img "Girl, Interrupted"
+      - paragraph:     
+      - heading "Girl, Interrupted" [level=3]:
+        - link "Girl, Interrupted":
+          - /url: ../../../girl-interrupted_429/index.html
+      - paragraph: £42.14
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Why Save the Bankers?: And Other Essays on Our Economic and Political Crisis"':
+        - /url: ../../../why-save-the-bankers-and-other-essays-on-our-economic-and-political-crisis_418/index.html
+        - 'img "Why Save the Bankers?: And Other Essays on Our Economic and Political Crisis"'
+      - paragraph:     
+      - 'heading "Why Save the Bankers?: ..." [level=3]':
+        - 'link "Why Save the Bankers?: ..."':
+          - /url: ../../../why-save-the-bankers-and-other-essays-on-our-economic-and-political-crisis_418/index.html
+      - paragraph: £48.67
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Talking to Girls About Duran Duran: One Young Man''s Quest for True Love and a Cooler Haircut"':
+        - /url: ../../../talking-to-girls-about-duran-duran-one-young-mans-quest-for-true-love-and-a-cooler-haircut_394/index.html
+        - 'img "Talking to Girls About Duran Duran: One Young Man''s Quest for True Love and a Cooler Haircut"'
+      - paragraph:     
+      - heading "Talking to Girls About ..." [level=3]:
+        - link "Talking to Girls About ...":
+          - /url: ../../../talking-to-girls-about-duran-duran-one-young-mans-quest-for-true-love-and-a-cooler-haircut_394/index.html
+      - paragraph: £25.15
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - link "My Mother Was Nuts":
+        - /url: ../../../my-mother-was-nuts_388/index.html
+        - img "My Mother Was Nuts"
+      - paragraph:     
+      - heading "My Mother Was Nuts" [level=3]:
+        - link "My Mother Was Nuts":
+          - /url: ../../../my-mother-was-nuts_388/index.html
+      - paragraph: £31.63
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Data, A Love Story: How I Gamed Online Dating to Meet My Match"':
+        - /url: ../../../data-a-love-story-how-i-gamed-online-dating-to-meet-my-match_367/index.html
+        - 'img "Data, A Love Story: How I Gamed Online Dating to Meet My Match"'
+      - paragraph:     
+      - 'heading "Data, A Love Story: ..." [level=3]':
+        - 'link "Data, A Love Story: ..."':
+          - /url: ../../../data-a-love-story-how-i-gamed-online-dating-to-meet-my-match_367/index.html
+      - paragraph: £32.35
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "The Jazz of Physics: The Secret Link Between Music and the Structure of the Universe"':
+        - /url: ../../../the-jazz-of-physics-the-secret-link-between-music-and-the-structure-of-the-universe_350/index.html
+        - 'img "The Jazz of Physics: The Secret Link Between Music and the Structure of the Universe"'
+      - paragraph:     
+      - 'heading "The Jazz of Physics: ..." [level=3]':
+        - 'link "The Jazz of Physics: ..."':
+          - /url: ../../../the-jazz-of-physics-the-secret-link-between-music-and-the-structure-of-the-universe_350/index.html
+      - paragraph: £38.71
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "The Gunning of America: Business and the Making of American Gun Culture"':
+        - /url: ../../../the-gunning-of-america-business-and-the-making-of-american-gun-culture_347/index.html
+        - 'img "The Gunning of America: Business and the Making of American Gun Culture"'
+      - paragraph:     
+      - 'heading "The Gunning of America: ..." [level=3]':
+        - 'link "The Gunning of America: ..."':
+          - /url: ../../../the-gunning-of-america-business-and-the-making-of-american-gun-culture_347/index.html
+      - paragraph: £16.81
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "The Geography of Bliss: One Grump''s Search for the Happiest Places in the World"':
+        - /url: ../../../the-geography-of-bliss-one-grumps-search-for-the-happiest-places-in-the-world_346/index.html
+        - 'img "The Geography of Bliss: One Grump''s Search for the Happiest Places in the World"'
+      - paragraph:     
+      - 'heading "The Geography of Bliss: ..." [level=3]':
+        - 'link "The Geography of Bliss: ..."':
+          - /url: ../../../the-geography-of-bliss-one-grumps-search-for-the-happiest-places-in-the-world_346/index.html
+      - paragraph: £28.23
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "God Is Not Great: How Religion Poisons Everything"':
+        - /url: ../../../god-is-not-great-how-religion-poisons-everything_323/index.html
+        - 'img "God Is Not Great: How Religion Poisons Everything"'
+      - paragraph:     
+      - 'heading "God Is Not Great: ..." [level=3]':
+        - 'link "God Is Not Great: ..."':
+          - /url: ../../../god-is-not-great-how-religion-poisons-everything_323/index.html
+      - paragraph: £27.80
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "We the People: The Modern-Day Figures Who Have Reshaped and Affirmed the Founding Fathers'' Vision of America"':
+        - /url: ../../../we-the-people-the-modern-day-figures-who-have-reshaped-and-affirmed-the-founding-fathers-vision-of-america_302/index.html
+        - 'img "We the People: The Modern-Day Figures Who Have Reshaped and Affirmed the Founding Fathers'' Vision of America"'
+      - paragraph:     
+      - 'heading "We the People: The ..." [level=3]':
+        - 'link "We the People: The ..."':
+          - /url: ../../../we-the-people-the-modern-day-figures-who-have-reshaped-and-affirmed-the-founding-fathers-vision-of-america_302/index.html
+      - paragraph: £31.95
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Very Good Lives: The Fringe Benefits of Failure and the Importance of Imagination"':
+        - /url: ../../../very-good-lives-the-fringe-benefits-of-failure-and-the-importance-of-imagination_298/index.html
+        - 'img "Very Good Lives: The Fringe Benefits of Failure and the Importance of Imagination"'
+      - paragraph:     
+      - 'heading "Very Good Lives: The ..." [level=3]':
+        - 'link "Very Good Lives: The ..."':
+          - /url: ../../../very-good-lives-the-fringe-benefits-of-failure-and-the-importance-of-imagination_298/index.html
+      - paragraph: £50.66
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Unstuffed: Decluttering Your Home, Mind, and Soul"':
+        - /url: ../../../unstuffed-decluttering-your-home-mind-and-soul_296/index.html
+        - 'img "Unstuffed: Decluttering Your Home, Mind, and Soul"'
+      - paragraph:     
+      - 'heading "Unstuffed: Decluttering Your Home, ..." [level=3]':
+        - 'link "Unstuffed: Decluttering Your Home, ..."':
+          - /url: ../../../unstuffed-decluttering-your-home-mind-and-soul_296/index.html
+      - paragraph: £58.09
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Under the Banner of Heaven: A Story of Violent Faith"':
+        - /url: ../../../under-the-banner-of-heaven-a-story-of-violent-faith_295/index.html
+        - 'img "Under the Banner of Heaven: A Story of Violent Faith"'
+      - paragraph:     
+      - heading "Under the Banner of ..." [level=3]:
+        - link "Under the Banner of ...":
+          - /url: ../../../under-the-banner-of-heaven-a-story-of-violent-faith_295/index.html
+      - paragraph: £30.00
+      - paragraph:  In stock
+      - button "Add to basket"
+- list:
+  - listitem:
+    - link "previous":
+      - /url: page-3.html
+  - listitem: Page 4 of 6
+  - listitem:
+    - link "next":
+      - /url: page-5.html
+- contentinfo

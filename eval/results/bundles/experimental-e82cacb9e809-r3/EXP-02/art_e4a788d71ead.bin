@@ -1,0 +1,387 @@
+- navigation:
+  - list:
+    - listitem:
+      - link "Scrape This Site":
+        - /url: /
+        - img
+        - text: Scrape This Site
+    - listitem:
+      - link " Sandbox":
+        - /url: /pages/
+    - listitem:
+      - link " Lessons":
+        - /url: /lessons/
+    - listitem:
+      - link " FAQ":
+        - /url: /faq/
+    - listitem:
+      - link "Login":
+        - /url: /login/
+- 'heading "Hockey Teams: Forms, Searching and Pagination 25 items" [level=1]'
+- separator
+- paragraph: Browse through a database of NHL team stats since 1990. Practice building a scraper that handles common website interface components. Take a look at how pagination and search elements change the URL as your browse. Build a web scraper that can conduct searches and paginate through the results.
+- separator
+- paragraph:
+  - text:  There are
+  - link "8 video lessons":
+    - /url: /lessons/
+  - text: that show you how to scrape this page.
+- separator
+- paragraph:
+  - text: Data via
+  - link "http://www.opensourcesports.com/hockey/":
+    - /url: http://www.opensourcesports.com/hockey/
+- separator
+- text: "Search for Teams:"
+- textbox "Search for Teams:":
+  - /placeholder: Search for Teams
+- button "Search"
+- separator
+- table:
+  - rowgroup:
+    - row "Team Name Year Wins Losses OT Losses Win % Goals For (GF) Goals Against (GA) + / -":
+      - columnheader "Team Name"
+      - columnheader "Year"
+      - columnheader "Wins"
+      - columnheader "Losses"
+      - columnheader "OT Losses"
+      - columnheader "Win %"
+      - columnheader "Goals For (GF)"
+      - columnheader "Goals Against (GA)"
+      - columnheader "+ / -"
+    - row "Los Angeles Kings 1992 39 35 0.464 338 340 -2":
+      - cell "Los Angeles Kings"
+      - cell "1992"
+      - cell "39"
+      - cell "35"
+      - cell
+      - cell "0.464"
+      - cell "338"
+      - cell "340"
+      - cell "-2"
+    - row "Minnesota North Stars 1992 36 38 0.429 272 293 -21":
+      - cell "Minnesota North Stars"
+      - cell "1992"
+      - cell "36"
+      - cell "38"
+      - cell
+      - cell "0.429"
+      - cell "272"
+      - cell "293"
+      - cell "-21"
+    - row "Montreal Canadiens 1992 48 30 0.571 326 280 46":
+      - cell "Montreal Canadiens"
+      - cell "1992"
+      - cell "48"
+      - cell "30"
+      - cell
+      - cell "0.571"
+      - cell "326"
+      - cell "280"
+      - cell "46"
+    - row "New Jersey Devils 1992 40 37 0.476 308 299 9":
+      - cell "New Jersey Devils"
+      - cell "1992"
+      - cell "40"
+      - cell "37"
+      - cell
+      - cell "0.476"
+      - cell "308"
+      - cell "299"
+      - cell "9"
+    - row "New York Islanders 1992 40 37 0.476 335 297 38":
+      - cell "New York Islanders"
+      - cell "1992"
+      - cell "40"
+      - cell "37"
+      - cell
+      - cell "0.476"
+      - cell "335"
+      - cell "297"
+      - cell "38"
+    - row "New York Rangers 1992 34 39 0.405 304 308 -4":
+      - cell "New York Rangers"
+      - cell "1992"
+      - cell "34"
+      - cell "39"
+      - cell
+      - cell "0.405"
+      - cell "304"
+      - cell "308"
+      - cell "-4"
+    - row "Ottawa Senators 1992 10 70 0.119 202 395 -193":
+      - cell "Ottawa Senators"
+      - cell "1992"
+      - cell "10"
+      - cell "70"
+      - cell
+      - cell "0.119"
+      - cell "202"
+      - cell "395"
+      - cell "-193"
+    - row "Philadelphia Flyers 1992 36 37 0.429 319 319 0":
+      - cell "Philadelphia Flyers"
+      - cell "1992"
+      - cell "36"
+      - cell "37"
+      - cell
+      - cell "0.429"
+      - cell "319"
+      - cell "319"
+      - cell "0"
+    - row "Pittsburgh Penguins 1992 56 21 0.667 367 268 99":
+      - cell "Pittsburgh Penguins"
+      - cell "1992"
+      - cell "56"
+      - cell "21"
+      - cell
+      - cell "0.667"
+      - cell "367"
+      - cell "268"
+      - cell "99"
+    - row "Quebec Nordiques 1992 47 27 0.56 351 300 51":
+      - cell "Quebec Nordiques"
+      - cell "1992"
+      - cell "47"
+      - cell "27"
+      - cell
+      - cell "0.56"
+      - cell "351"
+      - cell "300"
+      - cell "51"
+    - row "San Jose Sharks 1992 11 71 0.131 218 414 -196":
+      - cell "San Jose Sharks"
+      - cell "1992"
+      - cell "11"
+      - cell "71"
+      - cell
+      - cell "0.131"
+      - cell "218"
+      - cell "414"
+      - cell "-196"
+    - row "St. Louis Blues 1992 37 36 0.44 282 278 4":
+      - cell "St. Louis Blues"
+      - cell "1992"
+      - cell "37"
+      - cell "36"
+      - cell
+      - cell "0.44"
+      - cell "282"
+      - cell "278"
+      - cell "4"
+    - row "Tampa Bay Lightning 1992 23 54 0.274 245 332 -87":
+      - cell "Tampa Bay Lightning"
+      - cell "1992"
+      - cell "23"
+      - cell "54"
+      - cell
+      - cell "0.274"
+      - cell "245"
+      - cell "332"
+      - cell "-87"
+    - row "Toronto Maple Leafs 1992 44 29 0.524 288 241 47":
+      - cell "Toronto Maple Leafs"
+      - cell "1992"
+      - cell "44"
+      - cell "29"
+      - cell
+      - cell "0.524"
+      - cell "288"
+      - cell "241"
+      - cell "47"
+    - row "Vancouver Canucks 1992 46 29 0.548 346 278 68":
+      - cell "Vancouver Canucks"
+      - cell "1992"
+      - cell "46"
+      - cell "29"
+      - cell
+      - cell "0.548"
+      - cell "346"
+      - cell "278"
+      - cell "68"
+    - row "Washington Capitals 1992 43 34 0.512 325 286 39":
+      - cell "Washington Capitals"
+      - cell "1992"
+      - cell "43"
+      - cell "34"
+      - cell
+      - cell "0.512"
+      - cell "325"
+      - cell "286"
+      - cell "39"
+    - row "Winnipeg Jets 1992 40 37 0.476 322 320 2":
+      - cell "Winnipeg Jets"
+      - cell "1992"
+      - cell "40"
+      - cell "37"
+      - cell
+      - cell "0.476"
+      - cell "322"
+      - cell "320"
+      - cell "2"
+    - row "Mighty Ducks of Anaheim 1993 33 46 0.393 229 251 -22":
+      - cell "Mighty Ducks of Anaheim"
+      - cell "1993"
+      - cell "33"
+      - cell "46"
+      - cell
+      - cell "0.393"
+      - cell "229"
+      - cell "251"
+      - cell "-22"
+    - row "Boston Bruins 1993 42 29 0.5 289 252 37":
+      - cell "Boston Bruins"
+      - cell "1993"
+      - cell "42"
+      - cell "29"
+      - cell
+      - cell "0.5"
+      - cell "289"
+      - cell "252"
+      - cell "37"
+    - row "Buffalo Sabres 1993 43 32 0.512 282 218 64":
+      - cell "Buffalo Sabres"
+      - cell "1993"
+      - cell "43"
+      - cell "32"
+      - cell
+      - cell "0.512"
+      - cell "282"
+      - cell "218"
+      - cell "64"
+    - row "Calgary Flames 1993 42 29 0.5 302 256 46":
+      - cell "Calgary Flames"
+      - cell "1993"
+      - cell "42"
+      - cell "29"
+      - cell
+      - cell "0.5"
+      - cell "302"
+      - cell "256"
+      - cell "46"
+    - row "Chicago Blackhawks 1993 39 36 0.464 254 240 14":
+      - cell "Chicago Blackhawks"
+      - cell "1993"
+      - cell "39"
+      - cell "36"
+      - cell
+      - cell "0.464"
+      - cell "254"
+      - cell "240"
+      - cell "14"
+    - row "Dallas Stars 1993 42 29 0.5 286 265 21":
+      - cell "Dallas Stars"
+      - cell "1993"
+      - cell "42"
+      - cell "29"
+      - cell
+      - cell "0.5"
+      - cell "286"
+      - cell "265"
+      - cell "21"
+    - row "Detroit Red Wings 1993 46 30 0.548 356 275 81":
+      - cell "Detroit Red Wings"
+      - cell "1993"
+      - cell "46"
+      - cell "30"
+      - cell
+      - cell "0.548"
+      - cell "356"
+      - cell "275"
+      - cell "81"
+    - row "Edmonton Oilers 1993 25 45 0.298 261 305 -44":
+      - cell "Edmonton Oilers"
+      - cell "1993"
+      - cell "25"
+      - cell "45"
+      - cell
+      - cell "0.298"
+      - cell "261"
+      - cell "305"
+      - cell "-44"
+- list:
+  - listitem:
+    - link "Previous":
+      - /url: /pages/forms/?page_num=2
+  - listitem:
+    - link "1":
+      - /url: /pages/forms/?page_num=1
+  - listitem:
+    - link "2":
+      - /url: /pages/forms/?page_num=2
+  - listitem:
+    - link "3":
+      - /url: /pages/forms/?page_num=3
+      - strong: "3"
+  - listitem:
+    - link "4":
+      - /url: /pages/forms/?page_num=4
+  - listitem:
+    - link "5":
+      - /url: /pages/forms/?page_num=5
+  - listitem:
+    - link "6":
+      - /url: /pages/forms/?page_num=6
+  - listitem:
+    - link "7":
+      - /url: /pages/forms/?page_num=7
+  - listitem:
+    - link "8":
+      - /url: /pages/forms/?page_num=8
+  - listitem:
+    - link "9":
+      - /url: /pages/forms/?page_num=9
+  - listitem:
+    - link "10":
+      - /url: /pages/forms/?page_num=10
+  - listitem:
+    - link "11":
+      - /url: /pages/forms/?page_num=11
+  - listitem:
+    - link "12":
+      - /url: /pages/forms/?page_num=12
+  - listitem:
+    - link "13":
+      - /url: /pages/forms/?page_num=13
+  - listitem:
+    - link "14":
+      - /url: /pages/forms/?page_num=14
+  - listitem:
+    - link "15":
+      - /url: /pages/forms/?page_num=15
+  - listitem:
+    - link "16":
+      - /url: /pages/forms/?page_num=16
+  - listitem:
+    - link "17":
+      - /url: /pages/forms/?page_num=17
+  - listitem:
+    - link "18":
+      - /url: /pages/forms/?page_num=18
+  - listitem:
+    - link "19":
+      - /url: /pages/forms/?page_num=19
+  - listitem:
+    - link "20":
+      - /url: /pages/forms/?page_num=20
+  - listitem:
+    - link "21":
+      - /url: /pages/forms/?page_num=21
+  - listitem:
+    - link "22":
+      - /url: /pages/forms/?page_num=22
+  - listitem:
+    - link "23":
+      - /url: /pages/forms/?page_num=23
+  - listitem:
+    - link "24":
+      - /url: /pages/forms/?page_num=24
+  - listitem:
+    - link "Next":
+      - /url: /pages/forms/?page_num=4
+- strong: Per Page
+- combobox:
+  - option "25" [selected]
+  - option "50"
+  - option "100"
+- text: Lessons and Videos © Hartley Brody 2023

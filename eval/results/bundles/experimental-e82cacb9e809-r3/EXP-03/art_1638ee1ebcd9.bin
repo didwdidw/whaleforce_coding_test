@@ -1,0 +1,59 @@
+- navigation:
+  - list:
+    - listitem:
+      - link "Scrape This Site":
+        - /url: /
+        - img
+        - text: Scrape This Site
+    - listitem:
+      - link " Sandbox":
+        - /url: /pages/
+    - listitem:
+      - link " Lessons":
+        - /url: /lessons/
+    - listitem:
+      - link " FAQ":
+        - /url: /faq/
+    - listitem:
+      - link "Login":
+        - /url: /login/
+- 'heading "Hockey Teams: Forms, Searching and Pagination 0 items" [level=1]'
+- separator
+- paragraph: Browse through a database of NHL team stats since 1990. Practice building a scraper that handles common website interface components. Take a look at how pagination and search elements change the URL as your browse. Build a web scraper that can conduct searches and paginate through the results.
+- separator
+- paragraph:
+  - text:  There are
+  - link "8 video lessons":
+    - /url: /lessons/
+  - text: that show you how to scrape this page.
+- separator
+- paragraph:
+  - text: Data via
+  - link "http://www.opensourcesports.com/hockey/":
+    - /url: http://www.opensourcesports.com/hockey/
+- separator
+- text: "Search for Teams:"
+- textbox "Search for Teams:":
+  - /placeholder: Search for Teams
+  - text: Vancouver Whalers
+- button "Search"
+- separator
+- table:
+  - rowgroup:
+    - row "Team Name Year Wins Losses OT Losses Win % Goals For (GF) Goals Against (GA) + / -":
+      - columnheader "Team Name"
+      - columnheader "Year"
+      - columnheader "Wins"
+      - columnheader "Losses"
+      - columnheader "OT Losses"
+      - columnheader "Win %"
+      - columnheader "Goals For (GF)"
+      - columnheader "Goals Against (GA)"
+      - columnheader "+ / -"
+- list
+- strong: Per Page
+- combobox:
+  - option "25" [selected]
+  - option "50"
+  - option "100"
+- text: Lessons and Videos © Hartley Brody 2023

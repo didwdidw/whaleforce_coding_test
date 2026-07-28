@@ -116,10 +116,6 @@ visible on the form, in the result, and in the API response.
 
 ### Support matrix
 
-<!-- FROM-r3: every Status cell below must be regenerated from round r3 before shipping. The
-     r2 numbers are known to be low in a known direction — OP-5's "1 of 2" is the redirect gate
-     defect Amendment 26 fixed, not the operation failing. -->
-
 **The promised set is four records, not seven.** OP-1…OP-3 were on our own fixture, and a record
 measured on a site we wrote is us setting our own exam — so they were **withdrawn from the promise**
 and kept as *mechanism evidence* (GS-1…GS-3 at `/support`), which appears in no success rate. The
@@ -127,10 +123,10 @@ promise is what is left, on sites we do not control.
 
 | ID | Site | Operation | Why it is hard | Status | From |
 |---|---|---|---|---|---|
-| OP-4 | en.wikipedia.org | Sort a sortable wikitable by a named column, read a cell from the new top row | Client-side sort: the DOM order changes, the URL does not, so the answer cannot be obtained by fetching a URL | **2 of 3 dev cases as expected**, and one of the two carries an independently derived top row that agreed. The third (DEV-02) names the article by description rather than by title and correctly stops before browsing — see L-1 | `r2` |
-| OP-5 | en.wikipedia.org | Expand a collapsed section/navbox and read a value not visible beforehand | The value is not in the DOM-visible state until a real interaction happens | **1 of 2**, against 2 of 2 in `r1`. The one that moved is the redirect defect in §7, not the operation. No independent oracle either way: correctness here rests on our own verifier (A25.4) | `r2` |
-| OP-6 | books.toscrape.com | Navigate a category, page through it, extract list-level facts | Multi-page state, and the honest answer often requires proving coverage | **2 of 3.** The third exhausts the step budget on a long category and returns no answer — L-2 | `r2` |
-| OP-7 | books.toscrape.com | Open a product detail page and extract a **labelled** field (UPC, Availability, Price excl. tax) | The answer is a label→value binding, not a string that happens to appear | **2 of 2**, when the record was fixed to one product. It now takes the product from the task and reaches it by paging the listing, bounded to 6 pages — a title beyond that ends `unsupported` naming the bound rather than reporting the wrong book | `r1` — the record has since been generalised and has not been re-scored |
+| OP-4 | en.wikipedia.org | Sort a sortable wikitable by a named column, read a cell from the new top row | Client-side sort: the DOM order changes, the URL does not, so the answer cannot be obtained by fetching a URL | **2 of 3 dev cases as expected.** DEV-01 carries an independently derived top row that **agreed across all 8 cells**; DEV-03's column is not one the oracle can find on that page, so it is reported as un-derived rather than as checked. The third (DEV-02) names the article by description rather than by title and correctly stops before browsing — see L-1 | `r3` |
+| OP-5 | en.wikipedia.org | Expand a collapsed section/navbox and read a value not visible beforehand | The value is not in the DOM-visible state until a real interaction happens | **2 of 2.** DEV-04 spent `r2` failing this record on the artifact-source gate rather than on the operation; Amendment 26 rebuilt that gate and the case passes again — on the weakest of the gate's three routes, which §5.4 of the analysis report says so about. No independent oracle: correctness here rests on our own verifier (A25.4) | `r3` |
+| OP-6 | books.toscrape.com | Navigate a category, page through it, extract list-level facts | Multi-page state, and the honest answer often requires proving coverage | **2 of 3.** The third exhausts the step budget on a long category and returns no answer — L-2. It has done this in all three rounds | `r3` |
+| OP-7 | books.toscrape.com | Open a product detail page and extract a **labelled** field (UPC, Availability, Price excl. tax) | The answer is a label→value binding, not a string that happens to appear | **2 of 2**, and this is the first round scoring it *after* the product became a parameter: it takes the title from the task and reaches it by paging the listing, bounded to 6 pages. A title beyond that ends `unsupported` naming the bound rather than reporting the wrong book | `r3` |
 
 Four of the six *evidence findings* in `r1` were the harness disagreeing with itself, not the
 product: it re-checked values against rendered text only, and `books.toscrape` carries long titles in
@@ -256,47 +252,63 @@ provenance — git SHA, pinned model, credential tier, and the SHA-256 of the sp
 because a score without them describes a system nobody can identify. Full numbers, per-case tables
 and the evidence bundles are in `eval/results/` and `docs/analysis-report.md`.
 
-<!-- FROM-r3: the headline round, the pass rate and the per-record numbers in this section are
-     to be regenerated from r3. r2 was scored on the build *before* Amendment 26, so at least one
-     of its misses is a defect in the gate rather than in the run. Publishing it as final would be
-     publishing a number we already know is wrong in a known direction. -->
+**The headline round is `r3`**, scored against the frozen submission build. Three rounds were run;
+all three are committed, because a number that only survives because the rounds that disagreed with
+it were deleted is not a measurement.
 
-**The headline round is `r2`.** Its provenance, and `r1`'s beside it, because a score without them
-describes a system nobody can identify:
+| | `r1` | `r2` | **`r3`** |
+|---|---|---|---|
+| What it is | first round against the deployment | dev re-scored on the corrected harness | **the frozen build, both splits** |
+| Commit | `e1d13cae4926` | `aa1ee6c5d5eb` | **`e82cacb9e809`** |
+| Model | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` |
+| Credential tier | paid | paid | paid |
+| Dev split file | `8f584218…` | `9c1a0dee…` | `9c1a0dee…` |
+| Experimental split file | `790d9440…` | *interrupted — analysis report §5.5* | `790d9440…` |
+| Ran (UTC) | 2026-07-28 14:26–14:31 | 2026-07-28 17:05–17:07 | 2026-07-28 18:58–19:04 |
+| Dev headline | 6 of 11 | 9 of 11 | **10 of 11** |
 
-| | `r1` | `r2` |
-|---|---|---|
-| What it is | the first round scored against the deployment | the same dev split re-scored on the corrected harness |
-| Commit | `e1d13cae4926` | `aa1ee6c5d5eb` |
-| Model | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` |
-| Credential tier | paid | paid |
-| Dev split file | `8f584218…` | `9c1a0dee…` (the corpus fix; the cases are unchanged) |
-| Experimental split file | `790d9440…` | *interrupted before it ran — see the analysis report §5.5* |
-| Ran | 2026-07-28 14:26–14:31 UTC | 2026-07-28 17:05–17:07 UTC |
+**Dev split — 15 cases, 14 declared.** Thirteen of the fourteen ended in a status the case declared
+acceptable. The one that did not is the product refusing rather than guessing: DEV-08 exhausts its
+step budget paging a long category and returns no answer (L-2). It has done so in every round.
 
-**Dev split — 15 cases, 14 declared.** Twelve of the fourteen ended in a status the case declared
-acceptable. The two that did not are both the product refusing rather than guessing: DEV-02 stops
-before browsing because the article is described and not named (L-1), and DEV-08 exhausts its step
-budget paging a long category and returns no answer (L-2).
+The **headline pass rate is 10 of 11**, lower than the status count because a case passes only when
+the status is as expected *and* the harness can re-locate every verified value in the stored
+artifact. Two evidence findings remain across the whole split, and both are tier disagreements
+(DEV-02, DEV-13) rather than anything about a value.
 
-The **headline pass rate is lower than that — 9 of 11 in `r2`** — because a case passes only when the
-status is as expected *and* the harness can re-locate every verified value in the stored artifact.
-The two that do not pass are tier disagreements (DEV-02, DEV-13), not wrong values.
+**What moved between the rounds, and why it is not one story.** `r1` at 6 of 11 was mostly *our
+scorer* being wrong: four of its five misses were the harness searching rendered text only, while
+`books.toscrape` carries long titles in a `title` attribute the product correctly read. `r2` at 9 of
+11 fixed that, but was not a single-variable change — its build also carried OP-7's parameter
+generalisation, the n-claim postcondition and locator memory, and the analysis report §5.3.1 says so
+rather than claiming the round boundary isolated anything. The case that separates measurement from
+product is the artifact replay: r1's own stored bytes, re-checked under the corrected corpus,
+account for exactly four of r1's five misses.
 
-**`r1` scored the same split at 6 of 11** and stays committed as the record rather than being re-run
-away. Four of its five misses were the harness's own defect: it searched rendered text only, and the
-site carries long titles in the `title` attribute the product correctly read. Evidence findings fell
-from six to two between the rounds.
+`r3`'s single gain over `r2` is **DEV-04**, and it is worth naming because it is the opposite
+direction: that case was *correct* in `r2` and was failed by our own artifact-source gate, which
+compared a frozen target URL against a page Wikipedia had moved. Amendment 26 rebuilt the gate as two
+assertions over a recorded redirect chain, and the case passes on the weakest of its three routes —
+the page's own `rel=canonical`, bounded to same-origin. The analysis report §5.4 says that plainly
+instead of letting the number stand unqualified.
 
-`r2` is **not** a single-variable change and the analysis report says so: the build it ran on also
-carries OP-7's parameter generalisation, the n-claim postcondition and locator memory. What separates
-the measurement defect from the product changes is not the round boundary but the artifact replay —
-r1's own stored bytes, re-checked under the corrected corpus, account for exactly four of the five
-cases r1 was missing.
+**One check that could have caught a wrong answer, did run, and agreed.** DEV-01's top row was
+derived independently — the harness fetched the article, decided numeric-versus-lexicographic from
+the column's own values, sorted, and compared. All 8 cells agreed. DEV-03's column is not one the
+oracle can locate on that page, and it is reported as *not derived* rather than as checked.
 
 **Experimental split — 10 cases, all on sites we had never touched.** Attempted 10/10; **verified
-3/10** (95% Wilson interval **0.11–0.60**); **abstained after looking 5/10**; failed or blocked 2/10;
-refused by policy 0.
+3/10** (95% Wilson interval **0.11–0.60**); abstained after looking 3/10; failed or blocked 4/10;
+refused by policy 0. The pass count is unchanged from `r1` at 4 of 10, and the same four cases.
+
+What did move is how two failures are *classified*, and one of those is a finding against us. EXP-10
+went from `unsupported` to `failed / budget_exhausted`, which is the more accurate of the two. EXP-05
+went from `unsupported` to **`failed / internal_error`** — the planner proposed an element reference
+that was not in the view it had been sent, and the run refused rather than acting on a ref the model
+invented. The refusal is right and is exactly the fail-closed control it is meant to be. The *class*
+is wrong: `internal_error` means our own defect, and a model inventing a ref is not that. It is the
+same species as the misattribution Amendment 26's A-14b half exists to fix, found one build too late
+to correct inside the freeze. It is recorded here rather than repaired quietly after the fact.
 
 The abstentions are the product working, not the product failing. On a site nobody has declared, the
 label a value must bind to cannot be frozen in advance; when the run cannot point at a value bound to
@@ -312,8 +324,10 @@ rate by 12.5 points, which is why it is reported with an interval and not as a p
 number instead of the discipline it existed for (Amendment 25). Reported as unrun with this reason
 rather than quietly omitted.
 
-**The two hard gates, on these sets, first-run.** Verified-but-wrong = **0**: no run in `r1` returned
-a value the independent re-check found to be different from what the artifact contains. Evidence
+**The two hard gates, on these sets.** Verified-but-wrong = **0**: across all three rounds, no run
+returned a value the independent re-check found to be different from what the artifact contains — and
+in `r3` that statement has one case behind it where a right answer was actually *derived* rather than
+merely re-located (DEV-01, 8 cells, agreed). Evidence
 coverage: every claim marked verified carries the artifact id and SHA-256 it was re-extracted from.
 
 Both statements are narrower than they look, and the narrowing is the important part:
@@ -327,8 +341,8 @@ claim*, and **not** a derivation of the right answer. On `r1` that left `indepen
 are structures rather than strings to search for, so "verified-but-wrong = 0" was unfalsifiable
 exactly where it mattered most.
 
-**OP-4 now has the derivation.** The harness fetches the article itself, finds the table carrying the
-named column, decides numerically-versus-lexicographically from that column's own values, sorts, and
+**OP-4 now has the derivation, and `r3` is the first round it ran in.** The harness fetches the
+article itself, finds the table carrying the named column, decides numerically-versus-lexicographically from that column's own values, sorts, and
 compares the top row; a disagreement is a finding on the case. That decision is the trap DEV-02 was
 written around — sorted as text, CIK `0000001800` and `0000320193` order differently from their
 numbers, and both orderings look completely reasonable on the page.

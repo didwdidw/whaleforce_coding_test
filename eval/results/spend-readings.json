@@ -3,19 +3,34 @@
  "readings": [
   {
    "service": "scored",
-   "taken_at": "2026-07-29T02:10:00Z",
-   "read_from": "provider_spend on the scored service's volume, read over ssh from the host filesystem (the service is loopback-bound and publishes no domain)",
+   "taken_at": "2026-07-29T03:10:00Z",
+   "read_from": "provider_spend on the scored service's volume, read over ssh from the host filesystem (the service is loopback-bound and publishes no domain), after round r3",
    "rows": [
-    {"day": "2026-07-28", "tier": "paid", "usd": 0.079756, "calls": 100}
+    {
+     "day": "2026-07-28",
+     "tier": "paid",
+     "usd": 0.141014,
+     "calls": 164
+    }
    ]
   },
   {
    "service": "public app",
-   "taken_at": "2026-07-29T02:10:00Z",
+   "taken_at": "2026-07-29T03:10:00Z",
    "read_from": "provider_spend on the app service's volume, same method",
    "rows": [
-    {"day": "2026-07-27", "tier": "free", "usd": 0.001015, "calls": 11},
-    {"day": "2026-07-28", "tier": "free", "usd": 0.043833, "calls": 56}
+    {
+     "day": "2026-07-27",
+     "tier": "free",
+     "usd": 0.001015,
+     "calls": 11
+    },
+    {
+     "day": "2026-07-28",
+     "tier": "free",
+     "usd": 0.043925,
+     "calls": 57
+    }
    ]
   }
  ],

@@ -1,0 +1,230 @@
+{
+ "tool": "bundles/1.0",
+ "split": "experimental",
+ "git_sha": "e82cacb9e809",
+ "written_at": "2026-07-28T19:04:18Z",
+ "cap_mib": 48.0,
+ "measured_bytes_carried": 1605050,
+ "measured_mib_carried": 1.531,
+ "cases_total": 10,
+ "must_carry_total": 7,
+ "must_carry_carried": 7,
+ "disagreements": [],
+ "sample_declared": [
+  "EXP-01",
+  "EXP-02"
+ ],
+ "sample_carried": [
+  "EXP-01",
+  "EXP-02"
+ ],
+ "sample_short_by": [],
+ "carried": [
+  {
+   "case": "EXP-03",
+   "run_id": "run_144c960a29df",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 192751,
+   "files": [
+    "art_eedee494e139.bin",
+    "art_27ac7c8bfda2.bin",
+    "art_e11e5d723e3e.bin",
+    "art_a29aa5ddffad.bin",
+    "art_9435578a3ef3.bin",
+    "art_e8016e99932c.bin",
+    "art_05bfaf9d2504.bin",
+    "art_932fd42bf612.bin",
+    "art_f34e5a4702d1.bin",
+    "art_1638ee1ebcd9.bin",
+    "art_c9d801855e32.bin",
+    "art_88b6622d3f4d.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-04",
+   "run_id": "run_6a5a60d55ef9",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 72403,
+   "files": [
+    "art_596a27b56ce6.bin",
+    "art_92474983721a.bin",
+    "art_0db5405a4c1d.bin",
+    "art_5e65fa882292.bin",
+    "art_0f51aa39805a.bin",
+    "art_6bb1791ee8a1.bin",
+    "art_be731b5974d4.bin",
+    "art_fb827369d60e.bin",
+    "art_8766ef468c3e.bin",
+    "art_d0c06bc193e2.bin",
+    "art_ec228d5ba998.bin",
+    "art_604db321a226.bin",
+    "art_146713817c20.bin",
+    "art_fae4818c1c18.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-05",
+   "run_id": "run_1620f4d16e44",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 5134,
+   "files": [
+    "art_38a7556e354c.bin",
+    "art_469651e442be.bin",
+    "art_bac5b834ce92.bin",
+    "art_313c817dc610.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-07",
+   "run_id": "run_c5b6e896bc42",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 66497,
+   "files": [
+    "art_c0c3dce9c0ca.bin",
+    "art_84f85a4df831.bin",
+    "art_61bc371d325c.bin",
+    "art_ecd64810055f.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-08",
+   "run_id": "run_b95a9a2bc623",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 48484,
+   "files": [
+    "art_1583ae4c91ec.bin",
+    "art_6e4ab8986774.bin",
+    "art_d6102b233aa0.bin",
+    "art_2678218733c9.bin",
+    "art_fbc1f65dce03.bin",
+    "art_4db5e849cc73.bin",
+    "art_95febbb5347c.bin",
+    "art_ef9530164d71.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-09",
+   "run_id": "run_1a509860ed4d",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 55936,
+   "files": [
+    "art_3d5bed972dae.bin",
+    "art_641f75ef9e4d.bin",
+    "art_488249e80747.bin",
+    "art_f5a9aaf980bf.bin",
+    "art_ff6c7458ac51.bin",
+    "art_8e0fcbe4c48b.bin",
+    "art_bb4bcedcb661.bin",
+    "art_92f17d5fbd23.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-10",
+   "run_id": "run_19f91adbb929",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 786222,
+   "files": [
+    "art_c3cf0c13c1e7.bin",
+    "art_56c79298c21e.bin",
+    "art_447090212026.bin",
+    "art_0237d3222fe6.bin",
+    "art_aa3134b6b684.bin",
+    "art_9f14b2a57e8b.bin",
+    "art_fbd133790e3f.bin",
+    "art_9751eb8a8f97.bin",
+    "art_3f4a74577d4e.bin",
+    "art_a117f9afdfc9.bin",
+    "art_5f7fa70269c9.bin",
+    "art_04b555e5e806.bin",
+    "art_d93eb35897f4.bin",
+    "art_4e5861234125.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-01",
+   "run_id": "run_39683b7557d2",
+   "counts_as_success": true,
+   "reason": "pre-named success sample (A22.7)",
+   "bytes": 92141,
+   "files": [
+    "art_7190c51e7b59.bin",
+    "art_ba577c2fbd7b.bin",
+    "art_0d145cb62a8d.bin",
+    "art_43c087954c43.bin",
+    "art_5baf107a33b2.bin",
+    "art_b7ee1fc340d1.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-02",
+   "run_id": "run_039230057a08",
+   "counts_as_success": true,
+   "reason": "pre-named success sample (A22.7)",
+   "bytes": 285482,
+   "files": [
+    "art_503506d37241.bin",
+    "art_68247063f990.bin",
+    "art_a21f58fdf97c.bin",
+    "art_b1a60e16b749.bin",
+    "art_414ce65d96e7.bin",
+    "art_881e62320c4d.bin",
+    "art_d7eab70fe0be.bin",
+    "art_7f3f26fd6bae.bin",
+    "art_29b3047b3edd.bin",
+    "art_1e74f9d6b374.bin",
+    "art_8d6e6ab0fcfa.bin",
+    "art_e4a788d71ead.bin",
+    "case.json"
+   ]
+  }
+ ],
+ "omitted": [
+  {
+   "case": "EXP-06",
+   "run_id": "run_ccc5fb1fdd2d",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 1,
+    "verified_claims": 1,
+    "independently_checked": 1,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_b15d960719ee",
+     "kind": "dom:step-1",
+     "sha256": "a3e430cb35de7e6e65965fc53e739fa4d1ffdf259b68d89dc957f5e693bac933",
+     "length": 24099,
+     "source_url": "https://www.gutenberg.org/ebooks/1342"
+    },
+    {
+     "artifact_id": "art_71b2acf7f4b9",
+     "kind": "aria:step-1",
+     "sha256": "92d765c885d08656a774cf026777d6cfb5628c46d3d2dfd162d1d141d90bb03d",
+     "length": 8503,
+     "source_url": "https://www.gutenberg.org/ebooks/1342"
+    }
+   ]
+  }
+ ],
+ "note": "Sizes are measured, not estimated: every candidate bundle is weighed from the store before the cap is applied. Anything under `omitted` with `over the size cap` is the residue A21.4 is written against \u2014 it names what could not be carried rather than the whole category."
+}

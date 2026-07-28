@@ -1,0 +1,656 @@
+{
+ "tool": "bundles/1.0",
+ "split": "dev",
+ "git_sha": "e82cacb9e809",
+ "written_at": "2026-07-28T19:01:05Z",
+ "cap_mib": 48.0,
+ "measured_bytes_carried": 9375653,
+ "measured_mib_carried": 8.941,
+ "cases_total": 15,
+ "must_carry_total": 4,
+ "must_carry_carried": 4,
+ "disagreements": [],
+ "sample_declared": [
+  "DEV-01",
+  "DEV-02"
+ ],
+ "sample_carried": [
+  "DEV-02",
+  "DEV-01"
+ ],
+ "sample_short_by": [],
+ "carried": [
+  {
+   "case": "DEV-02",
+   "run_id": "run_0d184fcd799f",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 0,
+   "files": [
+    "case.json"
+   ]
+  },
+  {
+   "case": "DEV-08",
+   "run_id": "run_deaf8393520e",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 559320,
+   "files": [
+    "art_f4a263c9abfa.bin",
+    "art_10597c25fd1b.bin",
+    "art_b43dd0832cbb.bin",
+    "art_75c54b078bec.bin",
+    "art_a3d061508ca1.bin",
+    "art_c7d82f5b6f03.bin",
+    "art_d311cbe5166f.bin",
+    "art_12dd5de44ae0.bin",
+    "art_688a78ae574f.bin",
+    "art_2ba8dabed84b.bin",
+    "art_ffbaaaf9c9cb.bin",
+    "art_ee59ebf4b963.bin",
+    "art_6ebffea4ae94.bin",
+    "art_3881ab88704a.bin",
+    "art_eedce874cb2f.bin",
+    "art_e4679762e447.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "DEV-13",
+   "run_id": "run_dd8a1df8823a",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 0,
+   "files": [
+    "case.json"
+   ]
+  },
+  {
+   "case": "DEV-14",
+   "run_id": "run_27f46e4d9449",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 0,
+   "files": [
+    "case.json"
+   ]
+  },
+  {
+   "case": "DEV-01",
+   "run_id": "run_6a3ece4b9a11",
+   "counts_as_success": true,
+   "reason": "pre-named success sample (A22.7)",
+   "bytes": 8816333,
+   "files": [
+    "art_fbf611e8019c.bin",
+    "art_8b11735ed938.bin",
+    "art_b96f76dde6d1.bin",
+    "art_3315923f39e8.bin",
+    "art_dcd55633efcf.bin",
+    "art_44fe8972963e.bin",
+    "case.json"
+   ]
+  }
+ ],
+ "omitted": [
+  {
+   "case": "DEV-03",
+   "run_id": "run_2d3ea14a0944",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 2,
+    "verified_claims": 2,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "sort_state: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "top_row: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": []
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_8ddc026a2dd5",
+     "kind": "dom:step-1",
+     "sha256": "27770bc069969c7a2076ce334fe5044faef8ad0f184079dd8a20ab38df0f2d7a",
+     "length": 956582,
+     "source_url": "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"
+    },
+    {
+     "artifact_id": "art_4e9ed6390ea3",
+     "kind": "aria:step-1",
+     "sha256": "9112b97fbc476a1bad6d06584a6778c5c4af6c86b0b7bacce9c0c177c095568d",
+     "length": 181347,
+     "source_url": "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"
+    },
+    {
+     "artifact_id": "art_6b0f69a4021d",
+     "kind": "dom:table-sorted",
+     "sha256": "c2e4d5ed0e1146af9db848f035260c85ea9dc3a6ad633e51f821d2dd068e325f",
+     "length": 957909,
+     "source_url": "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"
+    },
+    {
+     "artifact_id": "art_0ed716024313",
+     "kind": "aria:table-sorted",
+     "sha256": "a4d7415886715be39d911467166cc0616fbac9362155f4bd6bf155f7c6c621f3",
+     "length": 181347,
+     "source_url": "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"
+    }
+   ]
+  },
+  {
+   "case": "DEV-04",
+   "run_id": "run_82f541db3f88",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 1,
+    "verified_claims": 1,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "still_collapsed: derived value (bool), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "still_collapsed: label anchor 'collapsed marker of box 1' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_beb2d4223751",
+     "kind": "dom:step-1",
+     "sha256": "da79c7f9007f4d3868eaff8cba76c23e5b020f32791de4dc6556c198b99a635d",
+     "length": 2519561,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    },
+    {
+     "artifact_id": "art_00861be55064",
+     "kind": "aria:step-1",
+     "sha256": "beaae873ed846fb6c92275930f9bb40e32fbe9f707558be202424fa29c7ca55f",
+     "length": 533523,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    },
+    {
+     "artifact_id": "art_55b253523816",
+     "kind": "dom:collapsible-1-expanded",
+     "sha256": "32f78bed24d07dfe97b1bd58fa1712f38167c8e9892905b6c06d14a63890a1fd",
+     "length": 2520670,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    },
+    {
+     "artifact_id": "art_5277ea966c5c",
+     "kind": "aria:collapsible-1-expanded",
+     "sha256": "4f74aaa2bd20262070682ebc7af4c5fc3e4ad642612228834938b9dd085b0e02",
+     "length": 617624,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    }
+   ]
+  },
+  {
+   "case": "DEV-05",
+   "run_id": "run_2364a243d4a3",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 1,
+    "verified_claims": 1,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "still_collapsed: derived value (bool), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "still_collapsed: label anchor 'collapsed marker of box 2' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_a9f6fb53e888",
+     "kind": "dom:step-1",
+     "sha256": "419402cfb133ac59de81e7295e2ead86df27b8337434f382bbab0c876942507d",
+     "length": 2519247,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    },
+    {
+     "artifact_id": "art_086900ae349c",
+     "kind": "aria:step-1",
+     "sha256": "ba23712fa7c9fb7f3116e80656f64d79c51c453d925420979031167b66d5b28d",
+     "length": 533419,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    },
+    {
+     "artifact_id": "art_5ac06f18c1bd",
+     "kind": "dom:collapsible-2-expanded",
+     "sha256": "f09fa154f2c27e4c378843ed31c1617acfcd1496d2c2e148a6daf748dc5587cc",
+     "length": 2520524,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    },
+    {
+     "artifact_id": "art_df05cb147d56",
+     "kind": "aria:collapsible-2-expanded",
+     "sha256": "aae4fd92197362636c7eb544a76272b495511b4c7f71f45c8d1a765e071f7650",
+     "length": 560267,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    }
+   ]
+  },
+  {
+   "case": "DEV-06",
+   "run_id": "run_2ff25e0be68f",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 1,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "pager: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_cdeba97530c1",
+     "kind": "dom:step-1",
+     "sha256": "569f5535da173563ade6cb45bd3f92018d2a691421f889e8e7f669b604235309",
+     "length": 51024,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_86b175c0c181",
+     "kind": "aria:step-1",
+     "sha256": "c6cd887bdfeebfbe372a85d2bbcaef23654bb39a58861290a5e0aaa503956cb1",
+     "length": 16922,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_e540c08b5c12",
+     "kind": "dom:category-nonfiction",
+     "sha256": "210cbbfd5ececdb7bfd122c88345d0d0577e33f6d65b2ba78361c6773fd69d3a",
+     "length": 52465,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    },
+    {
+     "artifact_id": "art_cf641bf06c77",
+     "kind": "aria:category-nonfiction",
+     "sha256": "47875d8861ecb63cc87e924180b845caabbacd5d2a4f2df758d78a91d2b8edac",
+     "length": 18194,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-07",
+   "run_id": "run_15d4fa7bcb8e",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 1,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "pager: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_d92628fe105f",
+     "kind": "dom:step-1",
+     "sha256": "569f5535da173563ade6cb45bd3f92018d2a691421f889e8e7f669b604235309",
+     "length": 51024,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_ee9a51c989ac",
+     "kind": "aria:step-1",
+     "sha256": "c6cd887bdfeebfbe372a85d2bbcaef23654bb39a58861290a5e0aaa503956cb1",
+     "length": 16922,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_3504b2e77d6c",
+     "kind": "dom:step-2",
+     "sha256": "fc3f104167c47b9066bb0e0914199d0cc074dea5b2a9bb35fc15d8ddc753a7a2",
+     "length": 49453,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    {
+     "artifact_id": "art_2aabf02666d4",
+     "kind": "aria:step-2",
+     "sha256": "c2bbfb60616e2c1858b724a33df87a8760997fd9d256b28fb6f48393a030995e",
+     "length": 14939,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    {
+     "artifact_id": "art_ba3d14b30324",
+     "kind": "dom:step-3",
+     "sha256": "d5e9a70c44fd521ce53bf5f5b797ccc1fa0a6ba49d123f830435b00b8589cd22",
+     "length": 49274,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-2.html"
+    },
+    {
+     "artifact_id": "art_8923ed4e18ea",
+     "kind": "aria:step-3",
+     "sha256": "28155360b048b0b61429031b2511b09a88f16ccf08289915a67641cdf3ec64ae",
+     "length": 14683,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-2.html"
+    },
+    {
+     "artifact_id": "art_867a46045fcb",
+     "kind": "dom:category-fiction",
+     "sha256": "717838ec0979682be9c6086e676db2ed28016089caa8f2ba31c19b1d7b0cf221",
+     "length": 49217,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-3.html"
+    },
+    {
+     "artifact_id": "art_8c974abdaca9",
+     "kind": "aria:category-fiction",
+     "sha256": "4b77f34be5fa6fac26b57fd98ba08fbeea3cd44e8da46d928848864fe1d447bf",
+     "length": 14633,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-3.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-09",
+   "run_id": "run_a1deb982efbb",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 3,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_db330b36693a",
+     "kind": "dom:step-1",
+     "sha256": "26062b24434868264275be9df5a6365b0ad60615e343edae5f3f7c6ee05f750f",
+     "length": 47959,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
+    },
+    {
+     "artifact_id": "art_affe4eb0e013",
+     "kind": "aria:step-1",
+     "sha256": "8f7e508416ba1c4db7b0994fbf256ada1f0dbcd9cb3d84fa3ce31b5a94611c5a",
+     "length": 14652,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
+    },
+    {
+     "artifact_id": "art_48766abcaf56",
+     "kind": "dom:product-detail",
+     "sha256": "fe252d58636096e094a21647402383e8d73949fe5b2b128cfb133e9209eff436",
+     "length": 9037,
+     "source_url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"
+    },
+    {
+     "artifact_id": "art_3c7840224a1c",
+     "kind": "aria:product-detail",
+     "sha256": "256f5528f49415f42274993739e06501db21ac3f20f8216107bcfe145e4fedfa",
+     "length": 2634,
+     "source_url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-10",
+   "run_id": "run_4982c5cf45a4",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 3,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_e7c41e4bc3d0",
+     "kind": "dom:step-1",
+     "sha256": "26062b24434868264275be9df5a6365b0ad60615e343edae5f3f7c6ee05f750f",
+     "length": 47959,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
+    },
+    {
+     "artifact_id": "art_c8341002b2f1",
+     "kind": "aria:step-1",
+     "sha256": "8f7e508416ba1c4db7b0994fbf256ada1f0dbcd9cb3d84fa3ce31b5a94611c5a",
+     "length": 14652,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
+    },
+    {
+     "artifact_id": "art_a0a49a9d89f9",
+     "kind": "dom:product-detail",
+     "sha256": "fe252d58636096e094a21647402383e8d73949fe5b2b128cfb133e9209eff436",
+     "length": 9037,
+     "source_url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"
+    },
+    {
+     "artifact_id": "art_8f147be77e50",
+     "kind": "aria:product-detail",
+     "sha256": "256f5528f49415f42274993739e06501db21ac3f20f8216107bcfe145e4fedfa",
+     "length": 2634,
+     "source_url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-11",
+   "run_id": "run_4c44b76c08e7",
+   "terminal_status": "no_result_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 2,
+    "verified_claims": 2,
+    "independently_checked": 1,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "items: label anchor 'every product entry in the listing' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_457425643035",
+     "kind": "dom:step-1",
+     "sha256": "569f5535da173563ade6cb45bd3f92018d2a691421f889e8e7f669b604235309",
+     "length": 51024,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_d78de975b185",
+     "kind": "aria:step-1",
+     "sha256": "c6cd887bdfeebfbe372a85d2bbcaef23654bb39a58861290a5e0aaa503956cb1",
+     "length": 16922,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_30e48060c9e6",
+     "kind": "dom:absence-poetry",
+     "sha256": "26062b24434868264275be9df5a6365b0ad60615e343edae5f3f7c6ee05f750f",
+     "length": 47959,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
+    },
+    {
+     "artifact_id": "art_843cc5072bbe",
+     "kind": "aria:absence-poetry",
+     "sha256": "8f7e508416ba1c4db7b0994fbf256ada1f0dbcd9cb3d84fa3ce31b5a94611c5a",
+     "length": 14652,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-12",
+   "run_id": "run_275167a2d677",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 1,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "pager: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_a79835577ef9",
+     "kind": "dom:step-1",
+     "sha256": "569f5535da173563ade6cb45bd3f92018d2a691421f889e8e7f669b604235309",
+     "length": 51024,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_73291d2dce40",
+     "kind": "aria:step-1",
+     "sha256": "c6cd887bdfeebfbe372a85d2bbcaef23654bb39a58861290a5e0aaa503956cb1",
+     "length": 16922,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_0c0e3bbd1502",
+     "kind": "dom:step-2",
+     "sha256": "fc3f104167c47b9066bb0e0914199d0cc074dea5b2a9bb35fc15d8ddc753a7a2",
+     "length": 49453,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    {
+     "artifact_id": "art_d5935248fe57",
+     "kind": "aria:step-2",
+     "sha256": "c2bbfb60616e2c1858b724a33df87a8760997fd9d256b28fb6f48393a030995e",
+     "length": 14939,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    {
+     "artifact_id": "art_c368fd27e973",
+     "kind": "dom:step-3",
+     "sha256": "d5e9a70c44fd521ce53bf5f5b797ccc1fa0a6ba49d123f830435b00b8589cd22",
+     "length": 49274,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-2.html"
+    },
+    {
+     "artifact_id": "art_c1c46bc9209e",
+     "kind": "aria:step-3",
+     "sha256": "28155360b048b0b61429031b2511b09a88f16ccf08289915a67641cdf3ec64ae",
+     "length": 14683,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-2.html"
+    },
+    {
+     "artifact_id": "art_9eaac2112df0",
+     "kind": "dom:category-fiction",
+     "sha256": "717838ec0979682be9c6086e676db2ed28016089caa8f2ba31c19b1d7b0cf221",
+     "length": 49217,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-3.html"
+    },
+    {
+     "artifact_id": "art_56d8296939d2",
+     "kind": "aria:category-fiction",
+     "sha256": "4b77f34be5fa6fac26b57fd98ba08fbeea3cd44e8da46d928848864fe1d447bf",
+     "length": 14633,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-3.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-15",
+   "run_id": "run_967a9cafaf0f",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 1,
+    "verified_claims": 1,
+    "independently_checked": 1,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_f0506278341f",
+     "kind": "dom:step-1",
+     "sha256": "9b3513283a5951a4c19a3f9ebf976822da6e622d61413e93ecdf00a9f0a2281d",
+     "length": 25451,
+     "source_url": "https://www.gutenberg.org/"
+    },
+    {
+     "artifact_id": "art_d2d26527e8c4",
+     "kind": "aria:step-1",
+     "sha256": "e20782dd32395071493ca4d5638c067f8da12f3e5bff2dd352ac148cf49a4a70",
+     "length": 12452,
+     "source_url": "https://www.gutenberg.org/"
+    },
+    {
+     "artifact_id": "art_36a4adac0599",
+     "kind": "dom:step-2",
+     "sha256": "d3eb412d86edbd2478944920ab4ba80b1e718f148d885b1c891c23972d279461",
+     "length": 40948,
+     "source_url": "https://www.gutenberg.org/ebooks/bookshelf/"
+    },
+    {
+     "artifact_id": "art_a526258de1a5",
+     "kind": "aria:step-2",
+     "sha256": "8ee586fbc7036adf81305bf91f4d45a0299bab9eca4d4e129e252ff908da1eb3",
+     "length": 35129,
+     "source_url": "https://www.gutenberg.org/ebooks/bookshelf/"
+    },
+    {
+     "artifact_id": "art_84832e37c67a",
+     "kind": "dom:step-3",
+     "sha256": "1f98b2196965e67aa629aaa3b48a7c6e0de514e9c52ac88dc2dab6307e65edb5",
+     "length": 20063,
+     "source_url": "https://www.gutenberg.org/ebooks/bookshelves/search/?query=Astronomy%20%7C%20Biology%20%7C%20Botany%20%7C%20Chemistry%20%7C%20Ecology%20%7C%20Geology%20%7C%20Mathematics%20%7C%20Microbiology%20%7C%20Microscopy%20%7C%20Mycology%20%7C%20Science%20Fiction%20%7C%20Natural%20History%20%7C%20Physics%20%7C%20Physiology%20%7CScientific%20American%20%7C%20Zoology"
+    },
+    {
+     "artifact_id": "art_7eaa8630cf5f",
+     "kind": "aria:step-3",
+     "sha256": "61a6cf288b06c66e29d49d247a96d65f3934488e98ec29f987df69162b01e05d",
+     "length": 4772,
+     "source_url": "https://www.gutenberg.org/ebooks/bookshelves/search/?query=Astronomy%20%7C%20Biology%20%7C%20Botany%20%7C%20Chemistry%20%7C%20Ecology%20%7C%20Geology%20%7C%20Mathematics%20%7C%20Microbiology%20%7C%20Microscopy%20%7C%20Mycology%20%7C%20Science%20Fiction%20%7C%20Natural%20History%20%7C%20Physics%20%7C%20Physiology%20%7CScientific%20American%20%7C%20Zoology"
+    }
+   ]
+  }
+ ],
+ "note": "Sizes are measured, not estimated: every candidate bundle is weighed from the store before the cap is applied. Anything under `omitted` with `over the size cap` is the residue A21.4 is written against \u2014 it names what could not be carried rather than the whole category."
+}

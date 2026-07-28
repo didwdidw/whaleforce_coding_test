@@ -1,0 +1,1142 @@
+{
+ "provenance": {
+  "harness_version": "harness/1.3",
+  "split": "experimental",
+  "base_url": "http://127.0.0.1:8080",
+  "git_sha": "e82cacb9e809",
+  "model_pinned": "gemini-3.1-flash-lite",
+  "eval_set_sha256": "790d9440587514ee04c3de5ea10b656f0a1a63b257ca75d817103e9f5bb8fa1a",
+  "eval_set_file": "experimental-set.md",
+  "planner_available": true,
+  "credentials": {
+   "configured": true,
+   "tiers_present": [
+    "paid"
+   ],
+   "tiers_usable_under_policy": [
+    "paid"
+   ],
+   "policy": "scored",
+   "search_path": "/etc/wf"
+  },
+  "budgets": {
+   "wall_clock_seconds": 180,
+   "max_steps": 25,
+   "max_llm_calls": 12,
+   "exploration_calls": 8,
+   "recovery_calls": 4,
+   "max_input_tokens_per_call": 8000,
+   "max_input_tokens_per_run": 60000,
+   "max_output_tokens_per_call": 2048,
+   "max_output_tokens_per_run": 16000
+  },
+  "prices_usd_per_1m": {
+   "input": 0.25,
+   "output": 1.5
+  },
+  "spend": {
+   "day": "2026-07-28",
+   "today_billed_usd": 0.104288,
+   "today_billed_calls": 125,
+   "today_notional_usd": 0,
+   "today_notional_calls": 0,
+   "cumulative_billed_usd": 0.104288,
+   "cumulative_billed_calls": 125,
+   "cumulative_notional_usd": 0,
+   "cumulative_notional_calls": 0,
+   "by_tier_usd": {
+    "paid": 0.104288
+   },
+   "billed_tiers": [
+    "paid"
+   ],
+   "meaning": {
+    "billed": "money actually charged, on a paid credential. Ceilings enforce against this and cost figures are reported from it.",
+    "notional": "free-tier calls priced at the same published rates. Cost that was not charged; never enforced against (A23.1, A23.2)."
+   },
+   "ceiling_usd": 8.0,
+   "ceiling_usd_per_day": 1.5,
+   "enforced_against": "billed",
+   "billed_spend_authorised": true,
+   "credential_policy": "scored",
+   "share_of_system": 0.75,
+   "system_ceiling_usd_per_day": 2.0,
+   "system_split": {
+    "scored": 0.75,
+    "public_demo": 0.25
+   },
+   "enforced": true,
+   "note": "Checked before every call, against billed dollars only. Exceeding it is a refusal, not a warning. This process's own spend is what appears above; the system total is the sum across the split, and no process can read the other's ledger."
+  },
+  "session_policy": "one session per case",
+  "started_at": "2026-07-28T19:01:05Z",
+  "case_schema": "browser_task",
+  "finished_at": "2026-07-28T19:04:18Z"
+ },
+ "aggregate": {
+  "headline_declared": {
+   "cases": 0,
+   "passed": 0,
+   "rate": null
+  },
+  "experimental_reported_separately": {
+   "cases": 10,
+   "passed": 4,
+   "rate": 0.4
+  },
+  "all_cases": {
+   "cases": 10,
+   "passed": 4,
+   "rate": 0.4
+  },
+  "suite_errors": {
+   "cases": 0,
+   "detail": []
+  },
+  "failure_class_histogram": {
+   "budget_exhausted": 1,
+   "internal_error": 1,
+   "locator_not_found": 2,
+   "none": 3,
+   "postcondition_unmet": 3
+  },
+  "evidence_findings": 0,
+  "tier_disagreements": [],
+  "experimental_breadth": {
+   "cases": 10,
+   "excluded_suite_errors": 0,
+   "attempted": {
+    "count": 10,
+    "rate": 1.0,
+    "interval_95": [
+     0.7225,
+     1.0
+    ]
+   },
+   "verified": {
+    "count": 3,
+    "rate": 0.3,
+    "interval_95": [
+     0.1078,
+     0.6032
+    ]
+   },
+   "abstained_after_looking": {
+    "count": 3,
+    "rate": 0.3,
+    "interval_95": [
+     0.1078,
+     0.6032
+    ]
+   },
+   "refused_by_policy": {
+    "count": 0,
+    "rate": 0.0,
+    "interval_95": [
+     0.0,
+     0.2775
+    ]
+   },
+   "failed_or_blocked": {
+    "count": 4,
+    "rate": 0.4,
+    "interval_95": [
+     0.1682,
+     0.6873
+    ]
+   }
+  },
+  "shortcut_refusals": 0,
+  "latency": {
+   "all": {
+    "n": 10,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 10,
+     "median": 13.02,
+     "p90": 29.02,
+     "min": 4.01,
+     "max": 31.21
+    },
+    "time_to_first_result_seconds": {
+     "n": 5,
+     "median": 12.09,
+     "p90": 21.12,
+     "min": 2.46,
+     "max": 21.4
+    },
+    "queue_wait_seconds": {
+     "n": 10,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 10,
+     "median": 3.61,
+     "p90": 11.62,
+     "min": 0.97,
+     "max": 12.46
+    }
+   },
+   "T-DECLARED": {
+    "n": 0,
+    "excluded_unreportable": 0
+   },
+   "T-EXPERIMENTAL": {
+    "n": 10,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 10,
+     "median": 13.02,
+     "p90": 29.02,
+     "min": 4.01,
+     "max": 31.21
+    },
+    "time_to_first_result_seconds": {
+     "n": 5,
+     "median": 12.09,
+     "p90": 21.12,
+     "min": 2.46,
+     "max": 21.4
+    },
+    "queue_wait_seconds": {
+     "n": 10,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 10,
+     "median": 3.61,
+     "p90": 11.62,
+     "min": 0.97,
+     "max": 12.46
+    }
+   },
+   "model_driven": {
+    "n": 10,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 10,
+     "median": 13.02,
+     "p90": 29.02,
+     "min": 4.01,
+     "max": 31.21
+    },
+    "time_to_first_result_seconds": {
+     "n": 5,
+     "median": 12.09,
+     "p90": 21.12,
+     "min": 2.46,
+     "max": 21.4
+    },
+    "queue_wait_seconds": {
+     "n": 10,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 10,
+     "median": 3.61,
+     "p90": 11.62,
+     "min": 0.97,
+     "max": 12.46
+    }
+   },
+   "scripted": {
+    "n": 0,
+    "excluded_unreportable": 0
+   }
+  }
+ },
+ "cases": [
+  {
+   "case": "EXP-01",
+   "record": "XB-EXP \u00b7 form submission",
+   "declared_tier": "T-EXPERIMENTAL",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://www.scrapethissite.com/pages/forms/",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://www.scrapethissite.com/pages/forms/",
+     "evaluated_path": "/pages/forms/",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_39683b7557d2",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 1,
+    "verified_claims": 1,
+    "independently_checked": 1,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 12.13,
+   "latency": {
+    "queue_wait_seconds": 0.008,
+    "run_seconds": 12.129,
+    "total_seconds": 12.137,
+    "time_to_first_result_seconds": 12.09,
+    "steps_measured": 16,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 55,
+     "p90": 3428,
+     "max": 3799
+    },
+    "slowest_step": {
+     "seq": 10,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 2",
+     "ms": 3799
+    },
+    "model_seconds": 3.242,
+    "model_calls": 3,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 16,
+    "llm_calls_exploration": 3,
+    "llm_calls_recovery": 0,
+    "input_tokens": 5321,
+    "output_tokens": 523,
+    "usd": 0.002115,
+    "started_at": 1785265266.2800775,
+    "ended_at": 1785265278.4090278,
+    "elapsed_seconds": 12.13,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  },
+  {
+   "case": "EXP-02",
+   "record": "XB-EXP \u00b7 pagination",
+   "declared_tier": "T-EXPERIMENTAL",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://www.scrapethissite.com/pages/forms/",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://www.scrapethissite.com/pages/forms/",
+     "evaluated_path": "/pages/forms/",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_039230057a08",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 2,
+    "verified_claims": 2,
+    "independently_checked": 2,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 29.02,
+   "latency": {
+    "queue_wait_seconds": 0.008,
+    "run_seconds": 29.025,
+    "total_seconds": 29.033,
+    "time_to_first_result_seconds": 21.401,
+    "steps_measured": 25,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 184,
+     "p90": 4232,
+     "max": 7199
+    },
+    "slowest_step": {
+     "seq": 22,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 6",
+     "ms": 7199
+    },
+    "model_seconds": 12.463,
+    "model_calls": 6,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 25,
+    "llm_calls_exploration": 6,
+    "llm_calls_recovery": 0,
+    "input_tokens": 15232,
+    "output_tokens": 2554,
+    "usd": 0.007639,
+    "started_at": 1785265282.4638066,
+    "ended_at": 1785265311.4887533,
+    "elapsed_seconds": 29.02,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  },
+  {
+   "case": "EXP-03",
+   "record": "XB-1 \u00b7 absence, unseen site",
+   "declared_tier": "T-EXPERIMENTAL",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://www.scrapethissite.com/pages/forms/",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://www.scrapethissite.com/pages/forms/",
+     "evaluated_path": "/pages/forms/",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_144c960a29df",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "failed",
+   "failure_class": "locator_not_found",
+   "counts_as_success": false,
+   "outcome_kind": "failed_or_blocked",
+   "attempted": true,
+   "expected": [
+    "failed",
+    "unverified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 1,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 25.34,
+   "latency": {
+    "queue_wait_seconds": 0.006,
+    "run_seconds": 25.34,
+    "total_seconds": 25.346,
+    "time_to_first_result_seconds": 21.119,
+    "steps_measured": 23,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 182,
+     "p90": 3684,
+     "max": 4341
+    },
+    "slowest_step": {
+     "seq": 16,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 4",
+     "ms": 4341
+    },
+    "model_seconds": 6.894,
+    "model_calls": 6,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 23,
+    "llm_calls_exploration": 6,
+    "llm_calls_recovery": 0,
+    "input_tokens": 11347,
+    "output_tokens": 913,
+    "usd": 0.004206,
+    "started_at": 1785265314.497956,
+    "ended_at": 1785265339.8381553,
+    "elapsed_seconds": 25.34,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  },
+  {
+   "case": "EXP-04",
+   "record": "XB-EXP \u00b7 client-side sort",
+   "declared_tier": "T-EXPERIMENTAL",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://the-internet.herokuapp.com/tables",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://the-internet.herokuapp.com/tables",
+     "evaluated_path": "/tables",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_6a5a60d55ef9",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "unsupported",
+   "failure_class": "postcondition_unmet",
+   "counts_as_success": false,
+   "outcome_kind": "abstained_after_looking",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 27.56,
+   "latency": {
+    "queue_wait_seconds": 0.008,
+    "run_seconds": 27.56,
+    "total_seconds": 27.568,
+    "time_to_first_result_seconds": null,
+    "steps_measured": 26,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 10,
+     "p90": 4299,
+     "max": 4340
+    },
+    "slowest_step": {
+     "seq": 12,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 2",
+     "ms": 4340
+    },
+    "model_seconds": 6.39,
+    "model_calls": 6,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 26,
+    "llm_calls_exploration": 6,
+    "llm_calls_recovery": 0,
+    "input_tokens": 10153,
+    "output_tokens": 979,
+    "usd": 0.004007,
+    "started_at": 1785265340.0724235,
+    "ended_at": 1785265367.6328886,
+    "elapsed_seconds": 27.56,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": false
+  },
+  {
+   "case": "EXP-05",
+   "record": "XB-EXP \u00b7 asynchronous render",
+   "declared_tier": "T-EXPERIMENTAL",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://the-internet.herokuapp.com/dynamic_loading/2",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://the-internet.herokuapp.com/dynamic_loading/2",
+     "evaluated_path": "/dynamic_loading/2",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_1620f4d16e44",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "failed",
+   "failure_class": "internal_error",
+   "counts_as_success": false,
+   "outcome_kind": "failed_or_blocked",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 6.79,
+   "latency": {
+    "queue_wait_seconds": 0.008,
+    "run_seconds": 6.794,
+    "total_seconds": 6.801,
+    "time_to_first_result_seconds": null,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 8,
+     "p90": 1092,
+     "max": 4710
+    },
+    "slowest_step": {
+     "seq": 12,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 2",
+     "ms": 4710
+    },
+    "model_seconds": 1.082,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 2,
+    "llm_calls_recovery": 0,
+    "input_tokens": 1751,
+    "output_tokens": 347,
+    "usd": 0.000958,
+    "started_at": 1785265370.7149808,
+    "ended_at": 1785265377.5087094,
+    "elapsed_seconds": 6.79,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": false
+  },
+  {
+   "case": "EXP-06",
+   "record": "XB-EXP \u00b7 labelled field",
+   "declared_tier": "T-EXPERIMENTAL",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://www.gutenberg.org/ebooks/1342",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://www.gutenberg.org/ebooks/1342",
+     "evaluated_path": "/ebooks/1342",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_ccc5fb1fdd2d",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 1,
+    "verified_claims": 1,
+    "independently_checked": 1,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 4.01,
+   "latency": {
+    "queue_wait_seconds": 0.008,
+    "run_seconds": 4.013,
+    "total_seconds": 4.021,
+    "time_to_first_result_seconds": 3.977,
+    "steps_measured": 10,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 8,
+     "p90": 353,
+     "max": 3070
+    },
+    "slowest_step": {
+     "seq": 7,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 1",
+     "ms": 3070
+    },
+    "model_seconds": 0.97,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 10,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 3737,
+    "output_tokens": 153,
+    "usd": 0.001164,
+    "started_at": 1785265377.81224,
+    "ended_at": 1785265381.8250084,
+    "elapsed_seconds": 4.01,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  },
+  {
+   "case": "EXP-07",
+   "record": "XB-EXP \u00b7 ambiguous label",
+   "declared_tier": "T-EXPERIMENTAL",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://www.gutenberg.org/ebooks/1342",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://www.gutenberg.org/ebooks/1342",
+     "evaluated_path": "/ebooks/1342",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_c5b6e896bc42",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "failed",
+   "failure_class": "locator_not_found",
+   "counts_as_success": false,
+   "outcome_kind": "failed_or_blocked",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified",
+    "unverified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 1,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 6.48,
+   "latency": {
+    "queue_wait_seconds": 0.009,
+    "run_seconds": 6.479,
+    "total_seconds": 6.488,
+    "time_to_first_result_seconds": 2.463,
+    "steps_measured": 11,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 6,
+     "p90": 1544,
+     "max": 3865
+    },
+    "slowest_step": {
+     "seq": 10,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 2",
+     "ms": 3865
+    },
+    "model_seconds": 2.664,
+    "model_calls": 2,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 11,
+    "llm_calls_exploration": 2,
+    "llm_calls_recovery": 0,
+    "input_tokens": 7539,
+    "output_tokens": 334,
+    "usd": 0.002386,
+    "started_at": 1785265384.907843,
+    "ended_at": 1785265391.3867733,
+    "elapsed_seconds": 6.48,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": false
+  },
+  {
+   "case": "EXP-08",
+   "record": "XB-EXP \u00b7 policy on an unseen site",
+   "declared_tier": "T-EXPERIMENTAL",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://www.federalregister.gov/",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://www.federalregister.gov/",
+     "evaluated_path": "/",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_b95a9a2bc623",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "unsupported",
+   "failure_class": "postcondition_unmet",
+   "counts_as_success": false,
+   "outcome_kind": "abstained_after_looking",
+   "attempted": true,
+   "expected": [
+    "blocked",
+    "succeeded_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 13.76,
+   "latency": {
+    "queue_wait_seconds": 0.007,
+    "run_seconds": 13.76,
+    "total_seconds": 13.767,
+    "time_to_first_result_seconds": null,
+    "steps_measured": 15,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 9,
+     "p90": 3867,
+     "max": 4220
+    },
+    "slowest_step": {
+     "seq": 10,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 2",
+     "ms": 4220
+    },
+    "model_seconds": 3.503,
+    "model_calls": 3,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 15,
+    "llm_calls_exploration": 3,
+    "llm_calls_recovery": 0,
+    "input_tokens": 2911,
+    "output_tokens": 504,
+    "usd": 0.001484,
+    "started_at": 1785265391.6152356,
+    "ended_at": 1785265405.375215,
+    "elapsed_seconds": 13.76,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": false
+  },
+  {
+   "case": "EXP-09",
+   "record": "XB-EXP \u00b7 navigation",
+   "declared_tier": "T-EXPERIMENTAL",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://www.ecfr.gov/current/title-17",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://www.ecfr.gov/current/title-17",
+     "evaluated_path": "/current/title-17",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_1a509860ed4d",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "unsupported",
+   "failure_class": "postcondition_unmet",
+   "counts_as_success": false,
+   "outcome_kind": "abstained_after_looking",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 12.28,
+   "latency": {
+    "queue_wait_seconds": 0.006,
+    "run_seconds": 12.283,
+    "total_seconds": 12.289,
+    "time_to_first_result_seconds": null,
+    "steps_measured": 15,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 7,
+     "p90": 3426,
+     "max": 4021
+    },
+    "slowest_step": {
+     "seq": 10,
+     "kind": "note",
+     "summary": "Model call (recovery) for step 2",
+     "ms": 4021
+    },
+    "model_seconds": 3.714,
+    "model_calls": 3,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 15,
+    "llm_calls_exploration": 2,
+    "llm_calls_recovery": 1,
+    "input_tokens": 3087,
+    "output_tokens": 554,
+    "usd": 0.001603,
+    "started_at": 1785265408.4725194,
+    "ended_at": 1785265420.7555616,
+    "elapsed_seconds": 12.28,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": false
+  },
+  {
+   "case": "EXP-10",
+   "record": "XB-EXP \u00b7 JS-rendered widget",
+   "declared_tier": "T-EXPERIMENTAL",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat",
+     "evaluated_path": "/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_19f91adbb929",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "failed",
+   "failure_class": "budget_exhausted",
+   "counts_as_success": false,
+   "outcome_kind": "failed_or_blocked",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 31.21,
+   "latency": {
+    "queue_wait_seconds": 0.007,
+    "run_seconds": 31.21,
+    "total_seconds": 31.217,
+    "time_to_first_result_seconds": null,
+    "steps_measured": 26,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 183,
+     "p90": 4239,
+     "max": 4328
+    },
+    "slowest_step": {
+     "seq": 16,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 4",
+     "ms": 4328
+    },
+    "model_seconds": 11.617,
+    "model_calls": 7,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 26,
+    "llm_calls_exploration": 7,
+    "llm_calls_recovery": 0,
+    "input_tokens": 32175,
+    "output_tokens": 2081,
+    "usd": 0.011165,
+    "started_at": 1785265424.1360478,
+    "ended_at": 1785265455.345749,
+    "elapsed_seconds": 31.21,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": false
+  }
+ ]
+}

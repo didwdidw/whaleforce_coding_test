@@ -1,0 +1,430 @@
+- banner:
+  - link "Books to Scrape":
+    - /url: ../../../../index.html
+  - text: We love being scraped!
+- list:
+  - listitem:
+    - link "Home":
+      - /url: ../../../../index.html
+  - listitem:
+    - text: /
+    - link "Books":
+      - /url: ../../books_1/index.html
+  - listitem: / Nonfiction
+- complementary:
+  - list:
+    - listitem:
+      - link "Books":
+        - /url: ../../books_1/index.html
+      - list:
+        - listitem:
+          - link "Travel":
+            - /url: ../travel_2/index.html
+        - listitem:
+          - link "Mystery":
+            - /url: ../mystery_3/index.html
+        - listitem:
+          - link "Historical Fiction":
+            - /url: ../historical-fiction_4/index.html
+        - listitem:
+          - link "Sequential Art":
+            - /url: ../sequential-art_5/index.html
+        - listitem:
+          - link "Classics":
+            - /url: ../classics_6/index.html
+        - listitem:
+          - link "Philosophy":
+            - /url: ../philosophy_7/index.html
+        - listitem:
+          - link "Romance":
+            - /url: ../romance_8/index.html
+        - listitem:
+          - link "Womens Fiction":
+            - /url: ../womens-fiction_9/index.html
+        - listitem:
+          - link "Fiction":
+            - /url: ../fiction_10/index.html
+        - listitem:
+          - link "Childrens":
+            - /url: ../childrens_11/index.html
+        - listitem:
+          - link "Religion":
+            - /url: ../religion_12/index.html
+        - listitem:
+          - link "Nonfiction":
+            - /url: index.html
+            - strong: Nonfiction
+        - listitem:
+          - link "Music":
+            - /url: ../music_14/index.html
+        - listitem:
+          - link "Default":
+            - /url: ../default_15/index.html
+        - listitem:
+          - link "Science Fiction":
+            - /url: ../science-fiction_16/index.html
+        - listitem:
+          - link "Sports and Games":
+            - /url: ../sports-and-games_17/index.html
+        - listitem:
+          - link "Add a comment":
+            - /url: ../add-a-comment_18/index.html
+        - listitem:
+          - link "Fantasy":
+            - /url: ../fantasy_19/index.html
+        - listitem:
+          - link "New Adult":
+            - /url: ../new-adult_20/index.html
+        - listitem:
+          - link "Young Adult":
+            - /url: ../young-adult_21/index.html
+        - listitem:
+          - link "Science":
+            - /url: ../science_22/index.html
+        - listitem:
+          - link "Poetry":
+            - /url: ../poetry_23/index.html
+        - listitem:
+          - link "Paranormal":
+            - /url: ../paranormal_24/index.html
+        - listitem:
+          - link "Art":
+            - /url: ../art_25/index.html
+        - listitem:
+          - link "Psychology":
+            - /url: ../psychology_26/index.html
+        - listitem:
+          - link "Autobiography":
+            - /url: ../autobiography_27/index.html
+        - listitem:
+          - link "Parenting":
+            - /url: ../parenting_28/index.html
+        - listitem:
+          - link "Adult Fiction":
+            - /url: ../adult-fiction_29/index.html
+        - listitem:
+          - link "Humor":
+            - /url: ../humor_30/index.html
+        - listitem:
+          - link "Horror":
+            - /url: ../horror_31/index.html
+        - listitem:
+          - link "History":
+            - /url: ../history_32/index.html
+        - listitem:
+          - link "Food and Drink":
+            - /url: ../food-and-drink_33/index.html
+        - listitem:
+          - link "Christian Fiction":
+            - /url: ../christian-fiction_34/index.html
+        - listitem:
+          - link "Business":
+            - /url: ../business_35/index.html
+        - listitem:
+          - link "Biography":
+            - /url: ../biography_36/index.html
+        - listitem:
+          - link "Thriller":
+            - /url: ../thriller_37/index.html
+        - listitem:
+          - link "Contemporary":
+            - /url: ../contemporary_38/index.html
+        - listitem:
+          - link "Spirituality":
+            - /url: ../spirituality_39/index.html
+        - listitem:
+          - link "Academic":
+            - /url: ../academic_40/index.html
+        - listitem:
+          - link "Self Help":
+            - /url: ../self-help_41/index.html
+        - listitem:
+          - link "Historical":
+            - /url: ../historical_42/index.html
+        - listitem:
+          - link "Christian":
+            - /url: ../christian_43/index.html
+        - listitem:
+          - link "Suspense":
+            - /url: ../suspense_44/index.html
+        - listitem:
+          - link "Short Stories":
+            - /url: ../short-stories_45/index.html
+        - listitem:
+          - link "Novels":
+            - /url: ../novels_46/index.html
+        - listitem:
+          - link "Health":
+            - /url: ../health_47/index.html
+        - listitem:
+          - link "Politics":
+            - /url: ../politics_48/index.html
+        - listitem:
+          - link "Cultural":
+            - /url: ../cultural_49/index.html
+        - listitem:
+          - link "Erotica":
+            - /url: ../erotica_50/index.html
+        - listitem:
+          - link "Crime":
+            - /url: ../crime_51/index.html
+- heading "Nonfiction" [level=1]
+- strong: "110"
+- text: results - showing
+- strong: "21"
+- text: to
+- strong: "40"
+- text: .
+- alert:
+  - strong: Warning!
+  - text: This is a demo website for web scraping purposes. Prices and ratings here were randomly assigned and have no real meaning.
+- list:
+  - listitem:
+    - article:
+      - 'link "Daring Greatly: How the Courage to Be Vulnerable Transforms the Way We Live, Love, Parent, and Lead"':
+        - /url: ../../../daring-greatly-how-the-courage-to-be-vulnerable-transforms-the-way-we-live-love-parent-and-lead_799/index.html
+        - 'img "Daring Greatly: How the Courage to Be Vulnerable Transforms the Way We Live, Love, Parent, and Lead"'
+      - paragraph:     
+      - 'heading "Daring Greatly: How the ..." [level=3]':
+        - 'link "Daring Greatly: How the ..."':
+          - /url: ../../../daring-greatly-how-the-courage-to-be-vulnerable-transforms-the-way-we-live-love-parent-and-lead_799/index.html
+      - paragraph: £19.43
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Big Magic: Creative Living Beyond Fear"':
+        - /url: ../../../big-magic-creative-living-beyond-fear_796/index.html
+        - 'img "Big Magic: Creative Living Beyond Fear"'
+      - paragraph:     
+      - 'heading "Big Magic: Creative Living ..." [level=3]':
+        - 'link "Big Magic: Creative Living ..."':
+          - /url: ../../../big-magic-creative-living-beyond-fear_796/index.html
+      - paragraph: £30.80
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Becoming Wise: An Inquiry into the Mystery and Art of Living"':
+        - /url: ../../../becoming-wise-an-inquiry-into-the-mystery-and-art-of-living_795/index.html
+        - 'img "Becoming Wise: An Inquiry into the Mystery and Art of Living"'
+      - paragraph:     
+      - 'heading "Becoming Wise: An Inquiry ..." [level=3]':
+        - 'link "Becoming Wise: An Inquiry ..."':
+          - /url: ../../../becoming-wise-an-inquiry-into-the-mystery-and-art-of-living_795/index.html
+      - paragraph: £27.43
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Agnostic: A Spirited Manifesto"':
+        - /url: ../../../agnostic-a-spirited-manifesto_786/index.html
+        - 'img "Agnostic: A Spirited Manifesto"'
+      - paragraph:     
+      - 'heading "Agnostic: A Spirited Manifesto" [level=3]':
+        - 'link "Agnostic: A Spirited Manifesto"':
+          - /url: ../../../agnostic-a-spirited-manifesto_786/index.html
+      - paragraph: £12.51
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Whole Lotta Creativity Going On: 60 Fun and Unusual Exercises to Awaken and Strengthen Your Creativity"':
+        - /url: ../../../whole-lotta-creativity-going-on-60-fun-and-unusual-exercises-to-awaken-and-strengthen-your-creativity_780/index.html
+        - 'img "Whole Lotta Creativity Going On: 60 Fun and Unusual Exercises to Awaken and Strengthen Your Creativity"'
+      - paragraph:     
+      - heading "Whole Lotta Creativity Going ..." [level=3]:
+        - link "Whole Lotta Creativity Going ...":
+          - /url: ../../../whole-lotta-creativity-going-on-60-fun-and-unusual-exercises-to-awaken-and-strengthen-your-creativity_780/index.html
+      - paragraph: £38.20
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "What''s It Like in Space?: Stories from Astronauts Who''ve Been There"':
+        - /url: ../../../whats-it-like-in-space-stories-from-astronauts-whove-been-there_779/index.html
+        - 'img "What''s It Like in Space?: Stories from Astronauts Who''ve Been There"'
+      - paragraph:     
+      - heading "What's It Like in ..." [level=3]:
+        - link "What's It Like in ...":
+          - /url: ../../../whats-it-like-in-space-stories-from-astronauts-whove-been-there_779/index.html
+      - paragraph: £19.60
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - link "The Year of Magical Thinking":
+        - /url: ../../../the-year-of-magical-thinking_770/index.html
+        - img "The Year of Magical Thinking"
+      - paragraph:     
+      - heading "The Year of Magical ..." [level=3]:
+        - link "The Year of Magical ...":
+          - /url: ../../../the-year-of-magical-thinking_770/index.html
+      - paragraph: £43.04
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - link "The Literature Book (Big Ideas Simply Explained)":
+        - /url: ../../../the-literature-book-big-ideas-simply-explained_755/index.html
+        - img "The Literature Book (Big Ideas Simply Explained)"
+      - paragraph:     
+      - heading "The Literature Book (Big ..." [level=3]:
+        - link "The Literature Book (Big ...":
+          - /url: ../../../the-literature-book-big-ideas-simply-explained_755/index.html
+      - paragraph: £17.43
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "The Bad-Ass Librarians of Timbuktu: And Their Race to Save the World’s Most Precious Manuscripts"':
+        - /url: ../../../the-bad-ass-librarians-of-timbuktu-and-their-race-to-save-the-worlds-most-precious-manuscripts_745/index.html
+        - 'img "The Bad-Ass Librarians of Timbuktu: And Their Race to Save the World’s Most Precious Manuscripts"'
+      - paragraph:     
+      - heading "The Bad-Ass Librarians of ..." [level=3]:
+        - link "The Bad-Ass Librarians of ...":
+          - /url: ../../../the-bad-ass-librarians-of-timbuktu-and-their-race-to-save-the-worlds-most-precious-manuscripts_745/index.html
+      - paragraph: £15.77
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Swell: A Year of Waves"':
+        - /url: ../../../swell-a-year-of-waves_740/index.html
+        - 'img "Swell: A Year of Waves"'
+      - paragraph:     
+      - 'heading "Swell: A Year of ..." [level=3]':
+        - 'link "Swell: A Year of ..."':
+          - /url: ../../../swell-a-year-of-waves_740/index.html
+      - paragraph: £45.58
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "No Dream Is Too High: Life Lessons From a Man Who Walked on the Moon"':
+        - /url: ../../../no-dream-is-too-high-life-lessons-from-a-man-who-walked-on-the-moon_722/index.html
+        - 'img "No Dream Is Too High: Life Lessons From a Man Who Walked on the Moon"'
+      - paragraph:     
+      - heading "No Dream Is Too ..." [level=3]:
+        - link "No Dream Is Too ...":
+          - /url: ../../../no-dream-is-too-high-life-lessons-from-a-man-who-walked-on-the-moon_722/index.html
+      - paragraph: £21.95
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Looking for Lovely: Collecting the Moments that Matter"':
+        - /url: ../../../looking-for-lovely-collecting-the-moments-that-matter_710/index.html
+        - 'img "Looking for Lovely: Collecting the Moments that Matter"'
+      - paragraph:     
+      - 'heading "Looking for Lovely: Collecting ..." [level=3]':
+        - 'link "Looking for Lovely: Collecting ..."':
+          - /url: ../../../looking-for-lovely-collecting-the-moments-that-matter_710/index.html
+      - paragraph: £29.14
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Let It Out: A Journey Through Journaling"':
+        - /url: ../../../let-it-out-a-journey-through-journaling_708/index.html
+        - 'img "Let It Out: A Journey Through Journaling"'
+      - paragraph:     
+      - 'heading "Let It Out: A ..." [level=3]':
+        - 'link "Let It Out: A ..."':
+          - /url: ../../../let-it-out-a-journey-through-journaling_708/index.html
+      - paragraph: £26.79
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Hamilton: The Revolution"':
+        - /url: ../../../hamilton-the-revolution_699/index.html
+        - 'img "Hamilton: The Revolution"'
+      - paragraph:     
+      - 'heading "Hamilton: The Revolution" [level=3]':
+        - 'link "Hamilton: The Revolution"':
+          - /url: ../../../hamilton-the-revolution_699/index.html
+      - paragraph: £58.79
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Far & Away: Places on the Brink of Change: Seven Continents, Twenty-Five Years"':
+        - /url: ../../../far-away-places-on-the-brink-of-change-seven-continents-twenty-five-years_694/index.html
+        - 'img "Far & Away: Places on the Brink of Change: Seven Continents, Twenty-Five Years"'
+      - paragraph:     
+      - 'heading "Far & Away: Places ..." [level=3]':
+        - 'link "Far & Away: Places ..."':
+          - /url: ../../../far-away-places-on-the-brink-of-change-seven-continents-twenty-five-years_694/index.html
+      - paragraph: £15.06
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Eaternity: More than 150 Deliciously Easy Vegan Recipes for a Long, Healthy, Satisfied, Joyful Life"':
+        - /url: ../../../eaternity-more-than-150-deliciously-easy-vegan-recipes-for-a-long-healthy-satisfied-joyful-life_689/index.html
+        - 'img "Eaternity: More than 150 Deliciously Easy Vegan Recipes for a Long, Healthy, Satisfied, Joyful Life"'
+      - paragraph:     
+      - 'heading "Eaternity: More than 150 ..." [level=3]':
+        - 'link "Eaternity: More than 150 ..."':
+          - /url: ../../../eaternity-more-than-150-deliciously-easy-vegan-recipes-for-a-long-healthy-satisfied-joyful-life_689/index.html
+      - paragraph: £51.75
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Buying In: The Secret Dialogue Between What We Buy and Who We Are"':
+        - /url: ../../../buying-in-the-secret-dialogue-between-what-we-buy-and-who-we-are_670/index.html
+        - 'img "Buying In: The Secret Dialogue Between What We Buy and Who We Are"'
+      - paragraph:     
+      - 'heading "Buying In: The Secret ..." [level=3]':
+        - 'link "Buying In: The Secret ..."':
+          - /url: ../../../buying-in-the-secret-dialogue-between-what-we-buy-and-who-we-are_670/index.html
+      - paragraph: £37.80
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "Brain on Fire: My Month of Madness"':
+        - /url: ../../../brain-on-fire-my-month-of-madness_669/index.html
+        - 'img "Brain on Fire: My Month of Madness"'
+      - paragraph:     
+      - 'heading "Brain on Fire: My ..." [level=3]':
+        - 'link "Brain on Fire: My ..."':
+          - /url: ../../../brain-on-fire-my-month-of-madness_669/index.html
+      - paragraph: £49.32
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - link "Abstract City":
+        - /url: ../../../abstract-city_658/index.html
+        - img "Abstract City"
+      - paragraph:     
+      - heading "Abstract City" [level=3]:
+        - link "Abstract City":
+          - /url: ../../../abstract-city_658/index.html
+      - paragraph: £56.37
+      - paragraph:  In stock
+      - button "Add to basket"
+  - listitem:
+    - article:
+      - 'link "13 Hours: The Inside Account of What Really Happened In Benghazi"':
+        - /url: ../../../13-hours-the-inside-account-of-what-really-happened-in-benghazi_645/index.html
+        - 'img "13 Hours: The Inside Account of What Really Happened In Benghazi"'
+      - paragraph:     
+      - 'heading "13 Hours: The Inside ..." [level=3]':
+        - 'link "13 Hours: The Inside ..."':
+          - /url: ../../../13-hours-the-inside-account-of-what-really-happened-in-benghazi_645/index.html
+      - paragraph: £27.06
+      - paragraph:  In stock
+      - button "Add to basket"
+- list:
+  - listitem:
+    - link "previous":
+      - /url: page-1.html
+  - listitem: Page 2 of 6
+  - listitem:
+    - link "next":
+      - /url: page-3.html
+- contentinfo

@@ -1,0 +1,384 @@
+- navigation:
+  - list:
+    - listitem:
+      - link "Scrape This Site":
+        - /url: /
+        - img
+        - text: Scrape This Site
+    - listitem:
+      - link " Sandbox":
+        - /url: /pages/
+    - listitem:
+      - link " Lessons":
+        - /url: /lessons/
+    - listitem:
+      - link " FAQ":
+        - /url: /faq/
+    - listitem:
+      - link "Login":
+        - /url: /login/
+- 'heading "Hockey Teams: Forms, Searching and Pagination 25 items" [level=1]'
+- separator
+- paragraph: Browse through a database of NHL team stats since 1990. Practice building a scraper that handles common website interface components. Take a look at how pagination and search elements change the URL as your browse. Build a web scraper that can conduct searches and paginate through the results.
+- separator
+- paragraph:
+  - text:  There are
+  - link "8 video lessons":
+    - /url: /lessons/
+  - text: that show you how to scrape this page.
+- separator
+- paragraph:
+  - text: Data via
+  - link "http://www.opensourcesports.com/hockey/":
+    - /url: http://www.opensourcesports.com/hockey/
+- separator
+- text: "Search for Teams:"
+- textbox "Search for Teams:":
+  - /placeholder: Search for Teams
+  - text: Vancouver Whalers
+- button "Search"
+- separator
+- table:
+  - rowgroup:
+    - row "Team Name Year Wins Losses OT Losses Win % Goals For (GF) Goals Against (GA) + / -":
+      - columnheader "Team Name"
+      - columnheader "Year"
+      - columnheader "Wins"
+      - columnheader "Losses"
+      - columnheader "OT Losses"
+      - columnheader "Win %"
+      - columnheader "Goals For (GF)"
+      - columnheader "Goals Against (GA)"
+      - columnheader "+ / -"
+    - row "Boston Bruins 1990 44 24 0.55 299 264 35":
+      - cell "Boston Bruins"
+      - cell "1990"
+      - cell "44"
+      - cell "24"
+      - cell
+      - cell "0.55"
+      - cell "299"
+      - cell "264"
+      - cell "35"
+    - row "Buffalo Sabres 1990 31 30 0.388 292 278 14":
+      - cell "Buffalo Sabres"
+      - cell "1990"
+      - cell "31"
+      - cell "30"
+      - cell
+      - cell "0.388"
+      - cell "292"
+      - cell "278"
+      - cell "14"
+    - row "Calgary Flames 1990 46 26 0.575 344 263 81":
+      - cell "Calgary Flames"
+      - cell "1990"
+      - cell "46"
+      - cell "26"
+      - cell
+      - cell "0.575"
+      - cell "344"
+      - cell "263"
+      - cell "81"
+    - row "Chicago Blackhawks 1990 49 23 0.613 284 211 73":
+      - cell "Chicago Blackhawks"
+      - cell "1990"
+      - cell "49"
+      - cell "23"
+      - cell
+      - cell "0.613"
+      - cell "284"
+      - cell "211"
+      - cell "73"
+    - row "Detroit Red Wings 1990 34 38 0.425 273 298 -25":
+      - cell "Detroit Red Wings"
+      - cell "1990"
+      - cell "34"
+      - cell "38"
+      - cell
+      - cell "0.425"
+      - cell "273"
+      - cell "298"
+      - cell "-25"
+    - row "Edmonton Oilers 1990 37 37 0.463 272 272 0":
+      - cell "Edmonton Oilers"
+      - cell "1990"
+      - cell "37"
+      - cell "37"
+      - cell
+      - cell "0.463"
+      - cell "272"
+      - cell "272"
+      - cell "0"
+    - row "Hartford Whalers 1990 31 38 0.388 238 276 -38":
+      - cell "Hartford Whalers"
+      - cell "1990"
+      - cell "31"
+      - cell "38"
+      - cell
+      - cell "0.388"
+      - cell "238"
+      - cell "276"
+      - cell "-38"
+    - row "Los Angeles Kings 1990 46 24 0.575 340 254 86":
+      - cell "Los Angeles Kings"
+      - cell "1990"
+      - cell "46"
+      - cell "24"
+      - cell
+      - cell "0.575"
+      - cell "340"
+      - cell "254"
+      - cell "86"
+    - row "Minnesota North Stars 1990 27 39 0.338 256 266 -10":
+      - cell "Minnesota North Stars"
+      - cell "1990"
+      - cell "27"
+      - cell "39"
+      - cell
+      - cell "0.338"
+      - cell "256"
+      - cell "266"
+      - cell "-10"
+    - row "Montreal Canadiens 1990 39 30 0.487 273 249 24":
+      - cell "Montreal Canadiens"
+      - cell "1990"
+      - cell "39"
+      - cell "30"
+      - cell
+      - cell "0.487"
+      - cell "273"
+      - cell "249"
+      - cell "24"
+    - row "New Jersey Devils 1990 32 33 0.4 272 264 8":
+      - cell "New Jersey Devils"
+      - cell "1990"
+      - cell "32"
+      - cell "33"
+      - cell
+      - cell "0.4"
+      - cell "272"
+      - cell "264"
+      - cell "8"
+    - row "New York Islanders 1990 25 45 0.312 223 290 -67":
+      - cell "New York Islanders"
+      - cell "1990"
+      - cell "25"
+      - cell "45"
+      - cell
+      - cell "0.312"
+      - cell "223"
+      - cell "290"
+      - cell "-67"
+    - row "New York Rangers 1990 36 31 0.45 297 265 32":
+      - cell "New York Rangers"
+      - cell "1990"
+      - cell "36"
+      - cell "31"
+      - cell
+      - cell "0.45"
+      - cell "297"
+      - cell "265"
+      - cell "32"
+    - row "Philadelphia Flyers 1990 33 37 0.412 252 267 -15":
+      - cell "Philadelphia Flyers"
+      - cell "1990"
+      - cell "33"
+      - cell "37"
+      - cell
+      - cell "0.412"
+      - cell "252"
+      - cell "267"
+      - cell "-15"
+    - row "Pittsburgh Penguins 1990 41 33 0.512 342 305 37":
+      - cell "Pittsburgh Penguins"
+      - cell "1990"
+      - cell "41"
+      - cell "33"
+      - cell
+      - cell "0.512"
+      - cell "342"
+      - cell "305"
+      - cell "37"
+    - row "Quebec Nordiques 1990 16 50 0.2 236 354 -118":
+      - cell "Quebec Nordiques"
+      - cell "1990"
+      - cell "16"
+      - cell "50"
+      - cell
+      - cell "0.2"
+      - cell "236"
+      - cell "354"
+      - cell "-118"
+    - row "St. Louis Blues 1990 47 22 0.588 310 250 60":
+      - cell "St. Louis Blues"
+      - cell "1990"
+      - cell "47"
+      - cell "22"
+      - cell
+      - cell "0.588"
+      - cell "310"
+      - cell "250"
+      - cell "60"
+    - row "Toronto Maple Leafs 1990 23 46 0.287 241 318 -77":
+      - cell "Toronto Maple Leafs"
+      - cell "1990"
+      - cell "23"
+      - cell "46"
+      - cell
+      - cell "0.287"
+      - cell "241"
+      - cell "318"
+      - cell "-77"
+    - row "Vancouver Canucks 1990 28 43 0.35 243 315 -72":
+      - cell "Vancouver Canucks"
+      - cell "1990"
+      - cell "28"
+      - cell "43"
+      - cell
+      - cell "0.35"
+      - cell "243"
+      - cell "315"
+      - cell "-72"
+    - row "Washington Capitals 1990 37 36 0.463 258 258 0":
+      - cell "Washington Capitals"
+      - cell "1990"
+      - cell "37"
+      - cell "36"
+      - cell
+      - cell "0.463"
+      - cell "258"
+      - cell "258"
+      - cell "0"
+    - row "Winnipeg Jets 1990 26 43 0.325 260 288 -28":
+      - cell "Winnipeg Jets"
+      - cell "1990"
+      - cell "26"
+      - cell "43"
+      - cell
+      - cell "0.325"
+      - cell "260"
+      - cell "288"
+      - cell "-28"
+    - row "Boston Bruins 1991 36 32 0.45 270 275 -5":
+      - cell "Boston Bruins"
+      - cell "1991"
+      - cell "36"
+      - cell "32"
+      - cell
+      - cell "0.45"
+      - cell "270"
+      - cell "275"
+      - cell "-5"
+    - row "Buffalo Sabres 1991 31 37 0.388 289 299 -10":
+      - cell "Buffalo Sabres"
+      - cell "1991"
+      - cell "31"
+      - cell "37"
+      - cell
+      - cell "0.388"
+      - cell "289"
+      - cell "299"
+      - cell "-10"
+    - row "Calgary Flames 1991 31 37 0.388 296 305 -9":
+      - cell "Calgary Flames"
+      - cell "1991"
+      - cell "31"
+      - cell "37"
+      - cell
+      - cell "0.388"
+      - cell "296"
+      - cell "305"
+      - cell "-9"
+    - row "Chicago Blackhawks 1991 36 29 0.45 257 236 21":
+      - cell "Chicago Blackhawks"
+      - cell "1991"
+      - cell "36"
+      - cell "29"
+      - cell
+      - cell "0.45"
+      - cell "257"
+      - cell "236"
+      - cell "21"
+- list:
+  - listitem:
+    - link "1":
+      - /url: /pages/forms/?page_num=1
+  - listitem:
+    - link "2":
+      - /url: /pages/forms/?page_num=2
+  - listitem:
+    - link "3":
+      - /url: /pages/forms/?page_num=3
+  - listitem:
+    - link "4":
+      - /url: /pages/forms/?page_num=4
+  - listitem:
+    - link "5":
+      - /url: /pages/forms/?page_num=5
+  - listitem:
+    - link "6":
+      - /url: /pages/forms/?page_num=6
+  - listitem:
+    - link "7":
+      - /url: /pages/forms/?page_num=7
+  - listitem:
+    - link "8":
+      - /url: /pages/forms/?page_num=8
+  - listitem:
+    - link "9":
+      - /url: /pages/forms/?page_num=9
+  - listitem:
+    - link "10":
+      - /url: /pages/forms/?page_num=10
+  - listitem:
+    - link "11":
+      - /url: /pages/forms/?page_num=11
+  - listitem:
+    - link "12":
+      - /url: /pages/forms/?page_num=12
+  - listitem:
+    - link "13":
+      - /url: /pages/forms/?page_num=13
+  - listitem:
+    - link "14":
+      - /url: /pages/forms/?page_num=14
+  - listitem:
+    - link "15":
+      - /url: /pages/forms/?page_num=15
+  - listitem:
+    - link "16":
+      - /url: /pages/forms/?page_num=16
+  - listitem:
+    - link "17":
+      - /url: /pages/forms/?page_num=17
+  - listitem:
+    - link "18":
+      - /url: /pages/forms/?page_num=18
+  - listitem:
+    - link "19":
+      - /url: /pages/forms/?page_num=19
+  - listitem:
+    - link "20":
+      - /url: /pages/forms/?page_num=20
+  - listitem:
+    - link "21":
+      - /url: /pages/forms/?page_num=21
+  - listitem:
+    - link "22":
+      - /url: /pages/forms/?page_num=22
+  - listitem:
+    - link "23":
+      - /url: /pages/forms/?page_num=23
+  - listitem:
+    - link "24":
+      - /url: /pages/forms/?page_num=24
+  - listitem:
+    - link "Next":
+      - /url: /pages/forms/?page_num=1
+- strong: Per Page
+- combobox:
+  - option "25" [selected]
+  - option "50"
+  - option "100"
+- text: Lessons and Videos © Hartley Brody 2023

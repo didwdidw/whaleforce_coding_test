@@ -17,7 +17,7 @@ because a single mixed number would describe neither case.
 | Host | Zeabur on a self-hosted Ubuntu 24.04 box running k3s. `nproc` 2, `free -m` total **3,723 MB**, swap 1,987 MB provisioned. Swap was observed at a flat 102 MB during a scored round with **zero growth**, which was M0's pass condition |
 | Browser | One Chromium process, two contexts. Not two processes — see §4 |
 | Model | `gemini-3.1-flash-lite`, pinned. Never a `latest` or preview alias — a moving model makes every earlier measurement describe a system that no longer exists |
-| Build under measurement | `e1d13cae4926` for round `r1`, `aa1ee6c5d5eb` for round `r2`, `427cd96` for the load measurements; each result file carries its own |
+| Build under measurement | `e1d13cae4926` for `r1`, `aa1ee6c5d5eb` for `r2`, **`e82cacb9e809` for `r3` — the frozen submission build, and the round the headline numbers come from** — `427cd96` for the load measurements; each result file carries its own |
 | Measurement files | `eval/results/`, `docs/m0-*`, `docs/m1-report.md`, `docs/m3-model-comparison.md` |
 
 ---
@@ -321,8 +321,8 @@ a fourth build, and this document would have to explain why *that* one was singl
 ### 5.4 Verifying the verifier
 
 A system whose central claim is "our checks are real" has to expect the checks themselves to be
-wrong. **Seven** defects of that exact shape were found and fixed, all the same species — **a check
-that reported on a coincidence**. The first five were found during development:
+wrong. **Eight** defects of that exact shape were found, seven of them fixed, all the same species — **a
+check that reported on a coincidence**. The first five were found during development:
 
 | | The defect |
 |---|---|
@@ -336,13 +336,23 @@ The first four made correct behaviour look broken; the fifth made unproven behav
 That asymmetry is why the fifth survived longest, and it is the reason an independent review that
 ran the deployed system found things that reading diffs did not.
 
-Two more of the same species were found after that list was written, and both are here rather than in
-an appendix because the pattern is the finding rather than the count:
+Three more of the same species were found after that list was written, and they are here rather than
+in an appendix because the pattern is the finding rather than the count:
 
 | | The defect |
 |---|---|
 | 6 | The accessibility snapshot took its own trace entry, and every trace entry charges the step budget — so capture-heavy runs silently had half the browsing headroom they were designed with. Found by *executing the published limitations list*, not by a test |
 | 7 | `page.url` was sampled at one instant to record where a navigation ended up. On identical inputs — a frozen target of `/wiki/Apple_Inc` and a page that ends up at `/wiki/Apple_Inc.` — one scored round recorded the later URL and the next recorded the earlier one, so a correct run failed `artifact_source_matches_plan` against **its own artifact**. Fixed in two attempts; the first did not hold, and that is the part worth reading |
+
+| 8 | `internal_error` is the class for *our* defects, and it is the one rate the spec treats as a finding in itself. In `r3`, EXP-05 ended there because the planner proposed an element reference that was not in the view it had been sent — the run refused, correctly and fail-closed, and then filed the refusal under our own name. A model inventing a ref is not our code failing. **Found and not fixed**: see below |
+
+Number 8 arrived after the build was frozen, which is the only reason it is still open, and how that
+was handled is part of the finding. Correcting the class would have meant a code change between the
+round that measured the system and the round that scores the held-out split — so the choice was
+between a tidier taxonomy and two rounds that describe the same build. The taxonomy lost. It is
+written here, in the table with the other seven, rather than repaired quietly afterwards and
+presented as though the rounds had always agreed. It is the same species as A-14b: a loud, correct
+refusal filed under the wrong party.
 
 Number 7 is the one worth reading twice, and it took two goes.
 

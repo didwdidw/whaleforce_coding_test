@@ -1,0 +1,718 @@
+- list:
+  - listitem:
+    - link "Skip to main content":
+      - /url: "#content"
+  - listitem:
+    - link "Skip to search":
+      - /url: "#search"
+- link "Otari Meet Otari, the open source LLM Control Plane that helps developers control LLM infrastructure. Discover Otari":
+  - /url: /pong/click?code=aHR0cHM6Ly9zcnYuYnV5c2VsbGFkcy5jb20vYWRzL2NsaWNrL3gvR1RORDQyN1lDVzdENDJRN0Y2QjRZS1FVRlRCRDUySkxDNkFENFozSkNBQURWNTNZQ0VCSUUyUUtDNllJQ0tRWUNFN0RFMlFZQ0E3SVRLN1dDVDdEVjIzVUhFWUk1NTNNQ1ZTRFBLSkVDVE5DWUJaNTJL.PVgp7LRV9wbRaIXpZWSvRKowA8tgjbRv7hzT%2FX0tb64%3D&version=2
+  - img "Otari"
+  - text: Meet Otari, the open source LLM Control Plane that helps developers control LLM infrastructure. Discover Otari
+- link "Ad":
+  - /url: /en-US/advertising
+- link "Don't want to see ads?":
+  - /url: /en-US/plus?ref=nope
+- banner:
+  - navigation:
+    - link "MDN":
+      - /url: /en-US/
+      - img "MDN"
+    - navigation:
+      - button "HTML"
+      - button "CSS"
+      - button "JavaScript"
+      - button "Web APIs"
+      - button "All"
+      - button "Learn"
+      - button "Tools"
+      - button "About"
+      - link "Blog":
+        - /url: /en-US/blog/
+    - button "Search the site":
+      - img
+    - link "Log in":
+      - /url: https://developer.mozilla.org/users/fxa/login/authenticate/?next=%2Fen-US%2Fdocs%2FWeb%2FJavaScript%2FReference%2FGlobal_Objects%2FArray%2Fflat
+      - img
+      - text: Log in
+  - list:
+    - listitem:
+      - link "Web":
+        - /url: /en-US/docs/Web
+    - listitem:
+      - link "JavaScript":
+        - /url: /en-US/docs/Web/JavaScript
+    - listitem:
+      - link "Reference":
+        - /url: /en-US/docs/Web/JavaScript/Reference
+    - listitem:
+      - link "Standard built-in objects":
+        - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects
+    - listitem:
+      - link "Array":
+        - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
+    - listitem:
+      - link "flat()":
+        - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat
+  - button "Switch color theme": Theme
+  - button "English (US)"
+- main:
+  - heading "Array.prototype.flat()" [level=1]
+  - group:
+    - img "Baseline Check"
+    - text: Baseline Widely available
+    - img "Chrome check"
+    - img "Edge check"
+    - img "Firefox check"
+    - img "Safari check"
+  - paragraph:
+    - text: The
+    - strong:
+      - code: flat()
+    - text: method of
+    - link "Array":
+      - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
+      - code: Array
+    - text: instances creates a new array with all sub-array elements concatenated into it recursively up to the specified depth.
+  - complementary:
+    - navigation:
+      - heading "In this article" [level=2]
+      - list:
+        - listitem:
+          - link "Try it":
+            - /url: "#try_it"
+        - listitem:
+          - link "Syntax":
+            - /url: "#syntax"
+        - listitem:
+          - link "Description":
+            - /url: "#description"
+        - listitem:
+          - link "Examples":
+            - /url: "#examples"
+        - listitem:
+          - link "Specifications":
+            - /url: "#specifications"
+        - listitem:
+          - link "Browser compatibility":
+            - /url: "#browser_compatibility"
+        - listitem:
+          - link "See also":
+            - /url: "#see_also"
+    - link "Twilio The platform that makes more possible Connect communication channels, contextual data, and integrated AI-driven workflows all in one place Learn More":
+      - /url: /pong/click?code=aHR0cHM6Ly9zcnYuYnV5c2VsbGFkcy5jb20vYWRzL2NsaWNrL3gvR1RORDQyN1lDVzdENDJRN0Y2N0xZS1FVRlRCRDUyNzdDQUFJUFozSkNBQURWNTNZQ0E3REwyN0tDS0JJNTIzSUNBN0RLS1FORlRZSTU1UVVDS1lENVozSkNBQURQS0pOQ1c3RFRLM0sySldOQUJZ.%2F08R2cK%2Bao43tFF6XzuD8duNnMwpB%2BXzkqraqB%2FP5KU%3D&version=2
+      - img "Twilio"
+      - strong: The platform that makes more possible
+      - text: Connect communication channels, contextual data, and integrated AI-driven workflows all in one place Learn More
+    - link "Ad":
+      - /url: /en-US/advertising
+    - link "Don't want to see ads?":
+      - /url: /en-US/plus?ref=nope
+  - region "Try it":
+    - heading "Try it" [level=2]:
+      - link "Try it":
+        - /url: "#try_it"
+    - 'heading "JavaScript Demo: Array.prototype.flat()" [level=4]'
+    - textbox
+    - button "Run"
+    - button "Reset"
+    - list
+  - region "Syntax":
+    - heading "Syntax" [level=2]:
+      - link "Syntax":
+        - /url: "#syntax"
+    - text: js
+    - button "Copy"
+    - code: flat() flat(depth)
+  - region "Parameters":
+    - heading "Parameters" [level=3]:
+      - link "Parameters":
+        - /url: "#parameters"
+    - term:
+      - link "depth Optional":
+        - /url: "#depth"
+        - code: depth
+        - text: Optional
+    - definition:
+      - paragraph: The depth level specifying how deep a nested array structure should be flattened. Defaults to 1.
+  - region "Return value":
+    - heading "Return value" [level=3]:
+      - link "Return value":
+        - /url: "#return_value"
+    - paragraph: A new array with the sub-array elements concatenated into it.
+  - region "Description":
+    - heading "Description" [level=2]:
+      - link "Description":
+        - /url: "#description"
+    - paragraph:
+      - text: The
+      - code: flat()
+      - text: method is a
+      - link "copying method":
+        - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array#copying_methods_and_mutating_methods
+      - text: . It does not alter
+      - code: this
+      - text: but instead returns a
+      - link "shallow copy":
+        - /url: /en-US/docs/Glossary/Shallow_copy
+      - text: that contains the same elements as the ones from the original array.
+    - paragraph:
+      - text: The
+      - code: flat()
+      - text: method removes empty slots if the array being flattened is
+      - link "sparse":
+        - /url: /en-US/docs/Web/JavaScript/Guide/Indexed_collections#sparse_arrays
+      - text: . For example, if
+      - code: depth
+      - text: is 1, both empty slots in the root array and in the first level of nested arrays are ignored, but empty slots in further nested arrays are preserved with the arrays themselves.
+    - paragraph:
+      - text: The
+      - code: flat()
+      - text: method is
+      - link "generic":
+        - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array#generic_array_methods
+      - text: . It only expects the
+      - code: this
+      - text: value to have a
+      - code: length
+      - text: property and integer-keyed properties. However, its elements must be arrays if they are to be flattened.
+  - region "Examples":
+    - heading "Examples" [level=2]:
+      - link "Examples":
+        - /url: "#examples"
+  - region "Flattening nested arrays":
+    - heading "Flattening nested arrays" [level=3]:
+      - link "Flattening nested arrays":
+        - /url: "#flattening_nested_arrays"
+    - text: js
+    - button "Copy"
+    - code: const arr1 = [1, 2, [3, 4]]; arr1.flat(); // [1, 2, 3, 4] const arr2 = [1, 2, [3, 4, [5, 6]]]; arr2.flat(); // [1, 2, 3, 4, [5, 6]] const arr3 = [1, 2, [3, 4, [5, 6]]]; arr3.flat(2); // [1, 2, 3, 4, 5, 6] const arr4 = [1, 2, [3, 4, [5, 6, [7, 8, [9, 10]]]]]; arr4.flat(Infinity); // [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  - region "Using flat() on sparse arrays":
+    - heading "Using flat() on sparse arrays" [level=3]:
+      - link "Using flat() on sparse arrays":
+        - /url: "#using_flat_on_sparse_arrays"
+    - paragraph:
+      - text: The
+      - code: flat()
+      - text: method removes
+      - link "empty slots":
+        - /url: /en-US/docs/Web/JavaScript/Guide/Indexed_collections#sparse_arrays
+      - text: "in arrays:"
+    - text: js
+    - button "Copy"
+    - code: const arr5 = [1, 2, , 4, 5]; console.log(arr5.flat()); // [1, 2, 4, 5] const array = [1, , 3, ["a", , "c"]]; console.log(array.flat()); // [ 1, 3, "a", "c" ] const array2 = [1, , 3, undefined, ["a", , ["d", , "e"]], null]; console.log(array2.flat()); // [ 1, 3, undefined, "a", ["d", empty, "e"], null ] console.log(array2.flat(2)); // [ 1, 3, undefined, "a", "d", "e", null ]
+  - region "Calling flat() on non-array objects":
+    - heading "Calling flat() on non-array objects" [level=3]:
+      - link "Calling flat() on non-array objects":
+        - /url: "#calling_flat_on_non-array_objects"
+    - paragraph:
+      - text: The
+      - code: flat()
+      - text: method reads the
+      - code: length
+      - text: property of
+      - code: this
+      - text: and then accesses each property whose key is a nonnegative integer less than
+      - code: length
+      - text: . If the element is not an array, it's directly appended to the result. If the element is an array, it's flattened according to the
+      - code: depth
+      - text: parameter.
+    - text: js
+    - button "Copy"
+    - code: "const arrayLike = { length: 3, 0: [1, 2], // Array-like objects aren't flattened 1: { length: 2, 0: 3, 1: 4 }, 2: 5, 3: 3, // ignored by flat() since length is 3 }; console.log(Array.prototype.flat.call(arrayLike)); // [ 1, 2, { '0': 3, '1': 4, length: 2 }, 5 ]"
+  - region "Specifications":
+    - heading "Specifications" [level=2]:
+      - link "Specifications":
+        - /url: "#specifications"
+    - table:
+      - rowgroup:
+        - row "Specification":
+          - columnheader "Specification"
+      - rowgroup:
+        - 'row "ECMAScript® 2027 Language Specification # sec-array.prototype.flat (external)"':
+          - 'cell "ECMAScript® 2027 Language Specification # sec-array.prototype.flat (external)"':
+            - 'link "ECMAScript® 2027 Language Specification # sec-array.prototype.flat (external)"':
+              - /url: https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.flat
+  - region "Browser compatibility":
+    - heading "Browser compatibility" [level=2]:
+      - link "Browser compatibility":
+        - /url: "#browser_compatibility"
+    - figure:
+      - figure:
+        - link "Report problems with this compatibility data (external)":
+          - /url: https://github.com/mdn/browser-compat-data/issues/new?mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FJavaScript%2FReference%2FGlobal_Objects%2FArray%2Fflat&metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EMDN+page+report+details%3C%2Fsummary%3E%0A%0A*+Query%3A+%60javascript.builtins.Array.flat%60%0A*+Report+started%3A+2026-07-28T19%3A03%3A45.613Z%0A%0A%3C%2Fdetails%3E&title=javascript.builtins.Array.flat+-+%3CSUMMARIZE+THE+PROBLEM%3E&template=data-problem.yml
+        - text: •
+        - link "View data on GitHub (external)":
+          - /url: https://github.com/mdn/browser-compat-data/tree/main/javascript/builtins/Array.json
+        - table:
+          - rowgroup:
+            - row "desktop mobile server":
+              - cell
+              - columnheader "desktop"
+              - columnheader "mobile"
+              - columnheader "server"
+            - row "Chrome Edge Firefox Opera Safari Chrome Android Firefox for Android Opera Android Safari on iOS Samsung Internet WebView Android WebView on iOS Bun Deno Node.js":
+              - cell
+              - columnheader "Chrome"
+              - columnheader "Edge"
+              - columnheader "Firefox"
+              - columnheader "Opera"
+              - columnheader "Safari"
+              - columnheader "Chrome Android"
+              - columnheader "Firefox for Android"
+              - columnheader "Opera Android"
+              - columnheader "Safari on iOS"
+              - columnheader "Samsung Internet"
+              - columnheader "WebView Android"
+              - columnheader "WebView on iOS"
+              - columnheader "Bun"
+              - columnheader "Deno"
+              - columnheader "Node.js"
+          - rowgroup:
+            - row "flat 69 79 62 56 12 69 62 48 12 10 69 12 1 1 11":
+              - rowheader "flat":
+                - code: flat
+              - cell "69":
+                - button "69"
+              - cell "79":
+                - button "79"
+              - cell "62":
+                - button "62"
+              - cell "56":
+                - button "56"
+              - cell "12":
+                - button "12"
+              - cell "69":
+                - button "69"
+              - cell "62":
+                - button "62"
+              - cell "48":
+                - button "48"
+              - cell "12":
+                - button "12"
+              - cell "10":
+                - button "10"
+              - cell "69":
+                - button "69"
+              - cell "12":
+                - button "12"
+              - cell "1":
+                - button "1"
+              - cell "1":
+                - button "1"
+              - cell "11":
+                - button "11"
+    - heading "Legend" [level=3]
+    - paragraph: "Tip: you can click/tap on a cell for more information."
+    - term: Full support
+    - definition: Full support
+  - region "See also":
+    - heading "See also" [level=2]:
+      - link "See also":
+        - /url: "#see_also"
+    - list:
+      - listitem:
+        - link "Polyfill of Array.prototype.flat in core-js (external)":
+          - /url: https://github.com/zloirock/core-js#ecmascript-array
+          - text: Polyfill of
+          - code: Array.prototype.flat
+          - text: in
+          - code: core-js
+          - text: (external)
+      - listitem:
+        - link "es-shims polyfill of Array.prototype.flat (external)":
+          - /url: https://www.npmjs.com/package/array.prototype.flat
+          - text: es-shims polyfill of
+          - code: Array.prototype.flat
+          - text: (external)
+      - listitem:
+        - link "Indexed collections":
+          - /url: /en-US/docs/Web/JavaScript/Guide/Indexed_collections
+        - text: guide
+      - listitem:
+        - link "Array":
+          - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
+          - code: Array
+      - listitem:
+        - link "Array.prototype.concat()":
+          - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/concat
+          - code: Array.prototype.concat()
+      - listitem:
+        - link "Array.prototype.flatMap()":
+          - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap
+          - code: Array.prototype.flatMap()
+      - listitem:
+        - link "Array.prototype.map()":
+          - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
+          - code: Array.prototype.map()
+      - listitem:
+        - link "Array.prototype.reduce()":
+          - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
+          - code: Array.prototype.reduce()
+  - region "Help improve MDN":
+    - img
+    - heading "Help improve MDN" [level=2]
+    - group:
+      - text: Was this page helpful to you?
+      - button "Yes":
+        - img
+        - text: "Yes"
+      - button "No":
+        - img
+        - text: "No"
+    - link "Learn how to contribute":
+      - /url: /en-US/docs/MDN/Community/Getting_started
+    - paragraph:
+      - text: This page was last modified on
+      - time: Jul 10, 2025
+      - text: by
+      - link "MDN contributors":
+        - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat/contributors.txt
+      - text: .
+    - link "View this page on GitHub (external)":
+      - /url: https://github.com/mdn/content/blob/main/files/en-us/web/javascript/reference/global_objects/array/flat/index.md?plain=1
+    - text: •
+    - link "Report a problem with this content (external)":
+      - /url: https://github.com/mdn/content/issues/new?template=page-report.yml&mdn-url=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FJavaScript%2FReference%2FGlobal_Objects%2FArray%2Fflat&metadata=%3C%21--+Do+not+make+changes+below+this+line+--%3E%0A%3Cdetails%3E%0A%3Csummary%3EPage+report+details%3C%2Fsummary%3E%0A%0A*+Folder%3A+%60en-us%2Fweb%2Fjavascript%2Freference%2Fglobal_objects%2Farray%2Fflat%60%0A*+MDN+URL%3A+https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FJavaScript%2FReference%2FGlobal_Objects%2FArray%2Fflat%0A*+GitHub+URL%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fblob%2Fmain%2Ffiles%2Fen-us%2Fweb%2Fjavascript%2Freference%2Fglobal_objects%2Farray%2Fflat%2Findex.md%0A*+Last+commit%3A+https%3A%2F%2Fgithub.com%2Fmdn%2Fcontent%2Fcommit%2F544b843570cb08d1474cfc5ec03ffb9f4edc0166%0A*+Document+last+modified%3A+2025-07-10T09%3A07%3A55.000Z%0A%0A%3C%2Fdetails%3E
+- complementary:
+  - navigation:
+    - text: Filter sidebar
+    - textbox "Filter sidebar":
+      - /placeholder: Filter
+    - list:
+      - listitem:
+        - link "Standard built-in objects":
+          - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects
+      - listitem:
+        - link "Array":
+          - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
+          - code: Array
+      - listitem:
+        - group:
+          - text: Constructor
+          - list:
+            - listitem:
+              - link "Array()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Array
+                - code: Array()
+      - listitem:
+        - group:
+          - text: Static methods
+          - list:
+            - listitem:
+              - link "from()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/from
+                - code: from()
+            - listitem:
+              - link "fromAsync()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fromAsync
+                - code: fromAsync()
+            - listitem:
+              - link "isArray()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray
+                - code: isArray()
+            - listitem:
+              - link "of()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/of
+                - code: of()
+      - listitem:
+        - group:
+          - text: Static properties
+          - list:
+            - listitem:
+              - link "[Symbol.species]":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Symbol.species
+                - code: "[Symbol.species]"
+      - listitem:
+        - group:
+          - text: Instance methods
+          - list:
+            - listitem:
+              - link "at()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at
+                - code: at()
+            - listitem:
+              - link "concat()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/concat
+                - code: concat()
+            - listitem:
+              - link "copyWithin()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/copyWithin
+                - code: copyWithin()
+            - listitem:
+              - link "entries()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/entries
+                - code: entries()
+            - listitem:
+              - link "every()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/every
+                - code: every()
+            - listitem:
+              - link "fill()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/fill
+                - code: fill()
+            - listitem:
+              - link "filter()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/filter
+                - code: filter()
+            - listitem:
+              - link "find()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find
+                - code: find()
+            - listitem:
+              - link "findIndex()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/findIndex
+                - code: findIndex()
+            - listitem:
+              - link "findLast()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/findLast
+                - code: findLast()
+            - listitem:
+              - link "findLastIndex()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/findLastIndex
+                - code: findLastIndex()
+            - listitem:
+              - emphasis:
+                - link "flat()":
+                  - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat
+                  - code: flat()
+            - listitem:
+              - link "flatMap()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap
+                - code: flatMap()
+            - listitem:
+              - link "forEach()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/forEach
+                - code: forEach()
+            - listitem:
+              - link "includes()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/includes
+                - code: includes()
+            - listitem:
+              - link "indexOf()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/indexOf
+                - code: indexOf()
+            - listitem:
+              - link "join()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
+                - code: join()
+            - listitem:
+              - link "keys()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/keys
+                - code: keys()
+            - listitem:
+              - link "lastIndexOf()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/lastIndexOf
+                - code: lastIndexOf()
+            - listitem:
+              - link "map()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
+                - code: map()
+            - listitem:
+              - link "pop()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/pop
+                - code: pop()
+            - listitem:
+              - link "push()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/push
+                - code: push()
+            - listitem:
+              - link "reduce()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
+                - code: reduce()
+            - listitem:
+              - link "reduceRight()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduceRight
+                - code: reduceRight()
+            - listitem:
+              - link "reverse()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reverse
+                - code: reverse()
+            - listitem:
+              - link "shift()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/shift
+                - code: shift()
+            - listitem:
+              - link "slice()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
+                - code: slice()
+            - listitem:
+              - link "some()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/some
+                - code: some()
+            - listitem:
+              - link "sort()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
+                - code: sort()
+            - listitem:
+              - link "splice()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/splice
+                - code: splice()
+            - listitem:
+              - link "toLocaleString()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toLocaleString
+                - code: toLocaleString()
+            - listitem:
+              - link "toReversed()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toReversed
+                - code: toReversed()
+            - listitem:
+              - link "toSorted()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSorted
+                - code: toSorted()
+            - listitem:
+              - link "toSpliced()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toSpliced
+                - code: toSpliced()
+            - listitem:
+              - link "toString()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/toString
+                - code: toString()
+            - listitem:
+              - link "unshift()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/unshift
+                - code: unshift()
+            - listitem:
+              - link "values()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/values
+                - code: values()
+            - listitem:
+              - link "with()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/with
+                - code: with()
+            - listitem:
+              - link "[Symbol.iterator]()":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Symbol.iterator
+                - code: "[Symbol.iterator]()"
+      - listitem:
+        - group:
+          - text: Instance properties
+          - list:
+            - listitem:
+              - link "length":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/length
+                - code: length
+            - listitem:
+              - link "[Symbol.unscopables]":
+                - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Symbol.unscopables
+                - code: "[Symbol.unscopables]"
+      - listitem: Inheritance
+      - listitem:
+        - link "Object/Function":
+          - /url: /en-US/docs/Web/JavaScript/Reference/Global_Objects/Object
+          - code: Object/Function
+      - listitem:
+        - group: Static methods
+      - listitem:
+        - group: Static properties
+      - listitem:
+        - group: Instance methods
+      - listitem:
+        - group: Instance properties
+- link "WorkOS Homepage Bottom Banner":
+  - /url: /pong/click?code=aHR0cHM6Ly9zcnYuYnV5c2VsbGFkcy5jb20vYWRzL2NsaWNrL3gvR1RORDQyN1lDVzdENDIzRUM2N0xZS1FVRlRCRDUySklDVzdES1ozSkNBQURWNTNZQ0FTREwyUUtDNjdENDJKTUNUN0RLNTNKQzZBREtLSkpGNjdJNktKTEhFWUk1NTNNQ1ZTRFBLSkVDVE5DWUJaNTJL.DLjPQ7pNCSXY%2BfXpvcAzC17milsH6A%2BRZVHo1d%2BwaPI%3D&version=2
+  - img "WorkOS Homepage Bottom Banner"
+- link "Ad":
+  - /url: /en-US/advertising
+- contentinfo:
+  - link "MDN logo":
+    - /url: /
+    - img "MDN"
+  - paragraph: Your blueprint for a better internet.
+  - list:
+    - listitem:
+      - link "MDN on GitHub":
+        - /url: https://github.com/mdn/
+    - listitem:
+      - link "MDN on Bluesky":
+        - /url: https://bsky.app/profile/developer.mozilla.org
+    - listitem:
+      - link "MDN on X":
+        - /url: https://x.com/mozdevnet
+    - listitem:
+      - link "MDN on Mastodon":
+        - /url: https://mastodon.social/@mdn
+    - listitem:
+      - link "MDN blog RSS feed":
+        - /url: /en-US/blog/rss.xml
+  - term: MDN
+  - definition:
+    - list:
+      - listitem:
+        - link "About":
+          - /url: /en-US/about
+      - listitem:
+        - link "Blog":
+          - /url: /en-US/blog/
+      - listitem:
+        - link "Mozilla careers (external)":
+          - /url: https://www.mozilla.org/en-US/careers/listings/
+      - listitem:
+        - link "Advertise with us":
+          - /url: /en-US/advertising
+      - listitem:
+        - link "MDN Plus":
+          - /url: /en-US/plus
+      - listitem:
+        - link "Product help (external)":
+          - /url: https://support.mozilla.org/products/mdn-plus
+  - term: Contribute
+  - definition:
+    - list:
+      - listitem:
+        - link "MDN Community":
+          - /url: /en-US/community
+      - listitem:
+        - link "Community resources":
+          - /url: /en-US/docs/MDN/Community
+      - listitem:
+        - link "Writing guidelines":
+          - /url: /en-US/docs/MDN/Writing_guidelines
+      - listitem:
+        - link "MDN Discord (external)":
+          - /url: /discord
+      - listitem:
+        - link "MDN on GitHub (external)":
+          - /url: https://github.com/mdn
+  - term: Developers
+  - definition:
+    - list:
+      - listitem:
+        - link "Web technologies":
+          - /url: /en-US/docs/Web
+      - listitem:
+        - link "Learn web development":
+          - /url: /en-US/docs/Learn_web_development
+      - listitem:
+        - link "Guides":
+          - /url: /en-US/docs/MDN/Guides
+      - listitem:
+        - link "Tutorials":
+          - /url: /en-US/docs/MDN/Tutorials
+      - listitem:
+        - link "Glossary":
+          - /url: /en-US/docs/Glossary
+      - listitem:
+        - link "Hacks blog (external)":
+          - /url: https://hacks.mozilla.org/
+  - link "Mozilla logo":
+    - /url: https://www.mozilla.org/
+    - img "Mozilla"
+  - list:
+    - listitem:
+      - link "Website Privacy Notice (external)":
+        - /url: https://www.mozilla.org/privacy/websites/
+    - listitem:
+      - link "Telemetry Settings (external)":
+        - /url: https://www.mozilla.org/en-US/privacy/websites/data-preferences/
+    - listitem:
+      - link "Legal (external)":
+        - /url: https://www.mozilla.org/about/legal/terms/mozilla
+    - listitem:
+      - link "Community Participation Guidelines (external)":
+        - /url: https://www.mozilla.org/about/governance/policies/participation/
+  - paragraph:
+    - text: Portions of this content are ©1998–2026 by individual mozilla.org contributors. Content available under
+    - link "a Creative Commons license":
+      - /url: /docs/MDN/Writing_guidelines/Attrib_copyright_license
+    - text: .

@@ -1,0 +1,158 @@
+{
+ "case": "EXP-05",
+ "record": "XB-EXP \u00b7 asynchronous render",
+ "declared_tier": "T-EXPERIMENTAL",
+ "tier_as_declared": true,
+ "precondition": {
+  "url": "https://the-internet.herokuapp.com/dynamic_loading/2",
+  "checked": true,
+  "ok": true,
+  "reason": "HTTP 200",
+  "http_status": 200,
+  "robots": {
+   "allowed": true,
+   "directive": null,
+   "pattern": null,
+   "group_user_agent": "*",
+   "rule": "no rule matched",
+   "source": "matched",
+   "evaluated_url": "https://the-internet.herokuapp.com/dynamic_loading/2",
+   "evaluated_path": "/dynamic_loading/2",
+   "evaluated_as": "whaleforcecodingtest-task1"
+  }
+ },
+ "suite_error": false,
+ "run_id": "run_1620f4d16e44",
+ "tier": "T-EXPERIMENTAL",
+ "execution_path": "model_driven",
+ "terminal_status": "failed",
+ "failure_class": "internal_error",
+ "counts_as_success": false,
+ "outcome_kind": "failed_or_blocked",
+ "attempted": true,
+ "expected": [
+  "succeeded_verified"
+ ],
+ "status_as_expected": false,
+ "evidence": {
+  "claims": 0,
+  "verified_claims": 0,
+  "independently_checked": 0,
+  "not_reproducible_here": [],
+  "findings": [],
+  "notes": []
+ },
+ "duration_seconds": 6.79,
+ "latency": {
+  "queue_wait_seconds": 0.008,
+  "run_seconds": 6.794,
+  "total_seconds": 6.801,
+  "time_to_first_result_seconds": null,
+  "steps_measured": 12,
+  "steps_unmeasured": 0,
+  "step_ms": {
+   "median": 8,
+   "p90": 1092,
+   "max": 4710
+  },
+  "slowest_step": {
+   "seq": 12,
+   "kind": "note",
+   "summary": "Model call (exploration) for step 2",
+   "ms": 4710
+  },
+  "model_seconds": 1.082,
+  "model_calls": 1,
+  "model_calls_cached": 0,
+  "reportable": true
+ },
+ "budget": {
+  "steps": 12,
+  "llm_calls_exploration": 2,
+  "llm_calls_recovery": 0,
+  "input_tokens": 1751,
+  "output_tokens": 347,
+  "usd": 0.000958,
+  "started_at": 1785265370.7149808,
+  "ended_at": 1785265377.5087094,
+  "elapsed_seconds": 6.79,
+  "output_cap_per_call": 2048,
+  "output_cap_per_run": 16000
+ },
+ "timed_out_waiting": false,
+ "oracle": {
+  "kind": "evidence re-check only",
+  "why": "no independent derivation of the answer exists for this record"
+ },
+ "passed": false,
+ "artifacts": [
+  {
+   "artifact_id": "art_38a7556e354c",
+   "kind": "dom:step-1",
+   "source_url": "https://the-internet.herokuapp.com/dynamic_loading/2",
+   "retrieved_at": 1785265371.278726,
+   "retrieved_on": "2026-07-28",
+   "media_type": "text/html",
+   "length": 2141,
+   "sha256": "50de66e5c80bbeac73eeaa435faf02c0bf92347265bbc68ad36b895f7ec00f96",
+   "state": "stored",
+   "expired_at": null,
+   "expired_on": null,
+   "pinned": false,
+   "available": true,
+   "sha256_on_export": "50de66e5c80bbeac73eeaa435faf02c0bf92347265bbc68ad36b895f7ec00f96",
+   "sha256_matches": true
+  },
+  {
+   "artifact_id": "art_469651e442be",
+   "kind": "aria:step-1",
+   "source_url": "https://the-internet.herokuapp.com/dynamic_loading/2",
+   "retrieved_at": 1785265371.301756,
+   "retrieved_on": "2026-07-28",
+   "media_type": "text/plain",
+   "length": 347,
+   "sha256": "7f649d8b5addff5fc27f2cb4741bcdb488ef77ab97a371c33056f7ec2f3d2e8d",
+   "state": "stored",
+   "expired_at": null,
+   "expired_on": null,
+   "pinned": false,
+   "available": true,
+   "sha256_on_export": "7f649d8b5addff5fc27f2cb4741bcdb488ef77ab97a371c33056f7ec2f3d2e8d",
+   "sha256_matches": true
+  },
+  {
+   "artifact_id": "art_bac5b834ce92",
+   "kind": "dom:step-2",
+   "source_url": "https://the-internet.herokuapp.com/dynamic_loading/2",
+   "retrieved_at": 1785265372.7334597,
+   "retrieved_on": "2026-07-28",
+   "media_type": "text/html",
+   "length": 2291,
+   "sha256": "223c1d18d30cf9b5b331aefe8f0cccb9f6a567cb324ac79357b2be461dd4cab7",
+   "state": "stored",
+   "expired_at": null,
+   "expired_on": null,
+   "pinned": false,
+   "available": true,
+   "sha256_on_export": "223c1d18d30cf9b5b331aefe8f0cccb9f6a567cb324ac79357b2be461dd4cab7",
+   "sha256_matches": true
+  },
+  {
+   "artifact_id": "art_313c817dc610",
+   "kind": "aria:step-2",
+   "source_url": "https://the-internet.herokuapp.com/dynamic_loading/2",
+   "retrieved_at": 1785265372.7492008,
+   "retrieved_on": "2026-07-28",
+   "media_type": "text/plain",
+   "length": 355,
+   "sha256": "1e15dfe1ba54b68ca52eaa4f746a8b519bf3545057711977c6111dd440495268",
+   "state": "stored",
+   "expired_at": null,
+   "expired_on": null,
+   "pinned": false,
+   "available": true,
+   "sha256_on_export": "1e15dfe1ba54b68ca52eaa4f746a8b519bf3545057711977c6111dd440495268",
+   "sha256_matches": true
+  }
+ ]
+}
