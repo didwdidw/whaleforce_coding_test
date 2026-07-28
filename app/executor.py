@@ -100,6 +100,18 @@ OUT_OF_SCOPE = (
     (r"\b(post a|submit an? (review|comment|form|rating)|leave an? (review|comment)|"
      r"delete|update my|send an? (email|message))\b", "writing to a third party"),
     (r"\bcaptcha\b", "an anti-bot challenge"),
+    # A19.5. The refusals go into Chinese before the capabilities do, deliberately: the
+    # alternative is a build that declines an English "log into my brokerage account" and
+    # attempts the same sentence in Chinese, which is worse than being English-only.
+    (r"(登入|登陆|登录|註冊|注册|我的帳[戶号]|我的账[户号]|帳號密碼|账号密码|密碼|密码)",
+     "authentication or a login flow"),
+    (r"(券商|銀行帳[戶户]|银行账[户号]|我的(投資組合|投资组合|訂單|订单|購物車|购物车|"
+     r"信箱|郵件|邮件|收件匣))", "private or personal data"),
+    (r"(購買|购买|下[單单]|結帳|结账|付款|加入(購物車|购物车)|訂(位|房|票)|订(位|房|票)|"
+     r"預訂|预订|訂閱|订阅)", "a transaction or a state change"),
+    (r"(發表(評論|留言)|发表(评论|留言)|留下(評價|评价)|刪除|删除|寄(信|郵件|邮件)|"
+     r"發送訊息|发送消息)", "writing to a third party"),
+    (r"(驗證碼|验证码)", "an anti-bot challenge"),
 )
 
 
@@ -1048,19 +1060,30 @@ class Executor:
     # gated page" would otherwise route an overlay task to the paginator, which then returns
     # a perfectly plausible pager reading for a task that asked for something else. A
     # mis-route that still produces an answer is worse than one that fails.
+    # The promised operations carry Chinese markers as well (A19.4). Matching is a
+    # substring test, so CJK needs no word-boundary handling here — unlike the site alias
+    # table, where `\b` never fires between 「維基百科」 and the 「的」 after it.
     ROUTES: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("wiki_special", ("what links here", "pages that link to", "pages link to",
                           "special:",
-                          "search page", "find articles", "wikipedia's search")),
+                          "search page", "find articles", "wikipedia's search",
+                          "特殊:", "連入頁面", "链入页面")),
         ("wiki_sort", ("sort the", "sorted by", "sort by", "s&p 500 table",
-                       "constituents table")),
-        ("wiki_expand", ("expand the", "collapsed navbox", "navbox", "collapsible")),
+                       "constituents table",
+                       "排序", "由大到小排", "由小到大排", "成分股表格")),
+        ("wiki_expand", ("expand the", "collapsed navbox", "navbox", "collapsible",
+                         "展開", "展开", "摺疊", "折叠", "收合")),
         ("book_absence", ("priced at", "priced over", "priced above", "or more",
                           "or above", "at least £", "more expensive than", "cheaper than",
-                          "under £", "less than £")),
-        ("book_detail", ("light in the attic", "upc", "product detail")),
+                          "under £", "less than £",
+                          "價格超過", "价格超过", "售價超過", "售价超过", "貴於", "貴過",
+                          "便宜於", "便宜过", "低於 £", "低于 £", "高於 £", "高于 £")),
+        ("book_detail", ("light in the attic", "upc", "product detail",
+                         "商品詳情", "商品详情", "產品資訊", "产品信息", "商品頁", "商品页")),
         ("book_category", ("nonfiction", "category", "page of results",
-                           "pages of results")),
+                           "pages of results",
+                           "非小說", "非小说", "分類", "分类", "類別", "类别",
+                           "頁的結果", "页的结果")),
         ("testhook", ("ground truth", "test hook", "testhook", "answer key")),
         ("notes", ("injection", "customer note", "notes page")),
         ("overlay", ("overlay", "dismiss", "modal", "gated", "reference code")),
@@ -1595,6 +1618,13 @@ class Executor:
         re.compile(r"(list of [^,.'\"]+?) (?:on |from )?wikipedia"),
         re.compile(r"([\w&'()-]+(?:[.\s]+[\w&'()-]+)*?\.?)\s+"
                    r"wikipedia\s+(?:article|page)"),
+        # 「在維基百科的 List of S&P 500 companies 條目裡」 (A19.4). The title itself stays
+        # in the language the article is published in — it is matched against the page, and
+        # the promised record is the English Wikipedia.
+        re.compile(r"維基百科(?:的|上的)?\s*([\w&'()\- ]+?)\s*"
+                   r"(?:條目|頁面|列表|那一?頁|裡|中|,|，|。|$)"),
+        re.compile(r"维基百科(?:的|上的)?\s*([\w&'()\- ]+?)\s*"
+                   r"(?:条目|页面|列表|那一?页|里|中|,|，|。|$)"),
     )
 
     #: The sort key, as the task names it. A quoted phrase wins: it is the one spelling the
@@ -1609,6 +1639,11 @@ class Executor:
         # "sort alphabetically by country" — the ordering word comes first as often as not.
         re.compile(r"(?:alphabetically|numerically|ascending|descending)\s+by\s+"
                    r"(?:the\s+)?([A-Za-z][\w /]*?)(?=\s*(?:,|\.|and|$))"),
+        # 「依 GICS Sector 由大到小排序」 / 「按 CIK 排序」. The column keeps the spelling
+        # the task gave it, because it is matched against a header the page renders.
+        re.compile(r"(?:依照|依|按照|按|以)\s*([A-Za-z][\w &/-]*?)\s*"
+                   r"(?:欄|列|這一?欄|由大到小|由小到大|遞增|遞減|递增|递减|升冪|降冪|"
+                   r"升序|降序|排序|排列)"),
     )
 
     #: Ordering words, each mapped to the direction the *table* will report.
@@ -1619,6 +1654,10 @@ class Executor:
         ("ascending", "ascending"), ("alphabetically", "ascending"),
         ("oldest first", "ascending"), ("smallest first", "ascending"),
         ("lowest first", "ascending"), ("a to z", "ascending"),
+        ("由大到小", "descending"), ("從大到小", "descending"), ("遞減", "descending"),
+        ("递减", "descending"), ("降冪", "descending"), ("降序", "descending"),
+        ("由小到大", "ascending"), ("從小到大", "ascending"), ("遞增", "ascending"),
+        ("递增", "ascending"), ("升冪", "ascending"), ("升序", "ascending"),
     )
 
     @classmethod
@@ -2251,7 +2290,27 @@ class Executor:
         directions: dict[str, list[str]] = {}
         for word, direction in cls.DIRECTION_WORDS:
             directions.setdefault(direction, []).append(word)
-        return {"direction": {k: tuple(v) for k, v in directions.items()}}
+        return {"direction": {k: tuple(v) for k, v in directions.items()},
+                # The category a promised listing is fixed to, named in Chinese (A19.4).
+                # Without it a correctly routed Chinese task is refused for not naming the
+                # parameter it did name.
+                "category": {"Nonfiction": ("非小說", "非小说", "非虛構", "非虚构")}}
+
+    @staticmethod
+    def _task_names(task: str, spelling: str) -> bool:
+        """Whether a task names a value, in the writing system the task used.
+
+        Two readings, because one cannot serve both. `normalise` keeps ASCII words only —
+        that is what makes `sort` not match `resort` — and it drops CJK entirely, so a
+        Chinese spelling checked against a normalised haystack can never match: the alias
+        table would be present and fire on nothing, which is how a correctly routed Chinese
+        task came back refused for not naming the parameter it had named. Chinese is also
+        written without spaces, so a substring is the right boundary there.
+        """
+        if not spelling.isascii():
+            return spelling.lower() in task.lower()
+        needle = normalise(spelling)
+        return bool(needle) and f" {needle} " in f" {normalise(task)} "
 
     @classmethod
     def plan_answers_task(cls, task: str, pc: Postcondition) -> str:
@@ -2278,7 +2337,6 @@ class Executor:
             return ("the task asks whether anything matches a predicate, and this plan "
                     "cannot prove absence — it would report a listing instead of an answer")
 
-        haystack = f" {normalise(task)} "
         for key, value in (pc.inputs or {}).items():
             # Scalars only. A structure is something the plan derived from the task with
             # its own parser — the absence predicate is built from the threshold the task
@@ -2292,7 +2350,7 @@ class Executor:
                 spellings.append(str(int(value)))
             if isinstance(value, int):
                 spellings += list(cls.ORDINALS.get(value, ()))
-            if not any(f" {normalise(s)} " in haystack for s in spellings if normalise(s)):
+            if not any(cls._task_names(task, s) for s in spellings if s):
                 return (f"the plan is fixed to {key}={value!r}, which this task does not "
                         f"ask for")
         return ""

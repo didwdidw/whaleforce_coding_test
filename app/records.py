@@ -130,6 +130,18 @@ def fixture_host() -> str:
     return host_key(urlsplit(settings.fixture_base_url).netloc)
 
 
+#: The Chinese names of the promised sites (A19.4). The graders' own assignment ships in
+#: Traditional Chinese, so assuming an English spelling is a guess we do not have to make.
+#: `books.toscrape.com` has no Chinese name — its name is the domain, which already
+#: matches — so only Wikipedia has entries here.
+CHINESE_SITE_ALIASES: dict[str, str] = {
+    "維基百科": "en.wikipedia.org",
+    "维基百科": "en.wikipedia.org",
+    "維基": "en.wikipedia.org",
+    "维基": "en.wikipedia.org",
+}
+
+
 def site_aliases() -> dict[str, str]:
     """The bare names people use for the sites we serve, mapped to their hosts."""
     aliases: dict[str, str] = {}
@@ -139,6 +151,7 @@ def site_aliases() -> dict[str, str]:
         labels = host.split(".")
         if len(labels) >= 2:
             aliases[labels[-2]] = host
+    aliases.update(CHINESE_SITE_ALIASES)
     # The fixture is not a promised record and never appears in the support matrix, but a
     # task can still name it, and naming it is now the only way to reach it (A24.4). Its
     # host is whatever the deployment configured, so the word is what a person can write.
@@ -154,7 +167,13 @@ def named_site(task: str) -> str:
         return host_key(urlsplit(entry).netloc)
     low = task.lower()
     for alias, host in site_aliases().items():
-        # `(?<!\w)` rather than `\b`: "Wikipedia's" must match, "unwikipedia" must not.
-        if re.search(rf"(?<!\w){re.escape(alias)}\b", low):
+        if alias.isascii():
+            # `(?<!\w)` rather than `\b`: "Wikipedia's" must match, "unwikipedia" must not.
+            if re.search(rf"(?<!\w){re.escape(alias)}\b", low):
+                return host
+        # Chinese is written without spaces and every CJK character is a word character,
+        # so `\b` never fires between 「維基百科」 and the 「的」 that follows it — the
+        # alias table would be there and match nothing. A substring is the boundary.
+        elif alias in low:
             return host
     return ""

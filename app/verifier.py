@@ -62,12 +62,20 @@ def norm(text: str) -> str:
 
 @dataclass
 class Check:
+    #: `ok` is tri-state (A19.2). `None` means the check could not be evaluated — which is
+    #: not the same as passing, and is exactly what a vacuous check looks like when it is
+    #: written down as `True`.
     name: str
-    ok: bool
+    ok: bool | None
     detail: dict[str, Any] = field(default_factory=dict)
 
+    @property
+    def evaluated(self) -> bool:
+        return self.ok is not None
+
     def to_dict(self) -> dict[str, Any]:
-        return {"name": self.name, "ok": self.ok, "detail": self.detail}
+        return {"name": self.name, "ok": self.ok, "evaluated": self.evaluated,
+                "detail": self.detail}
 
 
 @dataclass
@@ -115,7 +123,12 @@ class Verdict:
                       "why": c.reason or "not re-resolved against the artifact"}
                      for c in self.claims if not c.ok]
         return {"claims": len(self.claims), "independently_checked": len(checked),
-                "checked": checked, "unchecked": unchecked}
+                "checked": checked, "unchecked": unchecked,
+                # A19.2: a constraint nobody could evaluate is named here rather than
+                # counted anywhere, so a reader can see which safeguards did not run.
+                "unevaluated_checks": [{"check": c.name,
+                                        "why": c.detail.get("note", "not evaluated")}
+                                       for c in self.checks if not c.evaluated]}
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -284,10 +297,27 @@ class Verifier:
                 f"{expected!r}. The postcondition is what verification is measured against, "
                 f"so a postcondition about a different site cannot certify this run.", checks)
         if not expected:
-            checks.append(Check("named_site_frozen", True,
+            # Not satisfied — unevaluated (A19.2). This appended `True` and counted a check
+            # that never ran in the run's favour, which is A11.7's vacuous verification
+            # sitting inside the safeguard built to prevent it.
+            checks.append(Check("named_site_frozen", None,
                                 {"task_names": None,
-                                 "note": "the task names no site, so this constraint is "
-                                         "absent; the frozen target URL still applies"}))
+                                 "note": "the task names no site in a form this code can "
+                                         "read, so this constraint could not be evaluated; "
+                                         "the frozen target URL still applies"}))
+            if pc.entry_point_source == "model":
+                # A19.3. A18.3 lets the model choose where to start; A17.1 is what stops
+                # that choice from being unconstrained. With the site binding unevaluated,
+                # nothing constrains it at all — which is the defect A17.1 was written for,
+                # reached by a different route. There is no combination in which nothing
+                # constrains where a run started.
+                return Verdict(
+                    TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
+                    "The entry point was proposed by the model, and the site this task "
+                    "names could not be read from the task text — so nothing independent "
+                    "constrains where this run started. A run whose starting page was "
+                    "chosen by the same component that reported the answer cannot certify "
+                    "itself.", checks)
             return None
         origin = host_key(urlsplit(ref.source_url or "").netloc)
         ok = origin == host_key(expected)
@@ -1108,4 +1138,5 @@ def _rehydrate(data: dict[str, Any]) -> Postcondition:
         absence=AbsenceMode(data.get("absence", "none")),
         coverage_anchor=data.get("coverage_anchor", ""),
         named_site=data.get("named_site", ""),
+        entry_point_source=data.get("entry_point_source", "task"),
     )

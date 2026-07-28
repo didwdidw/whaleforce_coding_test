@@ -120,6 +120,11 @@ class Postcondition:
     #: right place. Empty when the task named no site, which is not a licence to go anywhere
     #: — the target URL is still frozen — only an absence of this particular constraint.
     named_site: str = ""
+    #: Who chose the starting page: `"task"` when the task itself resolved it, `"model"`
+    #: when the planner proposed it (A18.3). It is frozen because A19.3 turns on it — a
+    #: model-proposed entry point with an unevaluated site binding leaves nothing at all
+    #: constraining where the run started, and that combination fails closed.
+    entry_point_source: str = "task"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -133,6 +138,7 @@ class Postcondition:
             "absence": self.absence.value,
             "coverage_anchor": self.coverage_anchor,
             "named_site": self.named_site,
+            "entry_point_source": self.entry_point_source,
         }
 
     @property

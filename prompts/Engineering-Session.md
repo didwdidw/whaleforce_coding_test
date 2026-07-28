@@ -1755,3 +1755,119 @@ EVAL_USD_PER_RUN 常數 $0.0042 被這一輪最貴的一題 $0.0048 超過了 �
 不要逐條複述，我會自己看 commit。
 
 ==========
+獨立審查回來了，它實跑了部署系統。結論：今天交 B（脆弱），照現有計畫做完 strong B，不是 A。
+卡住 A 的不微妙：七條 common requirements 有兩條是零，Task 1 點名的兩個機制有一個不存在。
+
+它抓到三件我們都漏掉的，兩件我已經驗證屬實。已寫成 Amendment 25
+（docs/task1-spec.md §16，A25.1–A25.6、A-73…A-76），commit d7f4991。
+Amendment 25 有明確的刪減清單和重排的順序 —— 順序本身就是這次的決定，請照它走。
+
+工作方式照上一封：一段做完就 commit 然後往下走，只有需要裁決 / 討論 / 我去 dashboard 才停。
+但 push 例外（A20.2）—— 不過第 1 步就是 push，見下。
+
+■ 一、L-1 公布的解法是假的，可重現（A25.1）—— 這條的傷害最大
+
+審查照 L-1 寫的「加上文章標題就會成功」實跑：
+「the List of S&P 500 companies article」→ /wiki/List_of_S%26P_500_companies_article
+→ unsupported / postcondition_unmet。
+wikipedia_article()（executor.py:1624）剝掉前置停用詞，沒剝尾巴的 noun，而且沒有任何東西驗證落地頁。
+
+規則：每一條 limitation 都必須對著「部署系統」實跑過才准公布，提交前再跑一次。A-73。
+一條無法照字面重現的 limitation 比沒有 limitation 更糟 ——
+它把這個專案最強的資產變成對它自己不利的證據。
+
+請把 limitations.py 每一條都實跑一遍，不只 L-1。
+
+■ 二、OP-7 寫死在單一商品，所以 support matrix 也是假的（A25.2）
+
+executor.py:1917 inputs={"title": "A Light in the Attic"}、:1935 選擇器
+h3 a[title='A Light in the Attic']。
+問 books.toscrape 上任何別的商品的標籤欄位 —— 那正是 OP-7 宣告的操作 —— 掉到 T-EXPERIMENTAL。
+
+我寫 A18.1 時說「紀錄是 site × operation，頁面是參數」，實作把參數凍住了，而我沒有去驗。
+後果比 tier 標籤嚴重得多：grader 自己的任務就算問的是我們支援的操作，
+大多也會落在 experimental 路徑上，而 headline declared rate 描述的是一個幾乎沒人踩到的表面。
+
+兩條路：紀錄對它的參數一般化（正確），或 support matrix 明寫它只對哪一個商品成立（誠實）。
+沉默兩者都不是。我要第一條，做不到才退第二條。A-74。
+
+OP-4 / OP-5 / OP-6 請一併檢查有沒有同樣的參數凍結。
+
+■ 三、活的靜默失敗：postcondition 沒有涵蓋任務問的每一個部分（A25.3）
+
+審查在部署上問「UPC and availability」，凍下來的 postcondition 是
+required_actions: [] 加一個無名 claim；驗了 UPC、默默丟掉 availability、回 succeeded_verified。
+
+S-5.2 本來就禁止把 partial 當成功呈現。一個空的 postcondition 就是那條禁令
+在沒有人寫下 partial 這個字的情況下被繞過的方式。
+
+規則：任務問了 n 個部分就產生 n 個 claim，否則是 partial。
+A13.2.3 允許這一層用「較弱的」postcondition，不允許「沒有」postcondition。A-75。
+這是 grader 的未見任務會落上的那一層，優先度高。
+
+■ 四、dev set 宣告的 oracle 一條都沒實作（A25.4）
+
+15 題每題都寫「harness 獨立抓取、套同樣排序鍵、比對」。
+check_evidence 只做重新雜湊 + 在 artifact 裡字串比對。
+r1 裡 OP-4 / OP-5 的 independently_checked 是 0
+（那些 "derived value (dict), which this scorer cannot re-derive" 的 note 就是它）。
+所以 S-10.10 的「verified-but-wrong = 0」在我們最強的兩個紀錄上目前無法被否證。
+
+這是 broken-instrument 家族第五個，也是第一個「方向樂觀」的。前四個都是把對的打成錯的。
+
+處理方式（我跟審查在這裡意見不同，照我的）：
+- OP-4 的 oracle「實作」，不要只揭露。抓表、套排序鍵、比第一列，很短，
+  而數字排序 vs 字典排序正是 DEV-02 那題的陷阱 —— 把最強的紀錄從無法否證變成可否證值得一小時。
+- 其餘每一題的 oracle 欄位改寫成「harness 實際做什麼」。
+- analysis report 裡明寫 OP-5 的正確性靠產品自己的 verifier，沒有獨立 ground truth。
+A-76。
+
+■ 五、刪掉的東西（A25.5）—— 每一條都要在 README 裡寫成一個決定
+
+- Task 2 全部停。docs/task2-seam.md 凍結成「設計完成但未建置的接縫」。
+- 花費上限 / 帳本 / 憑證拓樸全部停。總花費 USD 0.0477，它做完了而且做過頭了。這條是我的錯。
+- validation split 不跑。它的用途是在開發期間讓你保持誠實，開發結束了。
+  test split 對部署跑一次，validation 回報「未執行」並寫明理由。
+- MU-4/5/7/9 和 mutation sweep 不做。兩個能動的 mutation 加一次修復示範是證據，九個是研究計畫。
+- M6 只做一件：最小的 injection 偵測器讓 injection_detected 可達，或誠實宣告它沒建。不要做整套。
+- A24.5 的執行期 blocked 偵測降級成「順手才做」。我昨天說它是必須的，兩天期限下它不是這週被評的東西。
+
+■ 六、順序，順序本身就是決定（A25.6）
+
+之前每一版計畫都把 README 和 analysis report 排最後，每次都被擠掉。它們移到最前面：
+
+1. **先 push。** 十筆沒推，而線上的 support 頁現在還在賣不存在的 locator memory。
+   部署的系統必須是被審查的系統。這是第一步，不是最後一步。
+2. A25.1 —— 修 L-1，並把每一條 limitation 對著部署實跑。
+3. **README + analysis report。** 兩條共同要求是零分。量測都 commit 了，這是寫作不是工程。
+   我這邊「現在」就在寫骨架：設計決策、AI 協作、報告結構、所有「決策與理由」的段落。
+   你只要填量到的數字並確認我的技術描述沒失真。今天會給你。
+4. 計分器語料修好 + EXP-05 圍籬 → 重跑 dev r2（A24.1–A24.3）。
+5. A25.2 + A25.3 —— 承諾與 postcondition。這兩條決定 grader 自己的任務會發生什麼事。
+6. **最小 locator memory**（§8 縮減版）：volume 上一個以 (origin, operation, role) 為鍵的存放、
+   只從 succeeded_verified 寫回、TTL、連續三次失敗隔離、一個 health counter、
+   run 頁面顯示「來自記憶 / 現場推導 / 已修復」，加「一次」封存真實頁面 DOM 的修復示範（A14.6）。
+   self-maintenance 是作業點名的兩個機制之一。**存在、小、誠實地界定範圍，勝過不存在**，
+   而它現在的狀態是不存在。
+7. test split 對部署跑一次。
+
+■ 七、兩件審查點出、不在上面順序裡但要順手處理的
+
+- 首頁 run 列表 grader 第一眼看到的是十筆幾乎一樣的 fixture 搜尋
+  （"Search the fixture catalogue for lantern" ×8），全部標 T-EXPERIMENTAL，
+  四個承諾紀錄一個都沒在首頁被示範。這是 grader 形成第一印象的地方，很便宜就能修。
+- POST /api/runs 只吃 form encoding，JSON POST 回 422。grader 可能會用 curl。
+- A14.15 要的 prompts 索引沒建。也很便宜。
+
+■ 八、審查對機制的評價（給你參考，因為它是對的）
+
+它說 app/suspicion.py 是整個 repo 裡最令人印象深刻的檔案 ——
+因為它會拿「安靜的結果」去對照 reduction log，
+理由是「因為我們自己裁剪頁面而造成的棄權，跟誠實的棄權長得一樣」。
+它說那類思考「well above what this test normally gets」。
+robots 的 RFC 9309 實作加自己的 CI job、eval provenance、buildstate 從程式推導對外字串，
+也都被它列為「值得成本、保留」。
+
+問題不是機制不夠好，是 grader 會不會看到它。
+
+==========
