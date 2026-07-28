@@ -2026,3 +2026,99 @@ r2 的 experimental 留了 .inflight，下次啟動會拒絕 —— 那是對的
 - 累計花費 ~USD 0.20 / 上限 10。不是限制因素，照品質做。
 
 ==========
+第二次驗收：A26 判得對，canonical 那條比我要求的好，/detour 是整個 diff 最好的一段。
+但還不能凍：三項封鎖，其中兩項在剛寫好的那道閘門裡。
+
+═══ 封鎖
+
+V-1  app/verifier.py:264 —— 修好第 7 類的同時把第 1 類種回去了。
+
+     else:
+         checks.append(Check("artifact_source_matches_plan", True,
+                             {"source_url": ref.source_url, "scope": scope}))
+
+     scope is not None 時這個 check 無條件回報 True，沒有比對任何東西。
+     那就是你們自己 §5.4 表格第 1 列：「一個從未被評估過、卻被記錄為 satisfied 的約束」。
+     而且名字叫 ..._matches_plan，讀者會以為比對過了。
+     要嘛不 emit，要嘛 emit 成明確的 not-evaluated。
+     在一份論證「我們的檢查是真的」的提交裡，這個不能留。
+
+V-2  _how_the_landing_was_reached 在第一筆符合的 NAVIGATE 就 return，包含 return 失敗。
+
+     迴圈最後那個 return {"explained": False, ...} 在迴圈「內」。
+     只要 run 導向 target 兩次 —— recovery 換家族後重新導向、retry、離開後再回來 ——
+     第一筆沒有 chain 也沒有 canonical 就直接判死，第二筆永遠看不到。
+     recovery 重新導向正是這個系統設計上會做的事，不是理論路徑。
+     要掃完所有符合的 entry，全部無法交代才回 False。加一支測試鎖住
+     「第一次導向沒交代、第二次有」這個情境。
+
+D-1  防止數字過期的機器，旁邊擺著一個會過期的總數。
+
+     spend_ledger.py + --check 做得很好，三份文件也不再寫總數 ——
+     除了 README §7 和 report §3.3 / §6 都寫著 "under a tenth of a dollar"。
+     那就是寫在散文裡的總數。現在 billed 0.0798，
+     r3（dev+experimental ≈ 0.048）+ r4（test ≈ 0.02）之後直接穿過 0.10。
+     --check 抓不到散文。改成純粹連過去，或讓 --check 連這句一起管。
+
+═══ 裁決：A-14b —— 留，但收窄
+
+401/403/429 那半留著：免費、無啟發式、正確。
+
+可見 password 欄位那半不能當終止閘門。它驗的是 presence 不是 substitution ——
+頁面上有登入表單 ≠ 內容被牆擋住。而它會在 r3 計分 experimental split
+（全是沒看過的站）之前上線，一個誤判就把一筆本來可能 verified 的 run 變成 blocked，
+直接動到我們要公布的率。這是「一個回報巧合的檢查」，巧合是「password 欄位剛好在那頁上」。
+
+收窄成：password 規則只能把一個本來就要失敗的 run 改分類，不能終止一個還走得下去的 run。
+只在 run 已經要收在 locator_not_found / postcondition_unmet 時，
+才用它把終局改成 blocked / site_unavailable。
+這樣它只能往「修正錯誤歸因」的方向動，永遠不能製造新的失敗 ——
+而且 README 那句「without it these runs ended as locator_not_found」
+在收窄後才字面為真。
+
+blocked / site_unavailable 用在登入牆語意上勉強，但凍結前不加新 failure class。
+接受，訊息文字已有區分。
+
+EXP-08 你判對了：在 r3 要計分它之前換掉 split 的身分識別不划算。不用改。
+
+═══ 次要
+
+V-3  gate 1 的 reached 集合把 canonical_url 也算成「run 到過的 URL」，
+     而且沒有 gate 2 那層 same-origin + 只信 plan 目標頁的防護。
+     canonical 是不可信頁面的宣稱，不是 run 到過的地方。gate 2 守得乾淨，gate 1 漏了。
+     排除它或改名。今天不可獨立利用，但名字比它驗的東西寬。
+
+V-4  docstring 說 chain「begins at the target … hop by hop」，
+     程式只檢查 chain[-1]，沒驗連續性。改 docstring 或補檢查。
+     別讓註解宣稱超過程式碼。
+
+═══ 你問的兩個裁決
+
+docs/task1-spec.md:2384 的 USD 0.0477 —— 不准動。凍結文本就是凍結文本，
+那條紀律是我們整份提交在賣的東西之一。A26 我會寫一句：
+該數字在寫下時為真，總額以 ledger 為準。這正是 amendment 存在的理由。
+
+README 現在把 headline 定成 r2 —— 凍結檢查表加一條：
+§3 support matrix 和 §6 的數字必須從 r3 重新生成後才能出貨。
+現在 r2 的 OP-5「1 of 2」是 A26 剛修掉的那個閘門缺陷造成的，
+等於在公布一個已知方向錯誤的數字。r3 跑完會對，但不能忘。
+在 README 對應位置放一個 <!-- FROM-r3 --> 標記，我第三次驗收時對著標記檢查。
+
+═══ 核過、不要動
+
+.inflight 的答案完全正確，「不准刪」那段寫得比我問的好 ——
+把它從「殘留狀態」重新定義成「已花費未完成的紀錄」是對的。
+A26 的兩條斷言、canonical 的信任邊界、/detour、/soft-moved、
+spend ledger 的 --check、§5.4 第 7 列改寫成
+「發現 → 第一次修 → 前提是錯的 → A26」—— 全部通過。
+
+這句留著：
+  "a fix that merely stops it wobbling restores the appearance rather than the gate"
+
+═══ 流程
+
+改完仍然只 commit 不 push。回報後我做第三次驗收 —— 只看 V-1/V-2/V-3/V-4、
+D-1、A-14b 收窄、FROM-r3 標記這七項，不重掃全文。
+過了我就宣布 freeze SHA，你 push 一次，operator 才進 dashboard 跑 r3 → r4。
+
+==========
