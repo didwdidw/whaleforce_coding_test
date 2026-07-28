@@ -421,3 +421,53 @@ model不是一樣嗎
 後續可能會有多大的改動？
 
 ==========
+
+以下是 engineering session 的最新回覆
+請看他問了什麼問題，依序回答，生成一個我可以直接回他的 prompt：
+
+
+做完 A14.1／14.2／14.3 的量測、A14.7 前端機制證據、A14.8 具體限制清單。過程中量測工具本身抓到三個缺陷，其中一個很嚴重。
+
+「用 Wikipedia 的搜尋頁找 X」是用我們自己的 fixture 回答的
+
+no_result_verified。真的開了瀏覽器、真的搜尋、真的沒找到、證據包完整——搜的是我們自己寫的網站。那筆 run 唯一錯的是它在哪個站上。
+
+原因：named_site 只認 hostname。沒人在句子裡寫 en.wikipedia.org，都寫「Wikipedia」，所以一個指名真實站的任務看起來像沒指名任何站，而沒指名站的任務可以自由地掉進 fixture 的 route。
+
+修了兩層：站名用文字也認得；指名了非我們的站，就完全不提供任何站專屬操作。順帶把 robots 示範修對——它原本寫死拒絕 Special:WhatLinksHere，不管題目問的是哪一頁。現在拒絕的是題目真正要的那個 URL，DEV-13 收在 blocked / robots_disallowed 並引用實際命中的規則。
+
+之前那題「通過」是意外——當時本機沒跑 fixture，所以被 egress guard 擋掉了。缺陷一直都在。
+
+另外兩個，都是量測工具跑出來的
+
+佇列滿被拒的 run 永遠停在 queued。 有 terminal status、有結束時間、state 說還在等。API 把已結束的 run 回報成等待中，run 頁面會永遠輪詢一個不會到的狀態。
+
+模型回覆被輸出額度截斷 → 記成 internal_error。 那是我們自己的上限（每次呼叫的輸出額度和模型的 thinking token 共用），不是我們程式的缺陷，也不是模型違約。現在分開命名、放寬額度、截斷時重問一次並記錄重問過。
+
+XB-1 Mode B 之前只做在 fixture 上
+
+dev split 把它標成 T-DECLARED，實作只存在於我們自己寫的站——能力在，但在自己出題的那個站上。現在承諾站上也能證明不存在，覆蓋錨用清單自己的結果計數（A3.2 原文就是舉這個形式），否則單頁分類永遠證不出來。一個要你確認的決定：run 現在會說出自己找到哪幾筆，ver正確的「有，這兩本」從 verification_mismatch 變成succeeded_verified，也抓得到把述詞用反的 run。檢查沒 verifier 自己從 artifact重算的——但這是「成功狀態怎麼達成」的改動，你要退回我
+
+數字
+
+dev split（本機，git 77f9bd1）：declared 10/11 (0.90913/15、evidence findings 0。histogram
+{budget_exhausted: 1, none: 11, policy_refused: 2, ro
+延遲（A14.1，全部未快取）：model-driven 中位 4.75s / .14s，time-to-first-result 中位 4.57s。分 tier分路徑各報一組——混在一起的中位數哪一條都描述不了。擴充性（A14.2）：飽和點在第 5 個同時送出（設定容量 co 吻合）；持續吞吐 430runs/min（fixture、無模型呼叫），佇列等待中位 0.23s；ore，容器排程與拉映像是平台的，沒量）。model-driven 的25 rpm 標成推算不是觀測。
+
+A14.3 未宣告任務的拒絕率已經在 harness 裡按 attempt /efused 分開算，但樣本只有 dev 的 3
+筆——這個數字要有意義得等 A14.4。
+
+還修了一個假數字：run 頁的 wall clock 是渲染時 time.t 一次就變長。
+
+392 測試通過。commits 1ad0427…77f9bd1，已 push。
+
+需要你兩件事
+
+一、重新部署。 前端多了機制證據區（GS-1/2/3 + mutation
+目錄，明確分離於支援矩陣、不進任何成功率）、可重現的  去跑的任務 + 實測結果）、run 頁的 Timing
+區。線上跑的還是 73fc913。
+二、A14.4 的 experimental split 要你出題（8–10 條公開 任何承諾紀錄上的站）。harness 已經接好了：--splitexperimental 會跑並回報 attempt / verified / abstenti加 Wilson 區間。這條卡住之前，A14.3的數字沒有母體，A-40 也交不出來。
+
+接下來我往 M5 走（locator memory + mutation gate），A它的一部分。A15 照你說的等 test split 計分後再動。
+
+==========

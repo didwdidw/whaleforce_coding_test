@@ -1697,3 +1697,125 @@ MUST NOT carry two documents that both look binding.
   original filing and records the amendment relationship without substituting it (A16.3, A16.8).
 - [ ] **A-48** The resolution snapshots are stored and hashed, and an ambiguous company name returns
   a candidate set rather than a choice (A16.5).
+
+### Amendment 17 — A run's site is part of its claim; enumeration answers in both directions (2026-07-28)
+
+Extends **§4**, **§5.2**, **A3.1/A3.2**, **A7.6**, **A11.7**, **A13.5**, **A14.2**. Written after the
+M4 measurement work found a run that browsed a real browser, searched, found nothing, produced a
+complete evidence bundle, and returned `no_result_verified` — **on our own fixture, for a task that
+named Wikipedia**. Every part of that run was right except which site it was on. It is the exact
+silent failure S-1.4 ranks as the worst outcome the product can produce, and it survived because the
+gate that should have caught it passed for an unrelated reason.
+
+#### The site is part of the postcondition
+
+**A17.1** **A verified claim MUST be bound to the origin its evidence was collected from.** The
+origin of the stored artifact is frozen into the postcondition at plan time alongside the claim
+(S-4.12), and verification MUST fail when the artifact's origin is not the origin the task named.
+Fixing this in the router is necessary and is not sufficient: routing decides where a run *goes*,
+and §4 exists precisely because the thing that decides where a run went must not also be the thing
+that certifies it went there. A run that collected its evidence somewhere other than the named site
+is `failed / verification_mismatch`, never a success of any kind.
+
+**A17.2** **Site naming MUST be recognised by common name, not only by hostname**, and a task naming
+a site that is not ours MUST be offered **no** site-specific operation. A task that names no site
+MUST NOT fall through to the fixture: the fixture is reachable only when the task names it (A1.1).
+
+**A17.3** **A demonstration MUST be computed from the task it was given.** A policy refusal, a
+robots decision, or any other run-visible demonstration that targets a fixed URL regardless of the
+input is a fabricated result even when its outcome class happens to be correct. Every such decision
+records the URL it was actually evaluated against (A10.6).
+
+#### A pass that depends on something being broken is not a pass
+
+**A17.4** **Gate and eval runs MUST assert their own preconditions and fail loudly when one is
+absent.** The Wikipedia-answered-by-fixture case had been passing because the fixture was not
+running locally and the egress guard refused the request — the suite recorded a policy refusal and
+moved on. A case whose declared entry point is unreachable is an **error in the run of the suite**,
+reported as such, and MUST NOT be scored as a pass, a refusal, or an abstention.
+
+**A17.5** **A case's declared tier MUST reach the score as an independent reading.** `eval/dev-set.md`
+currently writes `record` and `tier` on one line, so the harness parses `tier` as empty and the only
+tier in the results is the one the run reported about itself. The case file's declaration and the
+run's self-report are two readings that exist to be compared; when they disagree that is a finding,
+and one of them silently not existing is how A17.1's defect stayed invisible.
+
+**A17.6** **A claim the verifier could not re-resolve against the stored artifact MUST NOT be counted
+as independently checked.** It is counted as unchecked and named in the run's evidence summary. Per
+A11.7 a run whose claims are all unchecked cannot be `succeeded_verified`. A count of checks that
+includes checks that did not happen is the same defect as a postcondition with no claims in it.
+
+#### Reported state is a function of recorded state
+
+**A17.7** **Every surface that reports a run's state MUST derive it from the recorded state, never
+compute it independently.** A run carrying a `terminal_status` is terminal on the API, in the HTML,
+and in the health endpoint simultaneously; there is no surface on which it is still queued. Every
+polling surface MUST have a terminal condition it is guaranteed to reach, and a value that is
+recomputed at render time (an elapsed wall clock that keeps growing after the run ended) is a
+fabricated number and is treated as one.
+
+#### Truncation is our limit, not a defect and not a model failure
+
+**A17.8** **`output_truncated` is added to the closed `failure_class` set in §5.2**, under the A14.11
+extension mechanism and without touching `terminal_status`. It names a reply cut off by *our own*
+per-call output cap, which the model's thinking tokens share. Recording it as `internal_error`
+misattributed our configuration to our code and inflated the one rate S-5.3 says is itself a finding.
+
+**A17.9** A truncation that is resolved by a **single** re-ask records the re-ask in the trace and
+sets no `failure_class`. The re-ask **counts against the run's LLM-call budget and against its cost**
+(A7.6) — a retry that is free in the accounting makes both budgets fiction. A second truncation on
+the same call terminates the step as `output_truncated`.
+
+**A17.10** **Raising the output cap invalidates the measured cost.** Output is charged at 6–8.3× input
+on this model family (A7.3), so the cap is a direct cost lever. The per-run cost range in the analysis
+report MUST be re-measured under the final cap, and the report states which cap it was measured at.
+
+#### Enumeration answers the question in both directions
+
+**A17.11** Extends **A3.1 Mode B**. A verified exhaustive enumeration answers a membership question
+in **both** directions: the run reports which members satisfy the predicate, and a correct positive
+answer reaches `succeeded_verified` rather than being forced into `verification_mismatch` for having
+found something. Approved, because a failure class that fires on correct behaviour is noise, and
+noise in a failure class is how real failures stop being read.
+
+**A17.12** Conditions, which are not optional — this is a **new way to reach a success status** and
+carries the same weight as the absence path:
+
+- The **predicate and the enumeration domain are frozen and hashed at plan time** (S-4.12), before
+  any member is seen. A predicate assembled after the results are in is not a postcondition.
+- **The coverage anchor is required in the positive direction too** (A3.2). "Yes, these two" is a
+  claim about the whole set — it asserts *exactly* two, not *at least* two. Without an anchor the
+  claim MUST be weakened to existence, reported as such in those words, and MUST NOT be presented as
+  a complete answer.
+- The **verifier re-derives the matching set from the stored artifact** independently of the run's
+  report. Disagreement in **either** direction — the verifier finds a member the run did not report,
+  or the run reports a member the verifier cannot re-locate — is `verification_mismatch`.
+- A run that applies the predicate **inverted** MUST be caught by that comparison. This is a test
+  case, not a hope.
+
+#### Numbers carry their qualifiers
+
+**A17.13** A measurement MUST be reported with the condition it was measured under, in the same
+place as the number. Sustained throughput measured on the fixture with no model calls in the loop is
+**not** system throughput and MUST NOT appear unqualified; a figure derived rather than observed is
+labelled as derived at the point of use, not in a footnote.
+
+**A17.14** **Cold start MUST be measured end to end from outside** (A8.5, A14.2): deploy to first
+successful request, wall clock, as a grader would experience it. That the platform owns container
+scheduling and image pull is a reason the number cannot be *decomposed*, not a reason it cannot be
+*taken*. One measurement at the next redeploy satisfies this.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-49** A task naming a real third-party site, run with the fixture reachable, does not
+  collect evidence from the fixture; and a run whose artifact origin differs from the named site is
+  rejected by the verifier, not only by the router (A17.1).
+- [ ] **A-50** A gate/eval case whose entry point is unreachable is reported as a suite error, not as
+  a pass, refusal, or abstention (A17.4).
+- [ ] **A-51** The harness results carry a non-empty `declared_tier` for every case, and a
+  disagreement between the case's declared tier and the run's reported tier is surfaced (A17.5).
+- [ ] **A-52** A queue-rejected run reads as terminal on the API, the run page, and the health
+  endpoint, and its displayed elapsed time stops when the run does (A17.7).
+- [ ] **A-53** A Mode B enumeration returns a verified positive answer with a cited coverage anchor,
+  and a deliberately predicate-inverted run over the same case is caught as
+  `verification_mismatch` (A17.11, A17.12).
