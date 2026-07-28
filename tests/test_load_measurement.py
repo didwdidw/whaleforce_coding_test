@@ -344,3 +344,26 @@ def test_a_missing_credential_is_not_re_checked_on_every_health_probe(monkeypatc
     monkeypatch.setattr(server, "_check_planner",
                         lambda: pytest.fail("re-validated a missing credential"))
     assert server._planner_status()["available"] is False
+
+
+def test_rebase_writes_where_it_was_asked_to(tmp_path):
+    """`--out` was accepted and ignored in rebase mode: the report went back over the input
+    file while the caller believed it was saved elsewhere. Three real measurements were
+    written to a scratch path and then deleted as leftovers."""
+    import eval.coldstart as coldstart
+
+    source = tmp_path / "pending.json"
+    source.write_text(json.dumps({
+        "provenance": {"tool": "coldstart/2.0"},
+        "cold_start": {"t0_epoch": 1000.0,
+                       "moments_epoch": {"first_response": 1010.0, "healthy": 1010.0,
+                                         "first_successful_task": 1012.0}},
+    }))
+    out = tmp_path / "kept" / "coldstart-deploy-abc123.json"
+
+    coldstart.main(["--rebase", str(source), "--t0", "900", "--out", str(out)])
+
+    assert out.is_file(), "the file must land where --out says"
+    saved = json.loads(out.read_text())["cold_start"]
+    assert saved["seconds_to_first_successful_task"] == 112.0
+    assert saved["rebased_from"]["shift_seconds"] == -100.0

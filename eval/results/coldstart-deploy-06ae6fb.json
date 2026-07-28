@@ -1,0 +1,35 @@
+{
+ "provenance": {
+  "tool": "coldstart/2.0",
+  "base_url": "https://wf-agent.zeabur.app",
+  "t0_epoch": null,
+  "started_at": "2026-07-28T13:07:14Z",
+  "finished_at": "2026-07-28T13:10:16Z"
+ },
+ "cold_start": {
+  "t0_origin": "the operator's deploy timestamp, applied after the fact (rebased)",
+  "t0_epoch": 1785244040.0,
+  "moments_epoch": {
+   "last_response_from_previous_build": 1785244192.667778,
+   "outage_started": 1785244193.852389,
+   "first_response": 1785244212.071965,
+   "healthy": 1785244212.071965,
+   "first_successful_task": 1785244216.000051
+  },
+  "baseline_git_sha": "38255777c6dc",
+  "new_git_sha": "06ae6fbc2eba",
+  "poll_seconds": 0.5,
+  "observations": 149,
+  "seconds_to_first_response": 172.07,
+  "seconds_to_healthy": 172.07,
+  "seconds_to_first_successful_task": 176.0,
+  "outage_seconds": 18.22,
+  "probe_task": "Search the fixture catalogue for lantern",
+  "probe_run_id": "run_bcb9c57a1293",
+  "measured_under": "a real redeploy of the live deployment, from a laptop over the public internet, including image pull, container scheduling and routing \u2014 none of which can be separated out from here",
+  "rebased_from": {
+   "t0_epoch": 1785244192.667778,
+   "shift_seconds": -152.67
+  }
+ }
+}

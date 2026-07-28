@@ -34,7 +34,7 @@ from eval.http_client import get_json, post_form
 
 IDLEPROBE_VERSION = "idleprobe/1.0"
 REPO = pathlib.Path(__file__).parent.parent
-DEFAULT_STATE = REPO / "eval" / "results" / "idle-mark.json"
+DEFAULT_STATE = REPO / "eval" / "state" / "idle-mark.json"
 #: Scripted and deterministic: a first-request latency that includes a model call measures
 #: the provider's queue as much as ours. Cold arrival is about the container waking up.
 PROBE_TASK = "Search the fixture catalogue for lantern"

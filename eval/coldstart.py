@@ -216,8 +216,14 @@ def main(argv: list[str] | None = None) -> int:
         if args.t0 is None:
             raise SystemExit("--rebase needs --t0 <epoch>, the moment deploy was pressed")
         rebased = rebase(json.loads(args.rebase.read_text(encoding="utf-8")), args.t0)
-        args.rebase.write_text(json.dumps(rebased, indent=1), encoding="utf-8")
+        # `--out` was accepted here and ignored, so the rebased report went back to the
+        # input file while the caller believed it had been written where they asked. Three
+        # measurements were saved to a scratch path and then deleted as leftovers.
+        out = args.out or args.rebase
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(rebased, indent=1), encoding="utf-8")
         print(json.dumps(rebased["cold_start"], indent=1))
+        print(f"\nwritten {out}")
         return 0
     if not args.base_url:
         raise SystemExit("--base-url is required")
