@@ -41,9 +41,9 @@ browser connected and idle, against an M0 local peak of 794 MiB under load. The 
 | Native + cloud agents | −477 | **measured** (M0, before k3s) |
 | k3s + platform agent | −300 to −500 | *estimated* — never isolated on this host |
 | App container (idle / peak) | −540 / −800 | **measured** (`/healthz` `browser.rss_mib`; M0 local peak) |
-| Scored container | −540 / −800 | *estimated* — same image and same browser as the row above, not yet observed |
+| Scored container (during a round) | −470 / −520 | **measured** — host `free -m` every 10 s across round r1: 1,795→2,266 MB at the round's start, peak 2,320 MB |
 | Fixture container (no browser) | −80 to −120 | *estimated* |
-| **Remaining** | **~1,300 idle / ~800 both peaking** | **follows from the rows above, three of which are estimates** |
+| **Remaining** | **~1,400 measured at the round's peak** | host `avail` bottomed at 1,457 MB with both browsers up |
 
 A17.13: the qualifier travels with the number. The ~800 MB worst case is acceptable, and a
 reader can see that some of its inputs are estimates rather than readings.
@@ -53,9 +53,16 @@ is also 1,987 MB of swap; the M0 pass condition was zero swap growth, so swap be
 during a round is a finding, not a relief. Run one round at a time and do not score while a
 load test is running.
 
-**`free -m` three times per round — before, during, after.** The pass condition is *zero
-swap growth*, and growth does not exist in a single reading. One number before the round is
-a baseline and nothing else.
+**Sample `free -m` every 10 s from 30 s before the restart to 5 minutes after the round.**
+The pass condition is *zero swap growth*, and growth does not exist in a single reading.
+Sampling beats three hand-taken points: the result file timestamps every case, so the split
+boundaries can be cut out of the series afterwards, and a reading taken at the wrong moment
+cannot be taken again. The five minutes after the round are the part that matters — whether
+the memory comes back is the real A9.7 question, not what the peak was.
+
+Round r1 measured this way: baseline 1,795 MB used, peak 2,320 MB, back to 1,836 MB within
+a minute of the round finishing and flat for the next five. Swap held at 102 MB throughout —
+no growth.
 
 **Config Editor, not an environment variable**: the billing key goes to `/etc/wf/gemini_paid_tier`,
 outside `/data` for the same reason the free-tier key is — `/data` is the root the evidence store
@@ -81,14 +88,24 @@ Clear `EVAL_DRY_RUN` and restart to score for real.
 
 ## The round is priced before the first case
 
-The daily ceiling is enforced before every provider call. **The ledger is in the store, the
-store is on the volume, and the volumes are separate — so this service and the public demo
-count independently** (A21.7). Two ceilings of $1.00 would be a system ceiling of $2.00, so
-they are not set per service: `SYSTEM_SPEND_CEILING_USD_PER_DAY` ($1.00) and
-`DEPLOYED_CEILING_SHARE` in `app/config.py` are one declaration, and each process derives
-its own share from it (A22.3) — **scored $0.75, public app $0.25**. Setting
-`PROVIDER_SPEND_CEILING_USD_PER_DAY` is refused at startup rather than ignored.
-`/healthz` reports this process's ceiling, this process's spend, and the system total.
+The ceilings are enforced before every provider call, **against billed dollars only**
+(A23.1). The ledger records what a free-tier call would have cost as well, labelled as
+notional; it is a price, not a charge, and enforcing against the sum of the two is how the
+public demo came to be on course for a `provider_quota` after spending nothing.
+
+**The ledger is in the store, the store is on the volume, and the volumes are separate — so
+this service and the public demo count independently** (A21.7). Two ceilings of $1.00 would
+be a system ceiling of $2.00, so they are not set per service: `SYSTEM_SPEND_CEILING_USD_PER_DAY`
+($2.00) and `DEPLOYED_CEILING_SHARE` in `app/config.py` are one declaration, and each process
+derives its own share from it (A22.3) — **scored $1.50, public app $0.50**. Above them sits
+the cumulative development ceiling, **$8.00, a hard stop** (A23.4): the owner's real limit is
+$10, and a ceiling exists to catch our own accounting being wrong, so it sits below the limit
+it protects. The public path's cumulative allowance is **$0.00 until the A15 switchover
+decides it** — grader traffic is outside this budget and must not be able to consume it.
+
+Setting `PROVIDER_SPEND_CEILING_USD_PER_DAY` or `PROVIDER_SPEND_CEILING_USD` is refused at
+startup rather than ignored. `/healthz` reports this process's ceilings, its billed and
+notional spend separately, and the system total.
 
 **Contention with the public demo is not a thing that can happen.** Under A12.2 the
 public-serving container holds no billing credential, so it is structurally incapable of
@@ -104,7 +121,7 @@ So the workload forecasts first and refuses whole:
 
 | Number | Where it comes from |
 |---|---|
-| Expected | cases × `EVAL_USD_PER_RUN` (measured: $0.0042, the most expensive dev case at `427cd96`; the mean was $0.0020) × `EVAL_COST_SAFETY_FACTOR` (1.5) |
+| Expected | cases × `EVAL_USD_PER_RUN` (measured: $0.0042, the most expensive dev case at `427cd96`; the mean was $0.0020) × `EVAL_COST_SAFETY_FACTOR` (1.5). Round r1 across 25 deployed cases came in at a mean of **$0.0019** and a maximum of **$0.0048** — the constant is the old maximum and the tail has since passed it, which is what the safety factor is for. |
 | Worst case | cases × the per-run token budget priced out — $0.039 at the current budgets and prices |
 | Remaining | today's ceiling minus today's spend, and the cumulative ceiling minus cumulative spend, whichever is smaller |
 

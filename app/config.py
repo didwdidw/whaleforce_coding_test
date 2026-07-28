@@ -155,8 +155,27 @@ class BrowserPolicy:
     launch_args: tuple[str, ...] = ("--disable-dev-shm-usage", "--no-sandbox")
 
 
-#: A22.1 — the daily spend this project promises, for the system and not for a process.
-SYSTEM_SPEND_CEILING_USD_PER_DAY = _float("PROVIDER_SYSTEM_SPEND_CEILING_USD_PER_DAY", 1.0)
+#: A22.1/A23.4 — the daily spend this project promises, for the system and not for a
+#: process. It is a backstop against a loop that runs away, not an allowance: at the
+#: measured $0.051 a round it permits far more rounds in a day than any day needs, which is
+#: the property that keeps it from turning into a quota somebody plans against.
+SYSTEM_SPEND_CEILING_USD_PER_DAY = _float("PROVIDER_SYSTEM_SPEND_CEILING_USD_PER_DAY", 2.00)
+
+#: A23.3/A23.4 — the owner authorised USD 10 to build this system. The hard stop sits
+#: *below* that, because a ceiling exists to catch our own accounting being wrong and one
+#: placed on the limit it protects catches nothing.
+CUMULATIVE_DEVELOPMENT_CEILING_USD = _float("PROVIDER_CUMULATIVE_CEILING_USD", 8.00)
+
+#: Per policy. `public_demo` is zero and that is not an oversight: its cumulative allowance
+#: is decided at the A15 switchover, and until then the public path is authorised to spend
+#: no billed money — which is also exactly what A12.2's topology gives it, since that
+#: container holds no billing credential. Leaving it on the development number would let
+#: grader traffic, which the owner put outside this budget, consume the budget.
+CUMULATIVE_CEILING_USD = {
+    "scored": CUMULATIVE_DEVELOPMENT_CEILING_USD,
+    "development": CUMULATIVE_DEVELOPMENT_CEILING_USD,
+    "public_demo": 0.0,
+}
 
 #: A22.2/A22.3 — how that total is divided, declared once. Neither deployed process can
 #: read the other's ledger, so two ceilings set independently would drift with nothing able
@@ -171,12 +190,32 @@ if abs(sum(DEPLOYED_CEILING_SHARE.values()) - 1.0) > 1e-9:
         f"The system's daily ceiling is what this project promises (A22.1); a split that "
         f"does not add up to it is a raise nobody authorised.")
 
-if os.environ.get("PROVIDER_SPEND_CEILING_USD_PER_DAY"):
-    raise RuntimeError(
-        "PROVIDER_SPEND_CEILING_USD_PER_DAY is set, and it no longer does anything. Each "
-        "process's daily ceiling is derived from its share of the system total (A22.3); "
-        "setting it per service is how the two drifted apart in the first place. Use "
-        "PROVIDER_SYSTEM_SPEND_CEILING_USD_PER_DAY to move the total.")
+for _retired, _instead in (("PROVIDER_SPEND_CEILING_USD_PER_DAY",
+                            "PROVIDER_SYSTEM_SPEND_CEILING_USD_PER_DAY"),
+                           ("PROVIDER_SPEND_CEILING_USD",
+                            "PROVIDER_CUMULATIVE_CEILING_USD")):
+    if os.environ.get(_retired):
+        raise RuntimeError(
+            f"{_retired} is set, and it no longer does anything. Ceilings are derived from "
+            f"one declaration per process (A22.3, A23.4); setting them per service is how "
+            f"they drifted apart in the first place. Use {_instead} to move the number, and "
+            f"unset {_retired} rather than leaving a value that reads as if it applies.")
+
+
+def daily_ceiling_usd(credential_policy: str) -> float:
+    """A22.3 — derived from the system total, never configured per process."""
+    share = DEPLOYED_CEILING_SHARE.get(credential_policy, 1.0)
+    return round(SYSTEM_SPEND_CEILING_USD_PER_DAY * share, 6)
+
+
+def cumulative_ceiling_usd(credential_policy: str) -> float:
+    """A23.4 — the hard stop in billed dollars.
+
+    Both ceilings are a property of the *policy a call runs under*, not of the process's
+    default: a development run inside a service configured for the public demo is spending
+    development money and has to be checked against the development ceiling.
+    """
+    return CUMULATIVE_CEILING_USD.get(credential_policy, CUMULATIVE_DEVELOPMENT_CEILING_USD)
 
 
 @dataclass(frozen=True)
@@ -217,11 +256,6 @@ class ProviderPolicy:
     thinking_level: str = field(default_factory=lambda: _str("LLM_THINKING_LEVEL", "low"))
     temperature: float = field(default_factory=lambda: _float("LLM_TEMPERATURE", 0.0))
     json_mode: bool = field(default_factory=lambda: _bool("LLM_JSON_MODE", True))
-
-    #: A8.10's self-approval ceiling, made enforceable. Cumulative across the life of the
-    #: store; the daily figure is the operational guard underneath it.
-    spend_ceiling_usd: float = field(
-        default_factory=lambda: _float("PROVIDER_SPEND_CEILING_USD", 5.0))
 
     #: Which credentials a run may use. The deployed demo is free-tier only.
     credential_policy: str = field(
@@ -272,7 +306,19 @@ class ProviderPolicy:
     @property
     def spend_ceiling_usd_per_day(self) -> float:
         """Derived, never configured per process (A22.3)."""
-        return round(SYSTEM_SPEND_CEILING_USD_PER_DAY * self.ceiling_share_of_system, 6)
+        return daily_ceiling_usd(self.credential_policy)
+
+    @property
+    def spend_ceiling_usd(self) -> float:
+        """The cumulative hard stop, in billed dollars (A23.4). The primary control: when
+        it and the daily figure disagree, the smaller one binds (A23.5)."""
+        return cumulative_ceiling_usd(self.credential_policy)
+
+    @property
+    def billed_spend_authorised(self) -> bool:
+        """Whether this process may spend money at all. False for the public path until the
+        A15 switchover decides its own number."""
+        return self.spend_ceiling_usd > 0
 
 
 @dataclass(frozen=True)

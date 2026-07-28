@@ -139,8 +139,10 @@ def test_no_name_can_leave_the_results_directory(results_dir, name):
 # ---- a round is priced before the first case, not discovered at the fourteenth ----
 
 def _spend(today: float, cumulative: float | None = None) -> dict:
-    return {"today_usd": today, "cumulative_usd": cumulative if cumulative is not None
-            else today}
+    """Billed dollars. The forecast prices a paid round, and A23.1 removed the combined
+    figure it used to read — a total that also counted free-tier calls."""
+    return {"today_billed_usd": today,
+            "cumulative_billed_usd": cumulative if cumulative is not None else today}
 
 
 @pytest.fixture(autouse=True)
@@ -244,8 +246,7 @@ def _staged(monkeypatch, calls, report=None):
                             "wait": lambda self, timeout=None: None})())
     monkeypatch.setattr(scored_workload, "wait_until_healthy",
                         lambda base, deadline: {"ok": True, "git_sha": "abc123",
-                                                "provider_spend": {"today_usd": 0.0,
-                                                                   "cumulative_usd": 0.0}})
+                                                "provider_spend": _spend(0.0)})
     monkeypatch.setattr(scored_workload, "run_split",
                         lambda *a, **k: calls.append(a) or (
                             report or {"aggregate": {}, "provenance": {}}))
@@ -294,7 +295,8 @@ def test_a_restart_does_not_re_run_a_split_that_already_has_a_result(results_dir
                             "send_signal": lambda self, s: None,
                             "wait": lambda self, timeout=None: None})())
     monkeypatch.setattr(scored_workload, "wait_until_healthy",
-                        lambda base, deadline: {"ok": True, "git_sha": "abc123"})
+                        lambda base, deadline: {"ok": True, "git_sha": "abc123",
+                                                "provider_spend": _spend(0.0)})
     monkeypatch.setattr(scored_workload, "run_split",
                         lambda *a, **k: calls.append(a) or {"aggregate": {}})
 
@@ -319,7 +321,7 @@ def test_a_redeploy_cannot_start_a_fresh_paid_round(results_dir, monkeypatch):
 
     monkeypatch.setattr(scored_workload, "wait_until_healthy",
                         lambda base, deadline: {"ok": True, "git_sha": "def456",
-                                                "provider_spend": {}})
+                                                "provider_spend": _spend(0.0)})
     scored_workload.run(["dev"], port=8080, round_id="1", force=False, deadline=1.0,
                         startup_deadline=1.0, idle=False)
     assert len(calls) == 1, "the same round number on a new commit is still the same round"
@@ -431,7 +433,7 @@ def test_the_two_ceilings_come_from_one_declaration_and_add_up_to_the_promise():
         for policy in config.DEPLOYED_CEILING_SHARE
     ]
     assert sum(per_process) == pytest.approx(total)
-    assert total == pytest.approx(1.0)
+    assert total == pytest.approx(2.0)
 
 
 def test_the_old_per_service_ceiling_variable_is_refused_rather_than_ignored(monkeypatch):
@@ -454,7 +456,7 @@ def test_a_health_endpoint_shows_the_system_total_not_only_its_own_share():
     from app.provider import Provider
 
     state = Provider(ledger=None).spend_state()
-    assert state["system_ceiling_usd_per_day"] == pytest.approx(1.0)
+    assert state["system_ceiling_usd_per_day"] == pytest.approx(2.0)
     assert state["ceiling_usd_per_day"] < state["system_ceiling_usd_per_day"]
     assert state["system_split"]["scored"] + state["system_split"]["public_demo"] == 1.0
     assert state["credential_policy"]

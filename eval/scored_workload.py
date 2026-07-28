@@ -156,8 +156,13 @@ def forecast(splits: list[str], spend: dict[str, Any]) -> dict[str, Any]:
 
     ceiling_day = settings.provider.spend_ceiling_usd_per_day
     ceiling_total = settings.provider.spend_ceiling_usd
-    remaining_today = max(0.0, ceiling_day - float(spend.get("today_usd") or 0.0))
-    remaining_total = max(0.0, ceiling_total - float(spend.get("cumulative_usd") or 0.0))
+    # Billed dollars, not the priced-out total (A23.1). Read strictly: a missing key here
+    # would silently report the whole ceiling as remaining, which is the direction that
+    # spends money.
+    remaining_today = max(0.0, ceiling_day - float(spend["today_billed_usd"]))
+    remaining_total = max(0.0, ceiling_total - float(spend["cumulative_billed_usd"]))
+    # A23.5: the cumulative ceiling is the primary control and the daily one is secondary,
+    # which in practice means whichever is nearer binds.
     remaining = min(remaining_today, remaining_total)
 
     expected = known * USD_PER_RUN * SAFETY_FACTOR
@@ -345,7 +350,13 @@ def run(splits: list[str], *, port: int, round_id: str, force: bool,
         health = wait_until_healthy(base, startup_deadline)
         git_sha = (health.get("git_sha") or "unknown")[:12]
         settings.eval_results_dir.mkdir(parents=True, exist_ok=True)
-        plan = forecast(splits, health.get("provider_spend") or {})
+        spend = health.get("provider_spend") or {}
+        if "today_billed_usd" not in spend:
+            _refuse("the health endpoint did not report billed spend, so the round cannot "
+                    "be priced against what is left of the budget. An older build reported "
+                    "one combined figure; pricing a paid round against a total that also "
+                    "counts free-tier calls is what A23.1 removed.")
+        plan = forecast(splits, spend)
         print(f"[{WORKLOAD_VERSION}] round r{round_id} on {git_sha}: "
               f"{json.dumps(plan, indent=1)}")
         if dry_run:

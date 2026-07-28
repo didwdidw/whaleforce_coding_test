@@ -34,6 +34,11 @@ log = logging.getLogger(__name__)
 def _utc_day() -> str:
     return time.strftime("%Y-%m-%d", time.gmtime())
 
+
+#: Which credential tiers cost money (A23.1). Everything else is priced for reporting and
+#: is not spend — the ledger records both, and only this set is enforced against.
+BILLED_TIERS = ("paid",)
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs (
     id                 TEXT PRIMARY KEY,
@@ -428,24 +433,53 @@ class Store:
         self._conn.commit()
 
     def spend(self, *, day: str | None = None) -> dict[str, Any]:
-        """Today's spend and the running total. Both matter: the daily figure is the
-        operational guard, the cumulative one is what A8.10's ceiling is written against."""
+        """Two totals that are not interchangeable (A23.1).
+
+        **Billed** is money: calls charged on a paid credential. **Notional** prices free-tier
+        calls at the same published rates — what the free path would have cost, which is the
+        honest way to price it before A15 and not a figure a ceiling may be enforced against.
+
+        There is deliberately no combined total in this return value. One existed, the
+        ceiling was checked against it, and the public container — which holds no billing
+        credential at all — was on course to refuse work as `provider_quota` after spending
+        nothing. A single key that means "either kind of dollar" is what made that possible.
+        """
         day = day or _utc_day()
-        today = self._conn.execute(
-            "SELECT COALESCE(SUM(usd),0) u, COALESCE(SUM(calls),0) c FROM provider_spend "
-            "WHERE day = ?", (day,)).fetchone()
-        total = self._conn.execute(
-            "SELECT COALESCE(SUM(usd),0) u, COALESCE(SUM(calls),0) c FROM provider_spend"
-        ).fetchone()
+        rows = [dict(r) for r in self._conn.execute(
+            "SELECT day, tier, SUM(usd) usd, SUM(calls) calls FROM provider_spend "
+            "GROUP BY day, tier")]
+
+        def total(today_only: bool, billed: bool) -> tuple[float, int]:
+            picked = [r for r in rows
+                      if (r["tier"] in BILLED_TIERS) == billed
+                      and (r["day"] == day or not today_only)]
+            return (round(sum(r["usd"] for r in picked), 6),
+                    sum(int(r["calls"]) for r in picked))
+
+        today_billed, today_billed_calls = total(True, True)
+        today_notional, today_notional_calls = total(True, False)
+        cum_billed, cum_billed_calls = total(False, True)
+        cum_notional, cum_notional_calls = total(False, False)
         by_tier = {r["tier"]: round(r["usd"], 6) for r in self._conn.execute(
             "SELECT tier, SUM(usd) usd FROM provider_spend GROUP BY tier")}
         return {
             "day": day,
-            "today_usd": round(today["u"], 6),
-            "today_calls": int(today["c"]),
-            "cumulative_usd": round(total["u"], 6),
-            "cumulative_calls": int(total["c"]),
+            "today_billed_usd": today_billed,
+            "today_billed_calls": today_billed_calls,
+            "today_notional_usd": today_notional,
+            "today_notional_calls": today_notional_calls,
+            "cumulative_billed_usd": cum_billed,
+            "cumulative_billed_calls": cum_billed_calls,
+            "cumulative_notional_usd": cum_notional,
+            "cumulative_notional_calls": cum_notional_calls,
             "by_tier_usd": by_tier,
+            "billed_tiers": list(BILLED_TIERS),
+            "meaning": {
+                "billed": "money actually charged, on a paid credential. Ceilings enforce "
+                          "against this and cost figures are reported from it.",
+                "notional": "free-tier calls priced at the same published rates. Cost that "
+                            "was not charged; never enforced against (A23.1, A23.2).",
+            },
         }
 
     # ---- artifacts -------------------------------------------------------------

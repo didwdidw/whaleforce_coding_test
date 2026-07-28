@@ -218,17 +218,17 @@ def test_the_spend_ceiling_refuses_before_the_call_not_after(tmp_path, monkeypat
 
     monkeypatch.setenv("REQUIRE_PERSISTENT_STORE", "false")
     store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
-    store.record_spend("paid", 6.0, 1000, 100)          # already over the USD 5 ceiling
+    store.record_spend("paid", 9.0, 1000, 100)          # over the USD 8 cumulative ceiling
 
     provider = Provider(policy=CredentialPolicy.DEVELOPMENT, ledger=store)
     with pytest.raises(ProviderQuotaExhausted) as exc:
         provider.complete("anything", budget=RunBudget(), purpose="exploration")
 
     assert exc.value.failure_class is FailureClass.PROVIDER_QUOTA
-    assert "self-approval limit" in str(exc.value)
+    assert "cumulative billed spend ceiling" in str(exc.value)
     # ...and the state that decided it survives a restart, because it is on disk.
     assert Store(tmp_path / "runs.sqlite3",
-                 tmp_path / "artifacts").spend()["cumulative_usd"] == 6.0
+                 tmp_path / "artifacts").spend()["cumulative_billed_usd"] == 9.0
 
 
 def test_the_daily_ceiling_is_separate_from_the_cumulative_one(tmp_path, monkeypatch):
@@ -237,12 +237,118 @@ def test_the_daily_ceiling_is_separate_from_the_cumulative_one(tmp_path, monkeyp
 
     monkeypatch.setenv("REQUIRE_PERSISTENT_STORE", "false")
     store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
-    store.record_spend("paid", 1.5, 1000, 100)          # under USD 5, over the daily USD 1
+    store.record_spend("paid", 3.0, 1000, 100)      # under the USD 8 total, over the daily
 
     provider = Provider(policy=CredentialPolicy.DEVELOPMENT, ledger=store)
     with pytest.raises(ProviderQuotaExhausted) as exc:
         provider.complete("anything", budget=RunBudget(), purpose="exploration")
-    assert "Today's provider spend ceiling" in str(exc.value)
+    assert "Today's billed spend ceiling" in str(exc.value)
+
+
+# --- A23.1 / A-68: the ceiling measures money, and free-tier calls are not money ------
+
+def test_free_tier_calls_do_not_consume_the_billed_ceiling(tmp_path, monkeypatch):
+    """The ledger priced free-tier calls and the gate checked the priced total, so the
+    public demo was on course to refuse work as `provider_quota` having spent nothing —
+    a terminal status that looks entirely normal and describes an event that did not
+    happen."""
+    from app.store import Store
+
+    monkeypatch.setenv("REQUIRE_PERSISTENT_STORE", "false")
+    store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
+    store.record_spend("free", 40.0, 100000, 10000)     # far over every ceiling, in cost
+
+    spend = store.spend()
+    assert spend["cumulative_billed_usd"] == 0.0        # because none of it was charged
+    assert spend["cumulative_notional_usd"] == 40.0     # and it is still on the record
+
+    provider = Provider(policy=CredentialPolicy.PUBLIC_DEMO, ledger=store)
+    # No refusal: nothing has been spent. The call fails for want of a key in this
+    # environment, which is a different sentence from "the ceiling has been reached".
+    provider._check_spend()
+
+
+def test_the_public_path_may_not_spend_billed_money_before_the_a15_switchover():
+    """A23.4 leaves the public cumulative allowance to be decided at the switchover. Until
+    it is decided the answer is zero, not the development budget — grader traffic is
+    outside this budget and must not be able to consume it."""
+    from app.config import cumulative_ceiling_usd
+
+    assert cumulative_ceiling_usd("public_demo") == 0.0
+    assert cumulative_ceiling_usd("scored") == cumulative_ceiling_usd("development") == 8.0
+
+
+def test_a_paid_credential_reachable_from_the_public_policy_is_refused(tmp_path,
+                                                                      monkeypatch):
+    """Defence in depth for A12.2. The topology should make this impossible; if it ever
+    stops being impossible, the refusal is cheaper than the invoice."""
+    from app.provider import CredentialTier, ProviderQuotaExhausted
+    from app.store import Store
+
+    monkeypatch.setenv("REQUIRE_PERSISTENT_STORE", "false")
+    store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
+    provider = Provider(policy=CredentialPolicy.PUBLIC_DEMO, ledger=store)
+    monkeypatch.setattr(provider, "available_tiers",
+                        lambda: [CredentialTier.FREE, CredentialTier.PAID])
+    with pytest.raises(ProviderQuotaExhausted) as exc:
+        provider._check_spend()
+    assert "no authorised cumulative spend" in str(exc.value)
+
+
+def test_what_still_bounds_the_public_path_once_the_usd_gate_stops_binding(tmp_path,
+                                                                          monkeypatch):
+    """A23.2's third condition. The USD ceiling was accidentally acting as a request
+    limiter for a path that spends nothing; removing that is only safe if the bounds that
+    were supposed to be doing the work are actually there. Removing one gate without
+    confirming the rest is A21.5's defect pointed the other way, so this asserts each of
+    the three by exercising it rather than by reading the configuration.
+    """
+    from app.models import FailureClass
+    from app.provider import ProviderQuotaExhausted
+    from app.store import Store
+
+    monkeypatch.setenv("REQUIRE_PERSISTENT_STORE", "false")
+    store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
+
+    # 1. The free tier's own limit still ends a run honestly (A15.2). Raised from the
+    #    adapter's own classifier, so a provider 429 cannot arrive as anything else.
+    exhausted = _classify(RuntimeError("429 RESOURCE_EXHAUSTED: quota exceeded"))
+    assert isinstance(exhausted, ProviderQuotaExhausted)
+    assert exhausted.failure_class is FailureClass.PROVIDER_QUOTA
+
+    provider = Provider(policy=CredentialPolicy.PUBLIC_DEMO, ledger=store)
+    monkeypatch.setattr(provider, "key_for", lambda tier: "k")
+    monkeypatch.setattr(provider, "_call",
+                        lambda *a, **k: (_ for _ in ()).throw(exhausted))
+    with pytest.raises(ProviderQuotaExhausted) as refused:
+        provider.complete("anything", budget=RunBudget(), purpose="exploration")
+    assert "does not fall back to billed credentials" in str(refused.value)
+
+    # 2 and 3. The session cap and the queue depth, which are what actually bound how much
+    #    work one visitor and all visitors can ask for (S-11.8, S-11.12).
+    assert settings.queue.session_run_cap > 0
+    assert settings.queue.depth > 0 and settings.queue.concurrency > 0
+
+
+def test_the_health_endpoint_says_which_dollars_are_money(tmp_path, monkeypatch):
+    """A23.2: both figures are reported and each says which it is. One key meaning either
+    kind of dollar is what let the gate measure something it was not measuring."""
+    from app.store import Store
+
+    monkeypatch.setenv("REQUIRE_PERSISTENT_STORE", "false")
+    store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
+    store.record_spend("free", 0.5, 1000, 100)
+    store.record_spend("paid", 0.25, 1000, 100)
+
+    state = Provider(policy=CredentialPolicy.SCORED, ledger=store).spend_state()
+    assert state["today_billed_usd"] == 0.25
+    assert state["today_notional_usd"] == 0.5
+    assert state["enforced_against"] == "billed"
+    assert "money" in state["meaning"]["billed"]
+    assert "not charged" in state["meaning"]["notional"]
+    # No combined total: a reader cannot mistake one kind of dollar for the other if the
+    # sum of the two is not offered as a number.
+    assert "today_usd" not in state and "cumulative_usd" not in state
 
 
 # --- a cut-off reply is not a broken contract (A14.8's DEV-11 entry) -----------------

@@ -27,7 +27,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from app.config import DEPLOYED_CEILING_SHARE, settings
+from app.config import (
+    DEPLOYED_CEILING_SHARE, cumulative_ceiling_usd, daily_ceiling_usd, settings,
+)
 from app.models import FailureClass
 
 log = logging.getLogger(__name__)
@@ -256,6 +258,15 @@ class Provider:
     def configured(self) -> bool:
         return any(self.key_for(t) for t in self.available_tiers())
 
+    def ceilings(self) -> tuple[float, float]:
+        """(cumulative, daily) for the policy this provider runs under, in billed dollars.
+
+        Keyed on the policy rather than on the process's configured default: what a call may
+        spend follows from what the call is for.
+        """
+        return (cumulative_ceiling_usd(self.policy.value),
+                daily_ceiling_usd(self.policy.value))
+
     # ---- startup ---------------------------------------------------------------
 
     def validate_or_die(self) -> dict[str, Any]:
@@ -365,24 +376,40 @@ class Provider:
             f"in {settings.provider.key_dir} or {settings.provider.repo_key_dir}.")
 
     def _check_spend(self) -> None:
-        """Refuse before the call, not after. A ceiling checked afterwards is a report."""
+        """Refuse before the call, not after. A ceiling checked afterwards is a report.
+
+        Enforced against **billed** dollars only (A23.1). Free-tier calls are priced and
+        recorded, and pricing something is not charging for it: checked against the combined
+        total, this gate would stop the public demo — which cannot spend money at all — with
+        a `provider_quota` that describes an event that never happened.
+        """
         if self.ledger is None:
             return
         spend = self.ledger.spend()
-        p = settings.provider
-        if spend["cumulative_usd"] >= p.spend_ceiling_usd:
+        cumulative, daily = self.ceilings()
+        if cumulative <= 0 and CredentialTier.PAID in self.available_tiers():
+            # A billing credential reachable from a policy with no cumulative allowance.
+            # Under A12.2 this should be impossible; if it happens, refusing is cheaper than
+            # discovering it on an invoice.
             raise ProviderQuotaExhausted(
-                f"The cumulative provider spend ceiling of ${p.spend_ceiling_usd:.2f} has "
-                f"been reached (${spend['cumulative_usd']:.4f} spent over "
-                f"{spend['cumulative_calls']} calls). This is A8.10's self-approval limit "
+                f"The {self.policy.value} policy has no authorised cumulative spend, and a "
+                f"paid credential is reachable from here. Its allowance is set at the A15 "
+                f"switchover; until then this policy may not spend billed money.",
+                detail={"ceiling": "cumulative", **spend})
+        if cumulative > 0 and spend["cumulative_billed_usd"] >= cumulative:
+            raise ProviderQuotaExhausted(
+                f"The cumulative billed spend ceiling of ${cumulative:.2f} has been reached "
+                f"(${spend['cumulative_billed_usd']:.4f} charged over "
+                f"{spend['cumulative_billed_calls']} calls). This is the development budget "
                 f"enforced at runtime rather than remembered; raising it is a decision, not "
                 f"a configuration change.",
                 detail={"ceiling": "cumulative", **spend})
-        if spend["today_usd"] >= p.spend_ceiling_usd_per_day:
+        if spend["today_billed_usd"] >= daily:
             raise ProviderQuotaExhausted(
-                f"Today's provider spend ceiling of ${p.spend_ceiling_usd_per_day:.2f} has "
-                f"been reached (${spend['today_usd']:.4f} over {spend['today_calls']} "
-                f"calls). The run stops here rather than continuing to spend.",
+                f"Today's billed spend ceiling of ${daily:.2f} has been reached "
+                f"(${spend['today_billed_usd']:.4f} charged over "
+                f"{spend['today_billed_calls']} calls). The run stops here rather than "
+                f"continuing to spend.",
                 detail={"ceiling": "daily", **spend})
 
     def _record_spend(self, completion: Completion) -> None:
@@ -395,23 +422,27 @@ class Provider:
     def spend_state(self) -> dict[str, Any]:
         p = settings.provider
         spend = self.ledger.spend() if self.ledger is not None else {}
+        cumulative, daily = self.ceilings()
         return {
             **spend,
-            "ceiling_usd": p.spend_ceiling_usd,
-            "ceiling_usd_per_day": p.spend_ceiling_usd_per_day,
+            "ceiling_usd": cumulative,
+            "ceiling_usd_per_day": daily,
+            # A23.2: both figures are reported and each says which it is. The ceilings are
+            # billed-only; the notional total is what the free tier would have cost.
+            "enforced_against": "billed",
+            "billed_spend_authorised": cumulative > 0,
             # A22.4: the promise is a system number, and the two processes that divide it
             # cannot see each other's ledger. A reader who has to add up two services to
             # find the number we promised is not being shown the promise.
-            "credential_policy": p.credential_policy,
-            "share_of_system": p.ceiling_share_of_system,
+            "credential_policy": self.policy.value,
+            "share_of_system": DEPLOYED_CEILING_SHARE.get(self.policy.value, 1.0),
             "system_ceiling_usd_per_day": p.system_spend_ceiling_usd_per_day,
             "system_split": dict(DEPLOYED_CEILING_SHARE),
             "enforced": self.ledger is not None,
-            "note": ("Checked before every call. A8.10's ceiling was a number held in "
-                     "someone's head until this existed; exceeding it is a refusal, not a "
-                     "warning. This process's own spend is what appears above; the system "
-                     "total is the sum across the split, and no process can read the "
-                     "other's ledger."),
+            "note": ("Checked before every call, against billed dollars only. Exceeding it "
+                     "is a refusal, not a warning. This process's own spend is what appears "
+                     "above; the system total is the sum across the split, and no process "
+                     "can read the other's ledger."),
         }
 
     def _call(self, prompt: str, key: str, tier: CredentialTier,
