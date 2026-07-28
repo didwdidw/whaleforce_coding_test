@@ -1208,3 +1208,11 @@ PROVIDER_SPEND_CEILING_USD_PER_DAY 預設 $1.00，ledger 跟公開 demo 共用�
 我要 push 了，起 watcher
 
 ==========
+
+push 吧。我這邊的時間是
+ubuntu@VM-20-55-ubuntu:~$ date -u +'%s  |  %Y-%m-%dT%H:%M:%SZ'
+1785242630  |  2026-07-28T12:43:50Z
+
+推完跟我說一聲，我要接著建 scored 服務——那個也是同一個 repo，你一 push 它也會跟著重新部署，所以我等你收完窗再開始。
+
+==========
