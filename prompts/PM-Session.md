@@ -582,3 +582,12 @@ runtime log 有 error, 正在請 engineer 查
 redeploy EVAL_DRY_RUN=1 的 service 之後的瞬間嗎
 
 ==========
+
+my bad
+here is the new update
+and we are doing the dry run test now
+so what about just wait after the test?
+
+（ENG 更新摘要：Amendment 21 已寫入 spec — A21.1 scored 掛自己的 volume、A21.2 一輪的結果檔要 commit 進 eval/results/、A21.3 /api/eval-results 服務 repo ∪ volume 聯集、A21.4 計分輪 evidence bundle 網頁點不到列為 limitation、A21.5「用別的行程的副作用滿足的前置檢查不是前置檢查」、A21.6 記下兩條否決的路、A-63…A-65。A21.7 為 open item：volume 分家導致 ledger 分家，$1/天上限被執行兩次、系統最壞 $2/天，切分方式由 product owner 決定，未定之前付費輪不跑。481 tests passing。）
+
+==========
