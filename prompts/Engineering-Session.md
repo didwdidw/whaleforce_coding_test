@@ -1216,3 +1216,10 @@ ubuntu@VM-20-55-ubuntu:~$ date -u +'%s  |  %Y-%m-%dT%H:%M:%SZ'
 推完跟我說一聲，我要接著建 scored 服務——那個也是同一個 repo，你一 push 它也會跟著重新部署，所以我等你收完窗再開始。
 
 ==========
+
+runtime log 有 error:
+[Zeabur] Pod/service-6a68997d9949111176ce976e-795cdd955b-2r8jp - BackOff: Back-off restarting failed container whaleforce-coding-test in pod service-6a68997d9949111176ce976e-795cdd955b-2r8jp_environment-6a6644a75f062718bc7b1a95(e1c8b4fa-a587-4e03-82fd-7d2e1d865d9e)
+
+（同一則重複四次）
+
+==========

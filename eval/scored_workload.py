@@ -33,13 +33,14 @@ import signal
 import subprocess
 import sys
 import time
+import traceback
 import urllib.error
 import urllib.request
 
 from app.config import settings
 from eval.harness import BROWSER_TASK, DEFAULT_CASES, parse_cases, run_split
 
-WORKLOAD_VERSION = "scored-workload/1.1"
+WORKLOAD_VERSION = "scored-workload/1.2"
 LOOPBACK = "127.0.0.1"
 #: The measured maximum cost of one run: the most expensive case of the dev split at
 #: `427cd96` ($0.0042; the mean was $0.0020). Configuration rather than a constant, because
@@ -50,8 +51,34 @@ USD_PER_RUN = float(os.environ.get("EVAL_USD_PER_RUN", "0.0042"))
 SAFETY_FACTOR = float(os.environ.get("EVAL_COST_SAFETY_FACTOR", "1.5"))
 
 
+class Refused(SystemExit):
+    """A condition the operator has to fix. No restart resolves it."""
+
+
 def _refuse(reason: str) -> None:
-    raise SystemExit(f"REFUSING TO RUN THE SCORED WORKLOAD: {reason}")
+    raise Refused(f"REFUSING TO RUN THE SCORED WORKLOAD: {reason}")
+
+
+def hold(reason: str, *, interval: float = 900.0) -> int:
+    """Stay up after a refusal instead of exiting, and keep saying why.
+
+    Exiting non-zero is the correct thing for a program to do and the wrong thing to do
+    here: the platform restarts a failed container on a backoff, so the refusal becomes a
+    crash loop whose only visible symptom is `BackOff: Back-off restarting failed
+    container` — a message about restarting that never names what was wrong. The reason
+    scrolls away and the operator is left diagnosing the restart rather than the cause.
+
+    A refusal that holds the process open puts the reason at the bottom of the log where it
+    is read, and stops the platform thrashing a container that will refuse identically every
+    time. The service showing as running is honest: it started, and it declined to score.
+    """
+    print(f"\n{reason}\n", file=sys.stderr, flush=True)
+    print(f"[{WORKLOAD_VERSION}] held, not exiting: a non-zero exit here would be restarted "
+          f"on a backoff and the reason above would scroll past. Fix the condition and "
+          f"restart the service.", file=sys.stderr, flush=True)
+    while True:
+        time.sleep(interval)
+        print(f"[{WORKLOAD_VERSION}] still refusing: {reason}", file=sys.stderr, flush=True)
 
 
 def preflight() -> None:
@@ -295,12 +322,22 @@ def main(argv: list[str] | None = None) -> int:
                         default=os.environ.get("EVAL_DRY_RUN", "") == "1",
                         help="preflight, start up and price the round; submit nothing")
     args = parser.parse_args(argv)
-    splits = [s.strip() for s in args.splits.split(",") if s.strip()]
-    if not splits:
-        _refuse("no splits requested")
-    return run(splits, port=args.port, round_id=args.round, force=args.force,
-               deadline=args.deadline, startup_deadline=args.startup_deadline,
-               idle=not args.no_idle, dry_run=args.dry_run)
+    idle = not args.no_idle
+    try:
+        splits = [s.strip() for s in args.splits.split(",") if s.strip()]
+        if not splits:
+            _refuse("no splits requested")
+        return run(splits, port=args.port, round_id=args.round, force=args.force,
+                   deadline=args.deadline, startup_deadline=args.startup_deadline,
+                   idle=idle, dry_run=args.dry_run)
+    except Refused as refusal:
+        if not idle:
+            raise
+        return hold(str(refusal))
+    except Exception:  # noqa: BLE001 - a traceback in a crash loop is a traceback nobody reads
+        if not idle:
+            raise
+        return hold("THE SCORED WORKLOAD CRASHED:\n" + traceback.format_exc())
 
 
 if __name__ == "__main__":

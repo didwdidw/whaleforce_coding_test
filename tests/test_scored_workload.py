@@ -288,3 +288,62 @@ def test_a_redeploy_cannot_start_a_fresh_paid_round(results_dir, monkeypatch):
     scored_workload.run(["dev"], port=8080, round_id="1", force=False, deadline=1.0,
                         startup_deadline=1.0, idle=False)
     assert len(calls) == 1, "the same round number on a new commit is still the same round"
+
+
+def test_a_refusal_holds_the_container_instead_of_crash_looping(monkeypatch, capsys):
+    """Live: the service came up, refused, exited non-zero, and the platform restarted it on
+    a backoff. All the operator saw was `BackOff: Back-off restarting failed container` —
+    a message about restarting that never names the cause, with the reason scrolled away."""
+    monkeypatch.setattr(scored_workload, "run",
+                        lambda *a, **kw: scored_workload._refuse("the volume is not mounted"))
+    held = []
+    monkeypatch.setattr(scored_workload, "hold", lambda reason, **kw: held.append(reason) or 0)
+
+    assert scored_workload.main(["--splits", "dev"]) == 0
+    assert "the volume is not mounted" in held[0]
+
+
+def test_an_unexpected_crash_also_holds_with_its_traceback(monkeypatch):
+    """A traceback in a crash loop is a traceback nobody reads."""
+    def boom(*a, **kw):
+        raise RuntimeError("chrome would not start")
+
+    monkeypatch.setattr(scored_workload, "run", boom)
+    held = []
+    monkeypatch.setattr(scored_workload, "hold", lambda reason, **kw: held.append(reason) or 0)
+
+    assert scored_workload.main(["--splits", "dev"]) == 0
+    assert "chrome would not start" in held[0]
+    assert "CRASHED" in held[0]
+
+
+def test_holding_is_a_container_behaviour_and_not_a_cli_one(monkeypatch):
+    """Run from a terminal with --no-idle, a refusal is still a non-zero exit: there is no
+    backoff loop to defend against and a shell wants the status code."""
+    monkeypatch.setattr(scored_workload, "run",
+                        lambda *a, **kw: scored_workload._refuse("no billing credential"))
+    monkeypatch.setattr(scored_workload, "hold",
+                        lambda reason, **kw: pytest.fail("must not hold with --no-idle"))
+
+    with pytest.raises(SystemExit) as exit_info:
+        scored_workload.main(["--splits", "dev", "--no-idle"])
+    assert "no billing credential" in str(exit_info.value)
+
+
+def test_the_held_reason_is_repeated_so_a_log_window_shows_it(monkeypatch, capsys):
+    """The operator opens the log at an arbitrary moment. A reason printed once at start-up
+    is not there when they look."""
+    sleeps = []
+
+    def fake_sleep(seconds):
+        sleeps.append(seconds)
+        if len(sleeps) == 2:
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(scored_workload.time, "sleep", fake_sleep)
+    with pytest.raises(KeyboardInterrupt):
+        scored_workload.hold("REFUSING: no billing credential", interval=900.0)
+
+    err = capsys.readouterr().err
+    assert err.count("no billing credential") == 2  # once at the refusal, once per interval
+    assert "would be restarted" in err

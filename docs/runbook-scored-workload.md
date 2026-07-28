@@ -134,3 +134,20 @@ where it is served. Held-out case files are never in the image — they are moun
 - No billing key at the configured path → refuses to start.
 - The loopback server is not healthy inside the startup deadline → refuses, printing
   `unhealthy_because` rather than scoring a split against a half-started server.
+
+**A refusal holds the container; it does not exit.** Exiting non-zero is what a program
+should do and the wrong thing here: the platform restarts a failed container on a backoff,
+so a refusal turns into a crash loop whose only visible symptom is
+
+```
+[Zeabur] Pod/… - BackOff: Back-off restarting failed container …
+```
+
+— a message about restarting that never names what was wrong, while the reason scrolls out
+of the log. So the workload prints the reason, stays up, and repeats the reason every 15
+minutes. **If the service shows as running, read the log before assuming it scored**: a held
+container and a finished round look the same from the outside and say different things at
+the bottom of their logs. Unexpected crashes are held the same way, with the traceback.
+
+Run from a terminal with `--no-idle`, a refusal is still a non-zero exit — there is no
+backoff loop to defend against and a shell wants the status code.
