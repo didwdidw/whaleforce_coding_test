@@ -1190,3 +1190,17 @@ scored workload 那個設計對，而且對在你講的那個點上：綁 127.0.
 1785216443  |  2026-07-28T05:27:23Z
 
 ==========
+
+scored 服務我照 runbook 建了，但我打算先用 EVAL_SPLITS=validation 跑一次
+validation 的題目檔不在 image 裡，所以它會走完 preflight、起 loopback、等健康，然後 skip、不寫檔、idle，相當於零成本體檢，確認完再改成 dev,experimental 真的計分。這個做法對嗎？如果對，把它寫進 runbook 當正式步驟，操作者不該第一次啟動就是花錢。
+
+另外兩件事：
+
+PROVIDER_SPEND_CEILING_USD_PER_DAY 預設 $1.00，ledger 跟公開 demo 共用同一個 volume
+我算 dev+experimental 25 個 case 大概 $0.6-0.9，本來就貼著上限，再加上當天公開流量，很可能跑到一半撞上限。撞上限之後會怎樣？結果檔還是會寫出來嗎？如果會，那我拿到的是一份半數 blocked/provider_quota 的檔案，而且 -r1 這個檔名已經被佔掉——那不是「上限保護了我」，那是上限毀了一輪還讓它看起來像一輪。
+
+我要的是：一輪開始前先估這輪要花多少，跟今天剩下的額度比，不夠就在跑第一個 case 之前拒絕啟動，而不是跑到第 14 個才斷。這跟你 preflight 裡其他幾條是同一個形狀。
+
+還有記憶體：計分時 app 跟 scored 各開一個 Chrome，各 550-800 MiB，機器只有 4 GB。這個你量過嗎？如果沒有，跑之前先講一下最壞情況，我才知道跑到一半服務掛掉是預期內還是 bug
+
+==========

@@ -1,0 +1,48 @@
+{
+ "tool": "idleprobe/1.0",
+ "base_url": "https://wf-agent.zeabur.app",
+ "idle_window_seconds": 23975.9,
+ "idle_window_hours": 6.66,
+ "marked_at": "2026-07-28T05:30:10Z",
+ "git_sha": "86c28df3c119",
+ "same_build_as_marked": false,
+ "uptime_seconds_at_end": 23837.9,
+ "process_ran_through_the_window": false,
+ "cold_arrival": {
+  "value": null,
+  "measured_under": "not measured here: a push-triggered redeploy landed inside the window, so the short uptime (23838s against a 23976s window) is a deploy and not an eviction. What the reading does establish is that the process then ran 6.62 h with no traffic and was not evicted, so the request below is a warm one.",
+  "corrected": "The first version of this file called the following request a cold arrival. It was produced by a container that had been up for 6.6 hours. The tool now separates a redeploy from an eviction; this file was recomputed from its own readings, not re-measured."
+ },
+ "first_task_after_idle": {
+  "task": "Search the fixture catalogue for lantern",
+  "run_id": "run_5ecf7db46a7e",
+  "terminal_status": "succeeded_verified",
+  "client_observed_seconds": 2.61,
+  "server_side_latency": {
+   "queue_wait_seconds": 0.007,
+   "run_seconds": 0.661,
+   "total_seconds": 0.669,
+   "time_to_first_result_seconds": 0.631,
+   "steps_measured": 10,
+   "steps_unmeasured": 0,
+   "step_ms": {
+    "median": 31,
+    "p90": 113,
+    "max": 151
+   },
+   "slowest_step": {
+    "seq": 5,
+    "kind": "navigate",
+    "summary": "Navigate to https://wf-fixture.zeabur.app/",
+    "ms": 151
+   },
+   "model_seconds": 0,
+   "model_calls": 0,
+   "model_calls_cached": 0,
+   "reportable": true
+  },
+  "measured_under": "one request, the first after 6.62 h with no traffic. It is not part of any median: it is the request a grader's first impression is formed on. The container was warm, so this is not a cold-start number."
+ },
+ "outcome": "redeployed_during_window",
+ "idle_established_seconds": 23837.9
+}

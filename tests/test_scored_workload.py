@@ -112,6 +112,56 @@ def test_no_name_can_leave_the_results_directory(results_dir, name):
     assert TestClient(app).get(f"/api/eval-results/{name}").status_code in (400, 404)
 
 
+# ---- a round is priced before the first case, not discovered at the fourteenth ----
+
+def _spend(today: float, cumulative: float | None = None) -> dict:
+    return {"today_usd": today, "cumulative_usd": cumulative if cumulative is not None
+            else today}
+
+
+def test_a_round_is_priced_from_its_own_case_count():
+    plan = scored_workload.forecast(["dev", "experimental"], _spend(0.0))
+    assert plan["cases_priced"] == sum(n for n in plan["cases_per_split"].values() if n)
+    assert plan["expected_usd"] == pytest.approx(
+        plan["cases_priced"] * plan["usd_per_run_measured"] * plan["safety_factor"], rel=1e-6)
+    # The tail is priced too: every run spending its whole token budget.
+    assert plan["worst_case_usd"] > plan["expected_usd"]
+
+
+def test_a_split_whose_cases_are_not_in_the_image_is_not_priced_as_zero():
+    """A held-out split is mounted at score time. Counting it as nothing would forecast a
+    round of 15 cases and then run 40."""
+    plan = scored_workload.forecast(["dev", "validation"], _spend(0.0))
+    assert plan["cases_not_in_this_image"] == ["validation"]
+
+
+def test_the_round_is_refused_before_the_first_case_when_it_cannot_be_afforded():
+    """The daily ceiling stops a run mid-call, which turns one round into a half-blocked
+    file whose name is already taken. Refusing the whole round at case zero costs nothing."""
+    ceiling = scored_workload.settings.provider.spend_ceiling_usd_per_day
+    plan = scored_workload.forecast(["dev", "experimental"], _spend(ceiling - 0.001))
+    assert plan["affordable"] is False
+    with pytest.raises(SystemExit) as exit_info:
+        scored_workload.check_affordable(plan)
+    assert "case one costs nothing" in str(exit_info.value)
+
+
+def test_an_affordable_round_with_an_unaffordable_tail_warns_and_proceeds(capsys):
+    """Refusing on the worst case would refuse almost every round: the tail is ~20x the
+    measured cost. It is said out loud instead, with what happens if it lands."""
+    plan = scored_workload.forecast(["dev", "experimental"], _spend(0.75))
+    assert plan["affordable"] is True and plan["worst_case_affordable"] is False
+    scored_workload.check_affordable(plan)
+    assert "-degraded" in capsys.readouterr().out
+
+
+def test_a_degraded_result_does_not_take_the_round_s_name(results_dir):
+    clean = scored_workload.result_path("dev", "abc123", "1")
+    degraded = scored_workload.result_path("dev", "abc123", "1", degraded=True)
+    assert clean != degraded
+    assert degraded.name.endswith("-degraded.json")
+
+
 # ---- the workload refuses to be the wrong workload -------------------------------
 
 def _settings_with(**provider_fields):
@@ -148,6 +198,51 @@ def test_the_server_it_drives_is_loopback_only(monkeypatch):
     scored_workload.start_server(8080, pathlib.Path("/tmp/scored-test.log"))
     assert "--host" in recorded["argv"]
     assert recorded["argv"][recorded["argv"].index("--host") + 1] == "127.0.0.1"
+
+
+def _staged(monkeypatch, calls, report=None):
+    """`run` with the server and the split stubbed, so only its own decisions are tested."""
+    monkeypatch.setattr(scored_workload, "preflight", lambda: None)
+    monkeypatch.setattr(scored_workload, "start_server",
+                        lambda port, log: type("P", (), {
+                            "send_signal": lambda self, s: None,
+                            "wait": lambda self, timeout=None: None})())
+    monkeypatch.setattr(scored_workload, "wait_until_healthy",
+                        lambda base, deadline: {"ok": True, "git_sha": "abc123",
+                                                "provider_spend": {"today_usd": 0.0,
+                                                                   "cumulative_usd": 0.0}})
+    monkeypatch.setattr(scored_workload, "run_split",
+                        lambda *a, **k: calls.append(a) or (
+                            report or {"aggregate": {}, "provenance": {}}))
+
+
+def test_a_dry_run_submits_nothing_and_writes_nothing(results_dir, monkeypatch, capsys):
+    """The operator's first start of a scoring service should not be the one that spends,
+    and a dry run that works by accident of a missing case file is not a mechanism."""
+    calls = []
+    _staged(monkeypatch, calls)
+    scored_workload.run(["dev", "experimental"], port=8080, round_id="1", force=False,
+                        deadline=1.0, startup_deadline=1.0, idle=False, dry_run=True)
+
+    assert calls == []
+    assert list(results_dir.iterdir()) == []
+    out = capsys.readouterr().out
+    assert "dry run" in out
+    # The forecast is printed either way: the point of the dry run is to see the price.
+    assert "expected_usd" in out
+
+
+def test_a_degraded_round_leaves_the_clean_name_free(results_dir, monkeypatch):
+    """Otherwise the next start sees a result "exists" for the round, skips the split, and
+    the number that survives is the broken one."""
+    degraded = {"aggregate": {}, "provenance": {"degraded": {
+        "not_a_capability_measurement": True, "reasons": ["quota"]}}}
+    _staged(monkeypatch, [], report=degraded)
+    scored_workload.run(["dev"], port=8080, round_id="1", force=False, deadline=1.0,
+                        startup_deadline=1.0, idle=False)
+
+    assert not scored_workload.result_path("dev", "abc123", "1").exists()
+    assert scored_workload.result_path("dev", "abc123", "1", degraded=True).exists()
 
 
 def test_a_restart_does_not_re_run_a_split_that_already_has_a_result(results_dir,

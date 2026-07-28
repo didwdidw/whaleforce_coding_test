@@ -49,23 +49,30 @@ def test_a_process_that_ran_through_the_window_has_no_cold_arrival_to_measure(ma
 
 
 def test_a_container_that_was_evicted_gives_a_real_cold_arrival(marked):
-    """Uptime shorter than the window means something restarted it, and then the first
-    request after idle is the cold start a grader would experience."""
+    """Uptime shorter than the window on the *same build* means something restarted it,
+    and then the first request after idle is the cold start a grader would experience."""
     state = marked(age=4 * 3600, uptime=30.0)
     report = idleprobe.probe("http://test", state)
 
-    assert report["process_ran_through_the_window"] is False
+    assert report["outcome"] == "restarted_during_window"
     assert report["cold_arrival"]["value"] >= 0.0
-    assert "real cold arrival" in report["cold_arrival"]["measured_under"]
+    assert "a real cold arrival" in report["cold_arrival"]["measured_under"]
 
 
-def test_a_deploy_during_the_window_is_not_reported_as_an_eviction(marked):
-    """Both look like a shorter uptime, and they are not the same claim."""
-    state = marked(age=4 * 3600, uptime=30.0, git_sha="def456")
+def test_a_deploy_during_the_window_is_not_a_cold_arrival(marked):
+    """This one was live: a deploy landed inside the window, uptime came back short, and
+    the tool reported the next request as a cold arrival — a number produced by a container
+    that had been up for hours. A deploy explains a short uptime; it is not an eviction,
+    and the request after it is warm."""
+    state = marked(age=4 * 3600, uptime=3 * 3600, git_sha="def456")
     report = idleprobe.probe("http://test", state)
 
-    assert report["same_build_as_marked"] is False
-    assert "a deploy happened" in report["cold_arrival"]["measured_under"]
+    assert report["outcome"] == "redeployed_during_window"
+    assert report["cold_arrival"]["value"] is None
+    assert "not an eviction" in report["cold_arrival"]["measured_under"]
+    # What the reading does establish is the tail: three hours of idle with no eviction.
+    assert report["idle_established_seconds"] == 3 * 3600
+    assert "warm one" in report["cold_arrival"]["measured_under"]
 
 
 def test_the_first_task_after_idle_is_reported_outside_any_median(marked):
@@ -78,6 +85,7 @@ def test_the_first_task_after_idle_is_reported_outside_any_median(marked):
     assert first["terminal_status"] == "succeeded_verified"
     assert first["client_observed_seconds"] is not None
     assert "not part of any median" in first["measured_under"]
+    assert "1.00 h with no traffic" in first["measured_under"]
 
 
 def test_there_is_no_window_without_a_mark(tmp_path):

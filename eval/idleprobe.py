@@ -68,7 +68,15 @@ def probe(base: str, state_path: pathlib.Path, *, deadline: float = 120.0) -> di
     uptime = float(health.get("uptime_seconds") or 0.0)
     same_build = health.get("git_sha") == marked.get("git_sha")
     # Ran right through the window: nothing evicted it, nothing scaled it to zero.
-    continuous = same_build and uptime >= idle_seconds
+    continuous = uptime >= idle_seconds
+    # A deploy inside the window explains a short uptime, and it is not an eviction. What
+    # the reading still establishes is the *tail*: the process ran for `uptime` seconds
+    # with no traffic from us. Reporting the request that follows as a cold arrival would
+    # be a number produced by a container that had been up for hours — which is the exact
+    # shape of failure this project treats as the expensive one.
+    redeployed = not same_build and not continuous
+    idle_established = uptime if not continuous else idle_seconds
+    evicted = same_build and not continuous
 
     submitted_at = time.time()
     status, body = post_form(base, "/api/runs", {"task": PROBE_TASK}, timeout=60.0,
@@ -94,20 +102,29 @@ def probe(base: str, state_path: pathlib.Path, *, deadline: float = 120.0) -> di
         "same_build_as_marked": same_build,
         "uptime_seconds_at_end": uptime,
         "process_ran_through_the_window": continuous,
+        "outcome": ("no_eviction_observed" if continuous else
+                    "redeployed_during_window" if redeployed else "restarted_during_window"),
+        "idle_established_seconds": round(idle_established, 1),
         "cold_arrival": {
-            "value": 0.0 if continuous else round(finished_at - submitted_at, 2),
+            # Zero when it was established, the measured wait when the container really did
+            # go away, and *absent* when this window cannot answer the question at all.
+            "value": (0.0 if continuous else
+                      round(finished_at - submitted_at, 2) if evicted else None),
             "measured_under": (
                 f"structurally zero on this deployment: the application process ran "
                 f"continuously across an idle window of {idle_seconds / 3600.0:.2f} h with "
                 f"no traffic from us, so nothing evicted it and nothing scaled it to zero. "
                 f"Established over that window, not assumed."
                 if continuous else
-                f"the container did not run through the idle window "
-                f"({uptime:.0f}s uptime against a {idle_seconds:.0f}s window"
-                + ("" if same_build else ", and the build changed — a deploy happened, so "
-                                         "this is not an eviction measurement")
-                + "), so this is a real cold arrival: submit to terminal status, client "
-                  "side, over the public internet"),
+                f"not measured here: the build changed during the window, so the short "
+                f"uptime is a deploy and not an eviction. What the reading does establish "
+                f"is that the process then ran {idle_established / 3600.0:.2f} h with no "
+                f"traffic and was not evicted — and the request below is therefore a warm "
+                f"one, not a cold arrival."
+                if redeployed else
+                f"a real cold arrival: the same build's process did not survive the "
+                f"{idle_seconds:.0f}s window ({uptime:.0f}s uptime), so this is submit to "
+                f"terminal status, client side, over the public internet"),
         },
         # A18.9: reported outside the steady-state median, whatever it turns out to be.
         "first_task_after_idle": {
@@ -116,9 +133,10 @@ def probe(base: str, state_path: pathlib.Path, *, deadline: float = 120.0) -> di
             "terminal_status": (run or {}).get("terminal_status"),
             "client_observed_seconds": round(finished_at - submitted_at, 2),
             "server_side_latency": (run or {}).get("latency"),
-            "measured_under": ("one request, the first after the idle window above. It is "
-                               "not part of any median: it is the request a grader's first "
-                               "impression is formed on."),
+            "measured_under": (f"one request, the first after "
+                               f"{idle_established / 3600.0:.2f} h with no traffic. It is "
+                               f"not part of any median: it is the request a grader's "
+                               f"first impression is formed on."),
         },
     }
 
