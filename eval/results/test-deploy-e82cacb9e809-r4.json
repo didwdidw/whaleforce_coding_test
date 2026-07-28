@@ -1,0 +1,298 @@
+{
+ "provenance": {
+  "harness_version": "harness/1.3",
+  "split": "test",
+  "base_url": "http://127.0.0.1:8080",
+  "git_sha": "e82cacb9e809",
+  "model_pinned": "gemini-3.1-flash-lite",
+  "eval_set_sha256": "43ee8ce52acf6470309148c3ca282be63977622a934776f97f40908d2b54e34e",
+  "eval_set_file": "test-set.md",
+  "planner_available": true,
+  "credentials": {
+   "configured": true,
+   "tiers_present": [
+    "paid"
+   ],
+   "tiers_usable_under_policy": [
+    "paid"
+   ],
+   "policy": "scored",
+   "search_path": "/etc/wf"
+  },
+  "budgets": {
+   "wall_clock_seconds": 180,
+   "max_steps": 25,
+   "max_llm_calls": 12,
+   "exploration_calls": 8,
+   "recovery_calls": 4,
+   "max_input_tokens_per_call": 8000,
+   "max_input_tokens_per_run": 60000,
+   "max_output_tokens_per_call": 2048,
+   "max_output_tokens_per_run": 16000
+  },
+  "prices_usd_per_1m": {
+   "input": 0.25,
+   "output": 1.5
+  },
+  "spend": {
+   "day": "2026-07-28",
+   "today_billed_usd": 0.141199,
+   "today_billed_calls": 166,
+   "today_notional_usd": 0,
+   "today_notional_calls": 0,
+   "cumulative_billed_usd": 0.141199,
+   "cumulative_billed_calls": 166,
+   "cumulative_notional_usd": 0,
+   "cumulative_notional_calls": 0,
+   "by_tier_usd": {
+    "paid": 0.141199
+   },
+   "billed_tiers": [
+    "paid"
+   ],
+   "meaning": {
+    "billed": "money actually charged, on a paid credential. Ceilings enforce against this and cost figures are reported from it.",
+    "notional": "free-tier calls priced at the same published rates. Cost that was not charged; never enforced against (A23.1, A23.2)."
+   },
+   "ceiling_usd": 8.0,
+   "ceiling_usd_per_day": 1.5,
+   "enforced_against": "billed",
+   "billed_spend_authorised": true,
+   "credential_policy": "scored",
+   "share_of_system": 0.75,
+   "system_ceiling_usd_per_day": 2.0,
+   "system_split": {
+    "scored": 0.75,
+    "public_demo": 0.25
+   },
+   "enforced": true,
+   "note": "Checked before every call, against billed dollars only. Exceeding it is a refusal, not a warning. This process's own spend is what appears above; the system total is the sum across the split, and no process can read the other's ledger."
+  },
+  "session_policy": "one session per case",
+  "started_at": "2026-07-28T19:21:25Z",
+  "case_schema": "browser_task",
+  "finished_at": "2026-07-28T19:22:43Z"
+ },
+ "aggregate": {
+  "headline_declared": {
+   "cases": 4,
+   "passed": 1,
+   "rate": 0.25
+  },
+  "experimental_reported_separately": {
+   "cases": 4,
+   "passed": 0,
+   "rate": 0.0
+  },
+  "all_cases": {
+   "cases": 8,
+   "passed": 1,
+   "rate": 0.125
+  },
+  "suite_errors": {
+   "cases": 0,
+   "detail": []
+  },
+  "failure_class_histogram": {
+   "budget_exhausted": 1,
+   "none": 1,
+   "policy_refused": 2,
+   "postcondition_unmet": 1,
+   "robots_disallowed": 3
+  },
+  "evidence_findings": 3,
+  "tier_disagreements": [
+   {
+    "case": "TST-01",
+    "declared": "T-DECLARED",
+    "reported": "T-EXPERIMENTAL"
+   },
+   {
+    "case": "TST-05",
+    "declared": "T-DECLARED",
+    "reported": "T-EXPERIMENTAL"
+   },
+   {
+    "case": "TST-07",
+    "declared": "T-REFUSED",
+    "reported": "T-EXPERIMENTAL"
+   }
+  ],
+  "experimental_breadth": {
+   "cases": 4,
+   "excluded_suite_errors": 0,
+   "attempted": {
+    "count": 1,
+    "rate": 0.25,
+    "interval_95": [
+     0.0456,
+     0.6994
+    ]
+   },
+   "verified": {
+    "count": 0,
+    "rate": 0.0,
+    "interval_95": [
+     0.0,
+     0.4899
+    ]
+   },
+   "abstained_after_looking": {
+    "count": 0,
+    "rate": 0.0,
+    "interval_95": [
+     0.0,
+     0.4899
+    ]
+   },
+   "refused_by_policy": {
+    "count": 3,
+    "rate": 0.75,
+    "interval_95": [
+     0.3006,
+     0.9544
+    ]
+   },
+   "failed_or_blocked": {
+    "count": 1,
+    "rate": 0.25,
+    "interval_95": [
+     0.0456,
+     0.6994
+    ]
+   }
+  },
+  "shortcut_refusals": 0,
+  "latency": {
+   "all": {
+    "n": 8,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 8,
+     "median": 3.88,
+     "p90": 15.45,
+     "min": 0.02,
+     "max": 30.67
+    },
+    "time_to_first_result_seconds": {
+     "n": 1,
+     "median": 7.41,
+     "p90": 7.41,
+     "min": 7.41,
+     "max": 7.41
+    },
+    "queue_wait_seconds": {
+     "n": 8,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 8,
+     "median": 0.0,
+     "p90": 2.26,
+     "min": 0.0,
+     "max": 8.63
+    }
+   },
+   "T-DECLARED": {
+    "n": 4,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 4,
+     "median": 8.93,
+     "p90": 10.24,
+     "min": 0.14,
+     "max": 15.45
+    },
+    "time_to_first_result_seconds": {
+     "n": 1,
+     "median": 7.41,
+     "p90": 7.41,
+     "min": 7.41,
+     "max": 7.41
+    },
+    "queue_wait_seconds": {
+     "n": 4,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 4,
+     "median": 0.51,
+     "p90": 1.01,
+     "min": 0.0,
+     "max": 2.26
+    }
+   },
+   "T-EXPERIMENTAL": {
+    "n": 4,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 4,
+     "median": 0.09,
+     "p90": 0.15,
+     "min": 0.02,
+     "max": 30.67
+    },
+    "time_to_first_result_seconds": {
+     "n": 0
+    },
+    "queue_wait_seconds": {
+     "n": 4,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 4,
+     "median": 0.0,
+     "p90": 0.0,
+     "min": 0.0,
+     "max": 8.63
+    }
+   },
+   "model_driven": {
+    "n": 6,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 6,
+     "median": 8.93,
+     "p90": 15.45,
+     "min": 0.14,
+     "max": 30.67
+    },
+    "time_to_first_result_seconds": {
+     "n": 1,
+     "median": 7.41,
+     "p90": 7.41,
+     "min": 7.41,
+     "max": 7.41
+    },
+    "queue_wait_seconds": {
+     "n": 6,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 6,
+     "median": 0.51,
+     "p90": 2.26,
+     "min": 0.0,
+     "max": 8.63
+    }
+   },
+   "scripted": {
+    "n": 0,
+    "excluded_unreportable": 0
+   }
+  }
+ },
+ "note": "Per-case detail is withheld for a held-out split (S-10.4). The aggregate score, the failure-class histogram and the provenance block are the whole permitted result."
+}

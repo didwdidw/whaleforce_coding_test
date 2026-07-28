@@ -315,9 +315,44 @@ label a value must bind to cannot be frozen in advance; when the run cannot poin
 a label it can name, there is nothing for code to re-read and it says where it stopped. Ten cases is
 a small number and the interval is the file saying so.
 
-**Test split — 8 cases, held out.** Run once against the deployment at submission; the score, its
-interval and the provenance block go in `docs/analysis-report.md`. With n=8 a single case moves the
-rate by 12.5 points, which is why it is reported with an interval and not as a percentage.
+**Test split — 8 cases, held out. Scored once, on the frozen build, at `r4`: 1 of 8.**
+
+| | |
+|---|---|
+| All cases | **1 of 8** — 0.125, 95% Wilson **0.02–0.47** |
+| Declared-tier cases | **1 of 4** — 0.25, 95% Wilson **0.05–0.70** |
+| Failure classes | `robots_disallowed` 3 · `policy_refused` 2 · `budget_exhausted` 1 · `postcondition_unmet` 1 · one success |
+| Build / split | `e82cacb9e809` / `test-set.md` `43ee8ce5…`, hash-checked before the first case |
+| Ran | 2026-07-28 19:21–19:22 UTC |
+
+**This is the number the whole submission is measured by, and it is far below the dev split's 10 of
+11. That gap is the finding, not a footnote.** The cases were written by the product owner and never
+seen by the engineering session — which is exactly what makes them able to disagree with us, and
+they did.
+
+What the histogram says about *why*, without opening a single case:
+
+- **Three of eight ended `blocked / robots_disallowed`** and two more `unsupported / policy_refused`.
+  Five of eight never browsed at all. The refusals are correct — they quote the rule that matched —
+  but a system that refuses five of eight ordinary-looking tasks is describing its own reachable
+  surface, not its accuracy. This is L-4 at scale: the policy is right and the coverage it leaves is
+  the product.
+- **Three tier disagreements, and they run the wrong way.** Two cases the owner declared
+  `T-DECLARED` were routed to `T-EXPERIMENTAL` by the running system, and one declared `T-REFUSED`
+  also landed experimental. Half the promised-tier cases did not reach the promised surface. That is
+  the same defect class as OP-7's fixed product parameter — a record we promise per
+  `site × operation` while the implementation recognises something narrower — and the held-out set
+  found more of it than our own dev split could, because our dev cases were written by whoever knew
+  what the router accepts.
+- **The one declared case that ran to an answer, passed.** Of the four declared cases, one produced
+  a verified answer, one exhausted its step budget, and two were mis-tiered before they got that far.
+
+**No evidence bundles were exported for this round, and that is a gap.** Held-out results withhold
+per-case detail where the file is written (S-10.4), and the bundle exporter reads that same
+withheld structure — so a round with seven non-successes carried **zero** bundles, on precisely the
+split whose failures are most worth inspecting. The runs and their artifacts exist in the scored
+service's own store; nothing exported them. Recorded here rather than discovered by a grader who
+clicks through and finds an empty directory.
 
 **Validation split — NOT RUN, deliberately.** Its purpose was to keep the engineering session honest
 *during* development by holding cases back from it. Development is over, so running it now buys a
@@ -353,9 +388,12 @@ Every case's `oracle` field in `eval/dev-set.md` now names which of three things
 *derived independently*, *evidence re-check*, or *trace inspection* — instead of all fifteen claiming
 the first.
 
-**Held-out cases will be run against this system by the graders.** What we expect: declared records
-behave as the matrix says; unseen tasks on unseen sites land on T-EXPERIMENTAL, browse, and abstain
-more often than they answer. The abstentions are the product working.
+**What we expected of the held-out set, and what happened.** We expected declared records to behave
+as the matrix says and unseen tasks to abstain more often than they answer. Half the declared-tier
+cases never reached the declared surface at all, and the dominant outcome was refusal before
+browsing rather than abstention after looking. The prediction was wrong in a specific, useful way:
+we had measured how well the system answers the tasks it accepts, and not how many reasonable tasks
+it accepts. `r4` is the measurement of the second thing, and it is the one a grader will feel.
 
 ---
 

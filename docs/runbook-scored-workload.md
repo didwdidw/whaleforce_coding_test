@@ -274,16 +274,40 @@ setup, and A9.6 is why a held-out split runs here rather than anywhere else.
 
 ### Step 3 — dry run first, and read the log
 
-`EVAL_DRY_RUN=1` checks the mount, the credential, the loopback server and the browser, and
-**prices the round**, without submitting a case. The log line to look for is:
+`EVAL_DRY_RUN=1` checks the credential, the loopback server and the browser, and **prices the
+round**, without submitting a case.
+
+**What the dry run does *not* do — read this before believing a silence.** It sets the split
+list to empty immediately after printing the forecast, so it never reaches the case-file
+check or the hash check. Those run on the first real start, inside the per-split loop. The
+line
 
 ```
 [scored-workload/1.x] test: mounted case file matches the committed hash 43ee8ce52acf…
 ```
 
-If the file does not match, the workload refuses and holds, naming both hashes. That check
-runs **before** the first case, because a split nobody can identify produces a perfectly
-plausible score, and this is a number we get one attempt at.
+**cannot appear in a dry run.** An earlier version of this runbook told the operator to look
+for it there, and on the r4 round the operator correctly reported not seeing it — the
+instruction was wrong, not the mount. What the dry run *does* tell you about the mount is
+indirect and is the thing to read instead:
+
+```
+"cases_per_split": { "test": 8 },     ← the file was found, parsed, and has 8 cases
+"cases_not_in_this_image": []          ← nothing was priced as unknown
+```
+
+`cases_per_split` showing `null`, or the split appearing in `cases_not_in_this_image`, means
+the mount is wrong. **A forecast that prices 0 cases is the failure signal**, and it is not
+loud — fix the mount before clearing `EVAL_DRY_RUN`.
+
+The hash check itself is not weakened by this; it simply runs later. If the file does not
+match, the workload refuses and holds before the first case, naming both hashes — because a
+split nobody can identify produces a perfectly plausible score, and this is a number we get
+one attempt at.
+
+*(The honest fix is to move the mount and hash checks ahead of the dry-run return so the dry
+run exercises them. That is a code change, and it was found after the submission build was
+frozen with a held-out round still to run, so it is written down here instead of made.)*
 
 ### Step 4 — clear `EVAL_DRY_RUN` and restart
 

@@ -1,0 +1,25 @@
+{
+ "tool": "bundles/1.0",
+ "split": "test",
+ "git_sha": "e82cacb9e809",
+ "written_at": "2026-07-28T19:22:43Z",
+ "cap_mib": 48.0,
+ "measured_bytes_carried": 0,
+ "measured_mib_carried": 0.0,
+ "cases_total": 0,
+ "must_carry_total": 0,
+ "must_carry_carried": 0,
+ "disagreements": [],
+ "sample_declared": [
+  "T-01",
+  "T-02"
+ ],
+ "sample_carried": [],
+ "sample_short_by": [
+  "T-01",
+  "T-02"
+ ],
+ "carried": [],
+ "omitted": [],
+ "note": "Sizes are measured, not estimated: every candidate bundle is weighed from the store before the cap is applied. Anything under `omitted` with `over the size cap` is the residue A21.4 is written against \u2014 it names what could not be carried rather than the whole category."
+}

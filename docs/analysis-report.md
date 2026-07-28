@@ -17,7 +17,7 @@ because a single mixed number would describe neither case.
 | Host | Zeabur on a self-hosted Ubuntu 24.04 box running k3s. `nproc` 2, `free -m` total **3,723 MB**, swap 1,987 MB provisioned. Swap was observed at a flat 102 MB during a scored round with **zero growth**, which was M0's pass condition |
 | Browser | One Chromium process, two contexts. Not two processes — see §4 |
 | Model | `gemini-3.1-flash-lite`, pinned. Never a `latest` or preview alias — a moving model makes every earlier measurement describe a system that no longer exists |
-| Build under measurement | `e1d13cae4926` for `r1`, `aa1ee6c5d5eb` for `r2`, **`e82cacb9e809` for `r3` — the frozen submission build, and the round the headline numbers come from** — `427cd96` for the load measurements; each result file carries its own |
+| Build under measurement | `e1d13cae4926` for `r1`, `aa1ee6c5d5eb` for `r2`, **`e82cacb9e809` for `r3` and `r4` — the frozen submission build, and where the headline and held-out numbers come from** — `427cd96` for the load measurements; each result file carries its own |
 | Measurement files | `eval/results/`, `docs/m0-*`, `docs/m1-report.md`, `docs/m3-model-comparison.md` |
 
 ---
@@ -318,11 +318,48 @@ artifact replay is what separates them. Conceding the confounding and pointing a
 evidence is worth more here than re-running a round and asserting it was clean — the re-run would be
 a fourth build, and this document would have to explain why *that* one was single-variable.
 
+### 5.3.2 The held-out split, and the thing it measured that we had not
+
+`r4` scored the eight held-out cases once, on the frozen build, against a file whose SHA-256 was
+checked before the first case. **1 of 8.** The dev split on the same build was 10 of 11.
+
+A gap that size between a set we wrote and a set we did not is the most informative number in this
+document, and the histogram says where it comes from without any case being opened: three
+`robots_disallowed`, two `policy_refused`, one `budget_exhausted`, one `postcondition_unmet`, one
+success. **Five of the eight never browsed.**
+
+So the two sets were not measuring the same thing:
+
+- The dev and experimental splits measure **how well the system answers a task it accepts.** On that
+  question the answer is good, and `r3` is the evidence.
+- The held-out split measures **how many reasonable tasks it accepts at all.** On that question the
+  answer is poor, and nothing we had built could have told us — every case we wrote ourselves was
+  written by someone who already knew what the router takes.
+
+Three tier disagreements make the same point structurally: two cases declared `T-DECLARED` were
+routed experimental by the running system. A promise stated per `site × operation` is only worth the
+breadth of phrasings that actually reach it, and OP-7's fixed-product defect — found and fixed
+before the freeze — was evidently one instance of a wider pattern rather than the pattern itself.
+
+**What we would do with another day** is not model work. It is a corpus of phrasings per promised
+record, written by someone who has not read the router, with the admission gate scored against it —
+the same two-sided-corpus discipline `docs/m4-fail-closed-inventory.md` already applies to the
+out-of-scope classifier, applied to the tier assignment instead. The refusals themselves are
+correct; each quotes the rule that matched. It is the reachable surface behind them that is
+narrower than the support matrix implies.
+
+**One process note, against ourselves.** No evidence bundles were exported for `r4`. Held-out
+results withhold per-case detail at the point the file is written, and the bundle exporter reads
+that same withheld structure — so the round with seven non-successes carried zero bundles, on
+exactly the split whose failures are most worth inspecting. The runs and artifacts are in the
+scored service's store; nothing carried them out. It was found by reading the manifest after the
+round rather than by anything in the system, which is the same shape as every other entry in §5.4.
+
 ### 5.4 Verifying the verifier
 
 A system whose central claim is "our checks are real" has to expect the checks themselves to be
-wrong. **Eight** defects of that exact shape were found, seven of them fixed, all the same species — **a
-check that reported on a coincidence**. The first five were found during development:
+wrong. **Nine** defects of that exact shape were found, seven of them fixed, all the same species — **a
+check that reported on a coincidence**, or a check that could not fire at all. The first five were found during development:
 
 | | The defect |
 |---|---|
@@ -346,13 +383,17 @@ in an appendix because the pattern is the finding rather than the count:
 
 | 8 | `internal_error` is the class for *our* defects, and it is the one rate the spec treats as a finding in itself. In `r3`, EXP-05 ended there because the planner proposed an element reference that was not in the view it had been sent — the run refused, correctly and fail-closed, and then filed the refusal under our own name. A model inventing a ref is not our code failing. **Found and not fixed**: see below |
 
-Number 8 arrived after the build was frozen, which is the only reason it is still open, and how that
-was handled is part of the finding. Correcting the class would have meant a code change between the
+| 9 | The dry run's job is *everything that can fail before money is spent*, and it skipped the two checks a held-out round needs most: that the case file is mounted where the operator said, and that its hash matches the committed one. It empties the split list right after printing the forecast, so both run only on the real start. The runbook told the operator to look for the hash line in the dry run — a line that path cannot print. **Found and not fixed**, for the same reason as 8 |
+
+Numbers 8 and 9 arrived after the build was frozen, which is the only reason they are still open, and how that
+was handled is part of the finding. Correcting either would have meant a code change between the
 round that measured the system and the round that scores the held-out split — so the choice was
-between a tidier taxonomy and two rounds that describe the same build. The taxonomy lost. It is
+between tidier code and two rounds that describe the same build. The code lost. It is
 written here, in the table with the other seven, rather than repaired quietly afterwards and
-presented as though the rounds had always agreed. It is the same species as A-14b: a loud, correct
-refusal filed under the wrong party.
+presented as though the rounds had always agreed. Number 8 is the same species as A-14b: a loud, correct refusal
+filed under the wrong party. Number 9 is the species this whole section is named for — an
+instruction to look for evidence that the code cannot produce — and it cost a real operator a real
+scare mid-round before anyone read the code path.
 
 Number 7 is the one worth reading twice, and it took two goes.
 
