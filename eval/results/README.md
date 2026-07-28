@@ -25,6 +25,13 @@ one worth reading.
 A score is only meaningful with the provenance block beside it (S-10.7): the commit, the
 model, the credential tier, the split's own hash. All of that is inside each file.
 
+**The dev split's hash changes at `harness/1.3` and its cases do not.** Amendment 25 rewrote
+every case's `oracle` field to say what the harness actually checks, which is prose inside
+the file the hash covers. No task, entry point or expected status moved; the diff is in git.
+A round scored before that change and one scored after are comparable case for case, and
+their `eval_set_sha256` values will differ — said here because a reader who notices the
+difference and nothing else would be right to distrust it.
+
 A file produced while the system was impaired carries `provenance.degraded` **inside itself**
 (A18.7), listing what was wrong and stating that no figure in the analysis report may be
 sourced from it. This table and the filenames are conveniences; the file is the record,

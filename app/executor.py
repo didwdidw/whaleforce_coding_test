@@ -302,6 +302,11 @@ class Executor:
     # ---- trace helpers ---------------------------------------------------------
 
     def _step(self, run: Run, kind: StepKind, summary: str, **detail: Any) -> TraceEntry:
+        # Every interaction step says where its locator came from, set here rather than at
+        # each call site: a badge that appears on some steps and not others reads as "this
+        # one was not from memory" when it means "nobody wrote the field".
+        if kind in _MEMORABLE_STEPS:
+            detail.setdefault("locator_provenance", "freshly derived")
         entry = TraceEntry(seq=run.next_seq(), kind=kind, summary=summary, detail=detail)
         run.add(entry)
         self._store.save_trace_entry(run.id, entry)

@@ -261,17 +261,24 @@ derivation of the right answer.
 
 | Record | What independently checks it | What that leaves unchecked |
 |---|---|---|
-| **OP-4** — sort a table, read the top row | The claimed value is a **structure** (a sort state, a row), so string re-location does not apply: `independently_checked` was **0** in `r1` | Whether the top row is the *right* row. An oracle that fetches the table, applies the sort key and compares is the fix, and it is not built |
+| **OP-4** — sort a table, read the top row | **An independent derivation, since A25.4.** The harness fetches the article itself, finds the table carrying the named column, decides numerically-vs-lexicographically from that column's own values, sorts and compares the top row. It is the one check here that can say a *verified* run is wrong about the world | Whether the article changed between the run and the check. A fetch that cannot be attributed is reported `not_comparable`, never as a failure |
 | **OP-5** — expand a collapsed box, read a value | Same: derived values, `independently_checked` **0** | **Everything.** Correctness here rests entirely on the product's own verifier, with no independent ground truth of any kind |
 | **OP-6** — category listing, list-level facts | Enumerations are re-derived **member by member** against the stored artifact — the strongest check in the set, and the one absence rests on | Whether the enumeration is complete for a multi-page category (this is L-3, and it abstains rather than guessing) |
 | **OP-7** — labelled field on a product page | The value is a scalar and is re-located in the artifact through the label anchor | Whether the label anchor is the one a human would pick. And the record is fixed to one product (§6) |
 | Refusals (robots, policy) | The matched rule is quoted and re-checkable against the live `robots.txt` | Nothing material |
 
-**The consequence, stated where it costs us: "verified-but-wrong = 0" is currently unfalsifiable on
-OP-4 and OP-5 — the two records the design calls structurally shortcut-proof.** An instrument that
-cannot register the event it is looking for does not produce a zero; it produces no information, and
-reporting that as a zero would be the exact defect this system exists to prevent, committed by us
-about ourselves.
+**The consequence, and what changed.** An instrument that cannot register the event it is looking for
+does not produce a zero; it produces no information, and reporting that as a zero would be the exact
+defect this system exists to prevent, committed by us about ourselves. On `r1` that was the state of
+both OP-4 and OP-5.
+
+OP-4 now has a real derivation, and the numeric-versus-lexicographic distinction is why it was worth
+building rather than only disclosing: the same column sorted the other way is a different top row and
+both orderings look completely reasonable on the page. **OP-5 still has none** — expanding a
+collapsed box is state that exists only after an interaction, so a plain fetch would disagree with a
+correct run, and its correctness rests on the product's own verifier. Every other case's `oracle`
+field in `eval/dev-set.md` now names which of the three kinds of check it gets, instead of all
+fifteen claiming a derivation that no code performed.
 
 Disclosing that costs a paragraph. Being found to have declared an oracle that never ran costs the
 argument.

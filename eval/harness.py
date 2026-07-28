@@ -15,10 +15,16 @@ that overstates its own reach is the same defect as a product that does:
   recorded, that the claimed value is present in those bytes, and that the label the value
   was bound to is present too — with its own code, importing nothing from `app/`. This is
   what catches a fabricated value or a verifier that agrees with itself.
-- It does **not** re-derive the answer from the live site. Several cases turn on state that
-  only exists after an interaction (a sorted table's top row, page 3 of a listing), so a
-  plain fetch of the entry URL would disagree with a correct run. Those cases are scored on
-  status and evidence, and this file says so rather than implying more.
+- For **OP-4** it re-derives the answer: it fetches the article itself, finds the table
+  carrying the named column, decides numerically-vs-lexicographically from that column's own
+  values, sorts and compares the top row. That is the one check here that can say a
+  *verified* run is wrong about the world rather than about its own evidence.
+- For everything else it does **not** re-derive the answer, and says so per case. Several
+  cases turn on state that only exists after an interaction (an expanded box, page 3 of a
+  listing), so a plain fetch of the entry URL would disagree with a correct run. Those cases
+  are scored on status and evidence, and the split's `oracle` field names which kind of
+  check each one gets — until Amendment 25 every case claimed a derivation and every case
+  got a re-check, which left "verified-but-wrong = 0" unfalsifiable on our strongest records.
 
 Held-out splits are run through the same code path with `--split validation` or
 `--split test`, which suppresses every per-case detail: the caller gets the aggregate score,
@@ -48,7 +54,7 @@ from typing import Any
 
 from eval.http_client import classify, ssl_context
 
-HARNESS_VERSION = "harness/1.2"
+HARNESS_VERSION = "harness/1.3"
 REPO = pathlib.Path(__file__).parent.parent
 DEFAULT_CASES = {"dev": REPO / "eval" / "dev-set.md",
                  "experimental": REPO / "eval" / "experimental-set.md"}
@@ -455,6 +461,36 @@ def _collapse(text: str) -> str:
 
 # ---- scoring ---------------------------------------------------------------------
 
+def independent_oracle(case: dict[str, Any], run: dict[str, Any]) -> dict[str, Any]:
+    """Derive the right answer independently, for the records where that is possible.
+
+    Only OP-4 today, and the shape of the answer says so rather than implying more. For
+    every other record the harness re-checks the *evidence* and not the *answer*, which is
+    a real check and a narrower one — and saying which is which is the whole point of
+    A25.4, because the dev set used to describe oracles that did not exist.
+    """
+    if case.get("record") != "OP-4":
+        return {"kind": "evidence re-check only",
+                "why": "no independent derivation of the answer exists for this record"}
+    postcondition = run.get("postcondition") or {}
+    inputs = postcondition.get("inputs") or {}
+    url = postcondition.get("target_url") or ""
+    column = str(inputs.get("sort_column") or "")
+    direction = str(inputs.get("direction") or "")
+    if not (url and column and direction):
+        return {"kind": "op4", "comparable": False,
+                "why": "the run froze no article, column and direction to check against"}
+    claim = next((c for c in (run.get("claims") or []) if c.get("name") == "top_row"), None)
+    if claim is None:
+        return {"kind": "op4", "comparable": False,
+                "why": "the run reported no top row"}
+    reported = (claim.get("evidence") or {}).get("normalised_value")
+    from eval.oracles import agrees_with, expected_top_row
+
+    derived = expected_top_row(url, column, direction)
+    return {"kind": "op4", "url": url, **agrees_with(derived, reported)}
+
+
 def score_case(case: dict[str, str], run: dict[str, Any], evidence: dict[str, Any],
                schema: CaseSchema = BROWSER_TASK,
                pre: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -470,6 +506,15 @@ def score_case(case: dict[str, str], run: dict[str, Any], evidence: dict[str, An
     findings = list(evidence["findings"])
     if tier_agrees is False:
         findings.append(f"declared tier {declared_tier} but the run reports {reported_tier}")
+    oracle = independent_oracle(case, run)
+    if oracle.get("comparable") and oracle.get("agrees") is False:
+        # The only check in this harness that can say a *verified* run is wrong about the
+        # world rather than about its own evidence. A disagreement here is what makes
+        # "verified-but-wrong = 0" falsifiable at all (A25.4).
+        findings.append(
+            f"the independent oracle sorted {oracle.get('sort_key')} and expects "
+            f"{oracle.get('expected_top_row')}; the run reported cells not in that row: "
+            f"{', '.join(oracle.get('not_in_expected_row') or [])}")
     evidence = {**evidence, "findings": findings}
     return {
         "case": case["id"],
@@ -493,6 +538,7 @@ def score_case(case: dict[str, str], run: dict[str, Any], evidence: dict[str, An
         "latency": run.get("latency"),
         "budget": run.get("budget"),
         "timed_out_waiting": bool(run.get("harness_timeout")),
+        "oracle": oracle,
         "passed": bool(status_ok) and not evidence["findings"],
     }
 

@@ -23,7 +23,7 @@ Every case declares, in advance:
 | `postcondition` | What must be true for the task to be complete (frozen and hashed at plan time, S-4.12) |
 | `expected_anchor` | The label/header the value is structurally bound to (S-4.9) |
 | `required_evidence` | What the evidence bundle must contain |
-| `oracle` | How the harness independently establishes ground truth |
+| `oracle` | What actually checks this case, in the harness's own words. Three kinds: *derived independently* (the harness works out the right answer from the site and compares), *evidence re-check* (the delivered artifact is re-fetched, re-hashed and the claim re-located in it — a check of the evidence, not of the world), and *trace inspection*. Until Amendment 25 every case here claimed the first while the harness did the second, which left `verified-but-wrong = 0` unfalsifiable on OP-4 and OP-5 (A25.4). |
 | `expected_terminal_status` | Acceptable terminal status(es) |
 
 **Values are deliberately not frozen** where the source page can legitimately change. The case pins
@@ -56,7 +56,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** the Symbol and Security cells of the first data row of the sorted table are extracted from a snapshot taken *after* the sort
 - **expected_anchor** column headers "Symbol" and "Security"; value taken by same-row relation
 - **required_evidence** post-sort DOM snapshot, structural anchor per claim, action trace showing the header click
-- **oracle** harness fetches the table independently, applies the same sort key, compares
+- **oracle** *derived independently.* The harness fetches the article itself, finds the wikitable carrying the named column, decides numerically-vs-lexicographically from the column's own values, sorts, and compares the top row against what the run reported. A disagreement is a finding on the case.
 - **expected_terminal_status** `succeeded_verified`
 
 ### DEV-02
@@ -68,7 +68,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** Security cell of the first data row after sorting
 - **expected_anchor** header "CIK" for the sort key, header "Security" for the value
 - **required_evidence** post-sort snapshot; both anchors resolvable
-- **oracle** independent fetch + numeric sort on CIK
+- **oracle** *derived independently*, as DEV-01 — and CIK is where the numeric-vs-lexicographic choice bites: sorted as text, `0000001800` and `0000320193` order differently from their numbers.
 - **expected_terminal_status** `succeeded_verified`
 - **note** numeric-vs-lexicographic sorting is the trap here; the verifier must confirm the *page's* resulting order, not the harness's assumption
 
@@ -81,7 +81,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** first data row's country cell after sorting
 - **expected_anchor** header "Country/Territory"
 - **required_evidence** post-sort snapshot + anchor
-- **oracle** independent fetch + sort
+- **oracle** *derived independently*, as DEV-01, on a different article and table shape.
 - **expected_terminal_status** `succeeded_verified`
 - **note** different article and different table shape from DEV-01/02 — guards against overfitting to one page
 
@@ -96,7 +96,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** title text and first row-group label read from a snapshot taken after expansion
 - **expected_anchor** the collapsible container; the first row-group label cell
 - **required_evidence** pre- and post-expansion snapshots so the state change is inspectable
-- **oracle** harness resolves the same structural rule on an independently fetched copy
+- **oracle** *evidence re-check only.* The claimed value is a structure the harness cannot string-match, and expanding a collapsed box is state that exists only after an interaction — a plain fetch would disagree with a correct run. Correctness here rests on the product's own verifier.
 - **expected_terminal_status** `succeeded_verified`
 - **note** per Amendment 4.2, the content exists in the DOM before expansion; what is verified is the state transition plus the value, not impossibility of bypass
 
@@ -109,7 +109,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** an integer count of entries in the first row group, taken after expansion
 - **expected_anchor** the collapsible container; first row-group cell
 - **required_evidence** post-expansion snapshot; the counted nodes must be individually resolvable
-- **oracle** independent structural count
+- **oracle** *evidence re-check only*, as DEV-04. No independent ground truth.
 - **expected_terminal_status** `succeeded_verified`
 - **note** result type is numeric, exercising a different verification path (count vs string)
 
@@ -124,7 +124,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** total result count and page count extracted from the listing's own counters
 - **expected_anchor** the results counter text ("N results - showing X to Y.") and the pager position text ("Page 1 of M")
 - **required_evidence** category-page snapshot; both anchors resolvable
-- **oracle** independent fetch of the category page; parse the same two strings
+- **oracle** *evidence re-check.* Each enumerated member is re-located in the delivered artifact, member by member — the strongest check the harness has, and a check of the evidence rather than of the world.
 - **expected_terminal_status** `succeeded_verified`
 
 ### DEV-07
@@ -136,7 +136,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** title of the first listing item on page 3
 - **expected_anchor** pager position text "Page 3 of 4"; first listing item's title attribute
 - **required_evidence** snapshot of page 3 including the pager anchor; action trace showing two next-clicks
-- **oracle** independent fetch of the page-3 listing
+- **oracle** *evidence re-check.* Page 3 exists only after paging, so there is no URL to fetch it from; the claim is re-located in the stored artifact.
 - **expected_terminal_status** `succeeded_verified`
 
 ### DEV-08
@@ -148,7 +148,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** count of listing items on the final page, plus the pager anchor proving it is final
 - **expected_anchor** pager position text; listing item nodes
 - **required_evidence** final-page snapshot; absence of the next control must be evidenced, not asserted
-- **oracle** independent enumeration
+- **oracle** *evidence re-check*, member by member, against the delivered artifact.
 - **expected_terminal_status** `succeeded_verified`
 - **note** exercises multi-step pagination and an "end of set" boundary
 
@@ -163,7 +163,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** the value bound to the label "UPC" in the Product Information table
 - **expected_anchor** table header cell "UPC"; value taken from the adjacent cell in the same row
 - **required_evidence** product-page snapshot; label anchor and value cell both resolvable
-- **oracle** independent fetch; same label→value rule
+- **oracle** *evidence re-check.* The value is re-located in the artifact through the label anchor frozen before the run.
 - **expected_terminal_status** `succeeded_verified`
 
 ### DEV-10
@@ -175,7 +175,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** the value bound to the label "Availability"
 - **expected_anchor** table header cell "Availability"; adjacent value cell
 - **required_evidence** product-page snapshot; both anchors
-- **oracle** independent fetch; same rule
+- **oracle** *evidence re-check*, as DEV-09.
 - **expected_terminal_status** `succeeded_verified`
 - **note** the availability string carries an embedded count; the verifier must return the value as shown and MUST NOT reinterpret or reformat it
 
@@ -190,7 +190,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** coverage proven against the category's own results counter, and no item satisfies the predicate
 - **expected_anchor** the results counter text (coverage anchor, A3.2); each item's price element
 - **required_evidence** snapshot(s) covering every item; the coverage anchor
-- **oracle** independent enumeration and predicate evaluation
+- **oracle** *evidence re-check.* Every enumerated member is re-located in the artifact; the predicate itself is re-evaluated by the product's verifier, not here.
 - **expected_terminal_status** `no_result_verified`
 - **note** answering "no" without the coverage anchor MUST come back as `unverified`, not `no_result_verified`
 
@@ -203,7 +203,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **postcondition** as DEV-07
 - **expected_anchor** as DEV-07
 - **required_evidence** action trace containing both next-clicks
-- **oracle** independent fetch
+- **oracle** *evidence re-check* against the delivered artifact.
 - **expected_terminal_status** `succeeded_verified` **only if** the trace shows both clicks. A run that navigates straight to the page-3 URL is scored `failed / required_action_skipped` **even though its answer is correct** (S-4.4)
 - **note** this case exists to be failed by a shortcut-taking implementation; it is mandated in dev so the rule is discovered during development, not at acceptance
 
@@ -225,7 +225,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **required_actions** none — no browsing may occur at all
 - **postcondition** refusal before any navigation
 - **required_evidence** zero network artifacts
-- **oracle** trace inspection: no navigation events
+- **oracle** *trace inspection.* The run's own trace is read for navigation events; this is a check on the record of the run, not on the world.
 - **expected_terminal_status** `unsupported / policy_refused`
 
 ### DEV-15 — experimental tier, unknown site
@@ -235,7 +235,7 @@ the *anchor* and the *oracle*, not the answer (S-3.5). Content drift then surfac
 - **required_actions** best-effort; not pre-declared (the site is undeclared by definition)
 - **postcondition** either a verified count bound to a located label, or an abstention naming the step it stopped at, the last observed page state, and why the postcondition could not be verified (A2.2)
 - **required_evidence** whatever artifacts the run produced, in either outcome
-- **oracle** independent fetch, if the run produces a claim
+- **oracle** *evidence re-check*, if the run produces a claim.
 - **expected_terminal_status** `succeeded_verified` (labelled T-EXPERIMENTAL) **or** `unsupported` **or** `blocked` — all acceptable. `unverified` presented as an answer, or any result rendered with declared-tier weight, is a **failure of this case**
 - **note** this case does not count toward the headline success rate (S-1.3); what it grades is the honesty and specificity of the outcome
 

@@ -290,10 +290,12 @@
 <div class="panel">
   <h2>Locator memory</h2>
   {% if build.locator_memory %}
-  <p class="sub">Each interaction step in the trace above is badged <strong>from memory</strong>,
-    <strong>healed</strong>, or <strong>freshly derived</strong>, and where memory contributed
-    nothing it says which kind of nothing — empty, past its confirmation window, or
-    quarantined after three consecutive failures.</p>
+  <p class="sub">Each interaction step in the trace above is badged <strong>healed</strong> or
+    <strong>freshly derived</strong>. Memory engages where a locator has <em>stopped
+    resolving</em> — that is the case it exists for — so a run where nothing broke is a run
+    of freshly derived locators, which is the expected reading rather than a missing feature.
+    Where memory was consulted and contributed nothing, the step says which kind of nothing:
+    empty, past its confirmation window, or quarantined after three consecutive failures.</p>
   <p class="sub">The boundaries are the design. A locator enters memory only from a run that
     ended <code>succeeded_verified</code>, never merely because a click worked. What is
     remembered is an element's identity and never a value, so nothing here can become an
