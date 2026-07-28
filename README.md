@@ -93,7 +93,7 @@ What needs a key is the model-driven path, which is everything on a site we did 
 ### Tests and evaluation
 
 ```bash
-pytest                                    # 592 tests, ~16 s (a real browser runs
+pytest                                    # 595 tests, ~16 s (a real browser runs
                                           # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
@@ -405,7 +405,8 @@ same defect and take their article, column, direction, category and page from th
 ### What is not built, and is not claimed
 
 Each of these is a decision taken with two days left and a fixed budget, recorded as a decision
-rather than discovered as a gap. Amendment 25 is where each one was made.
+rather than discovered as a gap. Amendment 25 is where each one was made — except the last, which is
+built to a stated minimum and whose bounds are the entry.
 
 - **Task 2 (SEC 10-K extraction) is not built.** `docs/task2-seam.md` is a complete, frozen contract
   for it — the resolution rules, the amendment ordering, the cap behaviour, the hashing — and nothing
