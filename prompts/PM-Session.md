@@ -645,3 +645,52 @@ ENG 現在還在照 spec 執行，不過你說的那則 prompt 我已經同時�
 你應該要著手M8? 還是你覺得照順序做完M7再來做M8比較好，不然現在寫了後續可能還要大改？
 
 ==========
+
+中間還有預計幾步eng會需要停下來讓我幫忙deploy
+
+==========
+
+以下是最新進度
+請確認一下我們上面談到的問題是不是都包含在這次的改動當中
+特別是偏航review提到的點
+-----------
+Amendment 25 步驟 1–3、5、6 與第七節三項都做完並推上去了。以下是回報。
+
+做了什麼
+
+1. 推了（步驟 1）。 十筆一起上線，順便量到第六次 deploy-to-usable：141.1 s 到可用、outage 16.3 s，寫進 coldstart-deploy-9591fbd.json。之後每一步都是「commit → push → 等部署 → 對著部署驗」。
+
+2. A25.1：limitations 全部實跑 —— 七條裡有四條是假的。 審查抓到一條，跑完整份抓到四條：
+  L-1 remedy: 公布 succeeded_verified / 實際 failed / budget_exhausted
+  L-4: 公布 policy_refused / 實際 robots_disallowed（實際的比較準確）
+  L-5: 公布 unsupported / 實際 succeeded_verified —— Gutenberg 那題已經會過了
+  L-7: 公布 unsupported / 實際 no_result_verified —— fixture 現在真的證明了不存在
+L-1 修好之後 remedy 仍不是成功，但理由換了：文章解析對了、表格也排序了，然後 run 不認得排序已經完成，剩下的 step 拿去重新搜尋文章 → budget_exhausted。這條照實寫進去。python -m eval.limitations_check --base-url <host> 現在是工具，會跑每一條和每一條宣稱的 remedy，報告 commit 在 eval/results/。修完再跑：7/7 reproduce。
+順手抓到一個沒有任何測試守著的回歸：A24.6 的 aria snapshot 自己佔一個 trace entry，而每個 trace entry 都扣 step budget —— capture 密集的 run 等於少一半可用步數，L-1 的 remedy 就是這樣燒掉的。一次 capture 現在是一步，有測試。
+
+3. README + analysis report（步驟 3）。 你的骨架我全部填完，沒有留下任何「主張」不是「數字」：support matrix 從七筆改成四筆（fixture 三筆早就被 A1.2 撤出承諾）、OP-7 那格寫清楚它只對一個商品成立、兩道 hard gate 附上 OP-4/OP-5 沒有獨立 oracle，所以 verified-but-wrong = 0 在最強的兩個紀錄上目前無法否證。冷抵達是唯一標「未量測」的，寫了理由。
+
+4. A25.3 + A25.2（步驟 5）。 任務問 n 件事就凍 n 個 claim，只驗到一部分就 partial。OP-7 從商品參數解凍：標題從任務讀、從 listing 翻頁找到它（上限 6 頁，站上沒有搜尋），超出上限就 unsupported 並說出上限。沒指名商品時不給預設 —— 退回罐頭商品會回答一本沒人問過的書而且驗得完美。OP-4/5/6 一併檢查過參數。
+
+5. §8 locator memory（步驟 6）。 這是提交裡最大的洞，現在有了，範圍刻意小：(origin, operation, role) 為鍵存在 volume、只從 succeeded_verified 寫回、14天確認窗、連三次失敗隔離、/healthz 計數器、run 頁面標「來自記憶／已修復／現場推導」。存的是元素身分、永遠不是值；記憶只省搜尋、不省證明。修復示範跑在真實 books.toscrape Nonfiction 頁的逐位元封存檔與它「被改版過」的副本上：li.next a 活不下來，「名字叫 next 的連結」活得下來。
+
+6. 第七節三項。 首頁改成一個任務一列（量測工具每次部署都送同一個 probe，所以首頁全是 fixture 搜尋）；POST /api/runs 收 JSON 了；prompts/README.md 索引寫好。
+
+567 tests passing。
+
+一個我要先講的錯
+
+r2 的乾淨歸因被我弄丟了。 A24.3 要 r2 是「只改計分器」，但 r2 要你去 dashboard，我照自主規則往下做了步驟 5、6，現在部署上除了計分器還有 A25.2/A25.3/記憶。r1→r2 的差不再是純量測缺陷。
+可挽回的部分：我把新語料對著 r1 真實的 artifact bytes 跑過，四題被打掉的 case 都回來了（DEV-10/11/12，兩個站的 artifact 都從 volume 拉下來驗過）。所以量測效應是有證據隔離的，只是不再由一個 round 邊界隔離。請你裁決。
+
+需要你動手的
+
+1. 跑 r2：EVAL_ROUND=2、重啟 wf-scored。約 $0.03。
+2. test split 一次（步驟 7），要掛 held-out 檔。
+3. 目前累計花費 USD ~0.13（r1 的 0.0477 + 兩輪 limitations check 各約 $0.03）
+
+下一步我要往哪走
+
+等 r2 的同時：把 A25.4 的 OP-4 oracle 實作出來（抓表、套排序鍵、比第一列），並改寫其他 case 的 oracle 欄位成 harness 實際做的事 —— 那是目前唯一「方向樂觀」的量測缺陷。
+
+==========
