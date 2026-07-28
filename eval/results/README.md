@@ -14,6 +14,7 @@ one worth reading.
 | `coldstart-deploy-06ae6fb.json` | A third redeploy, same method and same t0 convention. |
 | `coldstart-deploy-882a16d.json` | A fourth. |
 | `coldstart-deploy-e1d13ca.json` | A fifth. Across the five, most of the spread is the platform's build queue before the swap — which is why deploy-to-usable is reported as a range and not a figure. |
+| `coldstart-deploy-9591fbd.json` | A sixth, across the push that ended a long hold: ten commits at once, so this reading covers the largest image change any of them measured. 141.1 s to a completed task, 16.3 s of outage. |
 | `coldstart-deploy-0900b95-partial.json` | The 2026-07-28 05:18Z redeploy, **not** the A18.8(1) measurement: the watcher could not verify TLS on the measuring machine and recorded a healthy deployment as a continuous outage. What it holds is what was derivable afterwards from the deployment's own uptime clock. |
 | `load-local-427cd96.json` | Saturation, sustained throughput and local cold start at `427cd96`. Every figure in it is fixture work on the deterministic path with no model call in the loop. |
 | `dev-deploy-e1d13cae4926-r1.json` | **The first paid round.** Dev split, 15 cases, run by the scored workload against the deployment at `e1d13ca`. Not comparable to `dev-local-427cd96.json` case for case: four passing cases are demoted here by evidence findings the scorer produces on titles it cannot re-locate in rendered text, which is a defect in the scorer and is written up rather than corrected in place. |

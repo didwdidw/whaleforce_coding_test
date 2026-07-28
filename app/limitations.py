@@ -25,11 +25,18 @@ class Limitation:
     failure_class: str | None
     what_happens: str
     why: str
+    #: A phrasing the entry claims makes the same task work. It is part of what the entry
+    #: says, so it is part of what has to reproduce (A25.1): L-1 published a remedy that
+    #: resolved to `/wiki/List_of_S%26P_500_companies_article` and ended `unsupported`.
+    #: `eval.limitations_check` runs both against the deployment.
+    remedy_task: str = ""
+    remedy_outcome: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {"id": self.id, "task": self.task, "outcome": self.outcome,
                 "failure_class": self.failure_class,
-                "what_happens": self.what_happens, "why": self.why}
+                "what_happens": self.what_happens, "why": self.why,
+                "remedy_task": self.remedy_task, "remedy_outcome": self.remedy_outcome}
 
 
 LIMITATIONS: tuple[Limitation, ...] = (
@@ -44,8 +51,12 @@ LIMITATIONS: tuple[Limitation, ...] = (
         why=("The article is described rather than named. 'The S&P 500 constituents "
              "table on Wikipedia' does not resolve to one page title, and the alternative "
              "— searching for it and picking a result — is choosing a starting page the "
-             "task never named. Adding the article title ('the List of S&P 500 companies "
-             "article') makes the same task succeed."),
+             "task never named. Naming the article makes the same task succeed; the exact "
+             "phrasing that does is below, and it is run against the deployment with the "
+             "entry itself."),
+        remedy_task=("In the List of S&P 500 companies article on Wikipedia, sort by CIK "
+                     "ascending and tell me which company is first."),
+        remedy_outcome="succeeded_verified",
     ),
     Limitation(
         id="L-2",

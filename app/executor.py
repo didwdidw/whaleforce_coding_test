@@ -985,6 +985,31 @@ class Executor:
             pass
         self._finish_step(run, nav, status=response.status if response else None,
                           final_url=ctx.page.url)
+        return await self._landed_somewhere_real(ctx, run, nav)
+
+    #: Pages that answer 200 and are not the page anybody asked for. A title assembled from
+    #: a sentence lands on one of these, and without this the run proceeds to look for its
+    #: anchors on a page that says the article does not exist — an abstention blamed on the
+    #: locator when the entry point was wrong (A25.1).
+    ABSENT_PAGE_MARKERS: tuple[tuple[str, str], ...] = (
+        ("div.noarticletext", "Wikipedia has no article with this exact title"),
+        ("#noarticletext", "Wikipedia has no article with this exact title"),
+    )
+
+    async def _landed_somewhere_real(self, ctx: ExecutionContext, run: Run, nav) -> bool:
+        for selector, why in self.ABSENT_PAGE_MARKERS:
+            try:
+                if await ctx.page.locator(selector).count():
+                    self._finish_step(run, nav, ok=False, error=why)
+                    self._terminate(
+                        run, TerminalStatus.BLOCKED, FailureClass.SITE_UNAVAILABLE,
+                        f"{why}: {ctx.page.url}. The starting page was derived from the "
+                        f"task's own words, and the words did not name a page that "
+                        f"exists. Continuing would look for the answer on a page whose "
+                        f"only content is that there is no such page.")
+                    return False
+            except Exception:  # noqa: BLE001 - a selector that cannot run is not a finding
+                continue
         return True
 
     async def _capture(self, ctx: ExecutionContext, label: str) -> str:
@@ -1687,6 +1712,18 @@ class Executor:
                 if len(head) == 2 and head[0].lower() in (
                         "on", "in", "from", "the", "a", "an", "open", "at", "for", "about"):
                     phrase = head[1]
+                    continue
+                break
+            # And the trailing noun, for the same reason. Only the leading words were
+            # stripped, so "the List of S&P 500 companies **article**" resolved to
+            # `/wiki/List_of_S%26P_500_companies_article` — a real navigation to a page
+            # that does not exist, and the phrasing our own limitations list published as
+            # the way to make the task succeed (A25.1).
+            while True:
+                tail = phrase.rsplit(" ", 1)
+                if len(tail) == 2 and tail[1].lower().strip(".,'\"") in (
+                        "article", "page", "entry", "wikipedia", "wiki"):
+                    phrase = tail[0]
                     continue
                 break
             if not phrase or len(phrase) < 3:
