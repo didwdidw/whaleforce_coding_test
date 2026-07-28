@@ -21,6 +21,9 @@ one worth reading.
 | `experimental-deploy-e1d13cae4926-r1.json` | The same round's experimental split, 10 cases — the A-40 breadth deliverable. Wilson intervals are inside the file; ten cases is a small number and the interval is how the file says so. |
 | `bundles/dev-e1d13cae4926-r1/` | The dev split's evidence: every non-success run, plus the success sample named in `eval/bundle-sample.json` before the round. `manifest.json` lists what was left out and why, with hashes for it. |
 | `bundles/experimental-e1d13cae4926-r1/` | The same for the experimental split. Every artifact was re-hashed on the way out and every hash matched. |
+| `limitations-b9bccb0240af.json` | **The first execution of the published limitations list** against the deployment (A-73). Four of seven entries did not reproduce as written. Kept because it is the evidence for the rule, and deleting the run that justified a rule is how a result set becomes a highlight reel. |
+| `limitations-ca837143e623.json` | The same check after the four entries were corrected: 7 of 7. |
+| `limitations-def383de1d9a.json` | And again on the build carrying OP-7's generalisation, the n-claim postcondition and locator memory — the product changed materially, so the list was re-executed rather than assumed. 7 of 7. |
 
 A score is only meaningful with the provenance block beside it (S-10.7): the commit, the
 model, the credential tier, the split's own hash. All of that is inside each file.
