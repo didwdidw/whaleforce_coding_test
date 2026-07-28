@@ -1239,3 +1239,205 @@ REFUSING TO RUN THE SCORED WORKLOAD: /data/task1 does not exist: the shared volu
  INFO: "/data is empty. Either no volume is attached to this service — the image creates an empty /data — or one is attached that is not the app's. Attach the *same* volume as the app service, mounted at /data: a volume of this service's own would keep scored evidence where the public run views cannot reach it."
 
 ==========
+
+dry run 我按下去了
+目前的 log:
+[scored-workload/1.2] round r1 on 882a16dcebb8: {
+ "cases_per_split": {
+  "dev": 15,
+  "experimental": 10
+ },
+ "cases_priced": 25,
+ "cases_not_in_this_image": [],
+ "usd_per_run_measured": 0.0042,
+ "safety_factor": 1.5,
+ "expected_usd": 0.1575,
+ "worst_case_usd": 0.975,
+ "worst_case_basis": "every run spending its full token budget: $0.0390 per run",
+ "remaining_today_usd": 0.9998,
+ "remaining_cumulative_usd": 4.9998,
+ "affordable": true,
+ "worst_case_affordable": true
+ }
+ [scored-workload/1.2] dry run: preflight, startup and forecast only. No case was submitted and no result file was written.
+ [scored-workload/1.2] done. Wrote: nothing
+ [scored-workload/1.2] idling. Change EVAL_ROUND and restart to score again.
+
+
+以下是 PM 的新指令
+你可以看要現在做，還是等 dry run 我回答完你 log 再做
+-----------------------------
+First order:
+一、A21.7 我定了 —— 已寫成 Amendment 22（A22.1–A22.9、A-66/A-67），commit 727c214。
+系統總上限維持 USD 1.00。scored $0.75，公開 app $0.25。
+scored 那個數字的理由：一輪預估 $0.157、實測 $0.051，
+$0.75 是「每題都跟我們見過最貴那題一樣貴」的七倍，
+而且刻意不覆蓋 $0.975 的理論尾巴 —— 尾巴由 forecast gate 警告，A20.5 說上限不照尾巴訂。
+公開那 $0.25 是保留額不是配額：A12.2 下那個容器沒有付費金鑰，今天實際能花的是 $0.00，
+它要到 A15 切換後才會活。A22.5 把「切換時重新檢討這個切分」排進計畫，不是改主意。
+
+兩條是機制不是紀律：
+公開那 $0.25 是保留額不是配額：A12.2 下那個容器沒有付費金鑰，今天實際能
+它要到 A15 切換後才會活。A22.5 把「切換時重新檢討這個切分」排進計畫，不
+
+兩條是機制不是紀律：
+- A22.3 兩個上限要從同一個宣告來源推導，不是兩個獨立的環境變數。
+  只靠慣例相等的兩個數字會漂移，而且沒有行程看得到對方的帳本，所以漂移是隱形的。
+  跟 A20.3 是同一個推理。
+- A22.4 每個 healthz 要報自己的上限、自己的花費、和系統總額。
+  一個要靠讀者自己把兩個服務加起來才看得到的承諾，不是一個可見的承諾。
+
+付費輪解鎖了。
+
+二、A21.4 我接受形狀，還不接受它當 limitation（A22.6–A22.8）
+
+你的推理對，A21.6 拒絕在 scored 服務上開門也對。
+但作業明文要 makes failures inspectable，而 A21.4 寫成這樣的意思是：
+我們公布數字的那些 run，正好是沒有人看得到的 run，其中失敗的最看不到。
+
+A12.3 要求的是憑證不可達，不是服務不可達。artifact 不是憑證。
+而且 A21.2 你已經把機制立好了 —— 一輪的紀錄跟著 repo 走。延伸到 evidence 就行：
+- 每一筆非成功 run 的完整 bundle 一定要 commit（那是讀者有理由懷疑的，也
+- 一個「開跑前就指定好」的成功樣本的完整 bundle（讓讀者確認一個 pass 長得像 pass）
+- 沒帶的東西：per-case verification record + artifact hash + 明列漏了什麼、為什麼（A11.8）
+
+上限用量的（A22.8），不要用猜的。超過上限的那個殘餘才是 A21.4 的 limitat
+寫的是「實際帶不動的東西」，不是整個類別。
+走 A21.3 的聯集出去，公開前端就讀得到，而 scored 服務一次都不用可達。
+
+三、A21.5 我特別記一筆
+
+「用別的行程的副作用滿足的前置檢查，不是前置檢查」是 Amendment 21 裡最有
+它跟 A11.7 的空洞驗證、A19.2 的「未評估的約束被記成滿足」是同一個缺陷，
+在第三個地方被找到：前置檢查、驗證、約束，三者用同一種方式壞掉 ——
+都是在報告一個巧合。已寫成 A22.9：這個系統之後新增的任何檢查都要對著它讀一次。
+
+其餘照原本那份 prompt 走，特別是第七段第 1 點（我 push 之前你先起 watche
+A20.2 還沒生效，因為你還沒收到它。
+----------------------------------
+Second order: 
+三件事都接受，其中一件我要加一條你沒做的。push=部署那個發現最重要，
+它讓昨天講好的 A18.8 協定作廢，已寫成 Amendment 20（docs/task1-spec.md §16，A20.1–A20.6、A-61/A-62）。
+另外我修了 experimental split 裡三題會一起死掉的題目。commit 90dd2a4，還沒 push（見第五段）。
+
+■ 一、EVAL_DRY_RUN —— 接受，而且你把理由換掉是對的
+
+「一個靠檔案不存在而成立的乾跑不是機制」—— 這句話本身就是這個專案要證明的東西。
+明確命名它、寫進 runbook 第一步，收下。
+
+「它不是零成本，我不想讓你以為它是」也收下，而且那一次真實呼叫正是它的價值：
+「金鑰在、但打不出去」要在這裡發現，不是在計分輪第一題。這是 A9.3 的原意。
+
+但那一次呼叫要進帳本（A20.6）。它是真的付費呼叫，不記帳就是帳本說謊，
+跟 A17.9「在帳上免費的重試會讓預算變成虛構」是同一條規則，
+只是套用在唯一一個發生在任何 run 存在之前的呼叫上。
+請確認它有進 ledger；沒有就補。A-62 另外要求帳本總額要跟供應商自己報的當日花費對得上（誤差在四捨五入內）。
+
+■ 二、撞上限 —— 你的修法對，我只加一條
+
+開跑前報價、不夠就在第一題之前整輪拒絕，正是要的形狀。
+預期（題數 × 實測 × 1.5）當閘門、尾巴（吃滿 token）只警告，這個切分判斷正確 ——
+用 20 倍的尾巴當閘門會擋掉幾乎每一輪，那不叫保護。
+-r1-degraded.json 保留乾淨檔名讓同輪次可重跑，也對。
+
+A20.5 加一條，是防未來的人：上限是備援，不得為了容納預估值而調高。
+forecast gate 是控制，上限是「forecast 錯了」的時候接住的東西。
+因為一輪可能逼近上限就調高上限，等於把 forecast 唯一的檢查拿掉。A12.5 的 $1/日不動。
+
+順帶把操作者的顧慮結案：他擔心「ledger 跟公開 demo 共用，公開流量會吃掉額度」——
+這在拓樸上不成立。A12.2 規定付費金鑰永遠不在公開服務容器的檔案系統上，
+所以那個容器結構性地沒有能力往付費帳本寫入任何金額。
+帳本裡的付費支出只會來自 scored workload。這個結論請寫進 runbook，
+免得日後有人以為爭用是真的然後去「修」它。
+
+成本表收下。但依 A17.10：這份實測是在哪個 output cap 下量的？
+Amendment 17 放寬過 cap，如果這 15 題是放寬「之前」跑的，數字要重量。
+報告裡無論如何都要寫明是在哪個 cap 量的。
+
+■ 三、記憶體 —— 接受，兩點要求
+
+/healthz 的 browser.rss_mib 可遠端讀，這個設計比我預期的好，
+它讓記憶體從「跑之前的估算」變成「跑之中的觀測」。
+
+1. free -m 要三次不是一次：開跑前、跑到一半、跑完。
+   你的通過條件是「swap 成長為零」，成長需要兩個點才存在。一次讀數量不出成長。
+2. 那張表裡「k3s + 平台 agent −300～500」是估算，其他列是實測，
+   請在表上標出來哪幾列是量的、哪幾列是估的（A17.13：限定詞跟數字放在一起）。
+   最壞情況約 800 MB 餘裕是可接受的，但那個結論的其中一項輸入是估的，讀者要看得出來。
+
+「1,400 MiB 回收線是底線不是計畫」、「swap 被動到就是 finding 不是還好有 swap」——
+兩句都對，照這樣寫進報告。
+
+■ 四、git push 會觸發自動部署 —— 這是這輪最重要的發現（Amendment 20）
+
+你自己發現、自己更正了那份冷抵達檔案（「那不是冷抵達，那是一個已經開機 6.6 小時的容器的溫請求」），
+而且把「重新部署」跟「被驅逐」分開 —— 這是正確的處理，記一筆。
+
+A20.1：deploy-to-usable 的 t0 改成「push 的那一刻」，由推的人回報。
+這取代 A18.8 的「操作者按下部署後回報時刻」。
+新協定比舊的更精確不是更差：推的人知道確切的瞬間，按鈕的人只知道大概。
+昨天那個協定是我在不知道 push 會部署的前提下寫的，作廢。
+
+A20.2：計分輪或閒置窗進行中不 push —— 這條也綁住我。
+我這個 session 會 push spec 和 eval 檔，在這裡「對文件的一次 commit」就是一次生產部署。
+要在量測窗內 push 的人要先講。
+
+A20.3：紀律不是機制。計分輪必須記錄它啟動時的 SHA，
+並在 SHA 中途改變時中止，依 A18.7 把那份部分結果標成 degraded。
+A20.2 遲早會有人忘記，A20.3 是忘記的時候接住的東西。這條是我加的，你沒做。
+
+A20.4：輪次身分用 EVAL_ROUND 不用 SHA，收下。
+你原本的問題值得寫清楚：以 SHA 當輪次身分時，一次 push 就是一個新輪次，
+所以「已經計分過就跳過」這個保護對免費的重啟有效、對花錢的那個情況失效 ——
+一個保護在免費路徑成立、在付費路徑失效，那是反過來的。
+
+■ 五、我改了 experimental split 三題，先 pull 再跑（commit 90dd2a4，還沒 push）
+
+EXP-06、EXP-07、EXP-10 原本寫「Project Gutenberg」「MDN」，沒有可解析的 host。
+以現在的 records.resolve_entry，這三題都會在 entry_point 解析就死掉，
+在測到它們被寫來測的東西之前 —— 三成的 split 會重複量同一件事。
+已改成句子裡帶 host（www.gutenberg.org/ebooks/1342、developer.mozilla.org/...）。
+
+理由寫進檔案了，是量測設計不是便宜行事：
+這個 split 量的是「未見站上的執行廣度」，
+而「描述頁面但不指名」是另一個變數，由宣告側的 DEV-02 量、由 A18.3 治理。
+一個 split 一個變數。
+
+現在十題全部都在句子裡指名 host，所以：
+
+■ 六、Amendment 19（中文輸入）不擋這一輪
+
+我昨天寫的 A19.2/A19.3：named_site() 讀不出站名時，
+verifier 會 append 一筆通過的 named_site_frozen: True 然後什麼都不約束 ——
+一筆通過的檢查頂替一筆不存在的檢查。
+但 dev 和 experimental 兩個 split 的每一題都以程式讀得到的形式指名了站，
+所以那條空洞路徑在這一輪不會被觸發，這一輪的數字不受污染。
+
+因此順序是：先跑這一輪，A19 之後修。
+但 A19.3 要排在 A18.3「之前」——
+A18.3 讓模型提 entry point，A17.1 是唯一擋住模型亂選的東西，
+站名讀不出來時 A17.1 不約束任何事，
+所以 A18.3 + 一個別名表沒收錄的語言 = A17.1 當初要擋的那個缺陷原樣回來。
+
+■ 七、順序
+
+1. 我先跟你確認：我要 push 上面那四筆（A18/A19/A20/split 修正）。
+   你先起 watcher，跟我說好，我 push 並把時刻報給你當 t0 —— 這次 push 就是
+   deploy-to-usable 的量測機會，不要浪費。
+2. 操作者用 EVAL_DRY_RUN=1 起 scored 服務，貼輸出（forecast 段、credential 段）+ free -m 基線。
+3. 確認後跑真的一輪：EVAL_SPLITS=dev,experimental、EVAL_ROUND=<識別碼>，
+   free -m 三次（前/中/後）。這段期間雙方都不 push。
+4. 你收結果，然後才開乾淨的閒置窗量冷抵達（第二個 cold start 數字），
+   而且先確認這個部署到底會不會變冷 —— 會的話量，不會的話說明怎麼確認的（A18.8 item 2）。
+5. 之後才是 A19（中文 + 空洞檢查）、A18.1/A18.2/A18.6（tier 與 failure_class）、A18.3（entry point）。
+
+■ 八、兩個數字先標記，免得它們進報告
+
+- headline declared 10/11 = 0.9091：沒過的 DEV-02 依 A18.1 根本不該以那個形式失敗。
+  修完重跑的才是要進報告的 headline，同時要寫明前一版是多少、為什麼變。
+- experimental 2/3 = 0.6667：不要出現在任何地方。三題的比例沒有意義，
+  它的母體是 eval/experimental-set.md 那十題。
+
+一句判斷： ENG 這一輪三個回答的品質都比問題本身高一階（把「靠檔案不存在的乾跑」升級成命名機制、主動說乾跑不是零成本、自己發現並更正冷抵達那份檔案）。我加的兩條 —— A20.3 的 SHA 鎖和驗證呼叫要進帳本 —— 都是「紀律變機制」的同一個形狀，不是對他的修正。
+
+==========
