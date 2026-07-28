@@ -305,12 +305,17 @@ MU-4/5/7/9 and the full sweep were **cut** (Amendment 25): two working mutations
 demonstration is evidence, nine is a research programme, and the marginal mutation shows nothing the
 first two have not.
 
-**What is not demonstrated, and it is the more important half.** Detection and within-run recovery
-are exercised. **Write-back is not built**: there is no locator memory in the shipped build, so the
-mutation demonstrations show a run repairing itself *within* an attempt and nothing carrying that
-repair to the next one. §8 of the spec — self-maintenance — is the largest gap in this submission,
-and the frontend derives its claims from the code precisely so that it cannot paper over it. More
-than that: **no run in any committed result file has yet been recorded producing a genuine
+**Write-back, and the healing demonstration.** Locator memory is built at the reduced scope above,
+so a repair now survives the run that made it. The demonstration A14.6 asks for runs against **the
+real books.toscrape Nonfiction listing, archived byte for byte**, and against a copy of that page
+with the pager rewritten the way a redesign rewrites things — new class, new wrapper, a `data-` hook
+where there was none, accessible name untouched. `li.next a` is our spelling of the control and does
+not survive it; *the link whose name is "next"* is the page's own spelling and does. The asymmetry is
+the claim, and it is checked in `tests/test_healing_demonstration.py` with a browser driving both
+archived files.
+
+What is still weaker than it reads: the demonstration is one page and one mutation shape, and memory
+engages where a locator has stopped resolving rather than as a first resort. More than that: **no run in any committed result file has yet been recorded producing a genuine
 cross-family strategy transition** (A-11). The mechanism is built, it is exercised by the suite, and
 the field evidence for it is one demonstration rather than a rate. A mechanism we are confident in
 and cannot point at a production instance of is exactly the kind of claim this report is supposed to
@@ -374,7 +379,7 @@ honest about a two-day calendar.
 | **The mutation sweep (9 → 2 mutations)** | Two working mutations plus one healing demonstration is evidence. Nine is a research programme |
 | **Most of the safety suite** | **Not built, and declared as not built.** What exists is the egress guard, robots enforcement and the refusal taxonomy, all of which are load-bearing and tested. What does not exist is a safety split (`eval/safety-set.md`) or an injection detector — so `injection_detected` is a declared status **no code path currently reaches**, and `/coverage` says exactly that. The build-state flags are derived from whether the module and file exist, so the support page cannot advertise a suite that is not there |
 | **Further spend-ceiling and ledger work** | Total spend USD 0.0477. It was done, and it was over-done |
-| **Locator memory's full scope** | **Not built at the time of writing**, and the frontend does not claim it: `buildstate.locator_memory` is read off whether the executor has the attribute, so the support page says the trade-off is intended rather than made. The reduced scope planned is a store on the volume keyed by `(origin, operation, role)`, written back **only** from `succeeded_verified` runs, with a TTL, quarantine after three consecutive failures, a health counter, and the run page saying whether a locator came *from memory*, was *freshly derived* or was *healed* — not cross-site generalisation, ranking or a learned selector model. Self-maintenance is one of the two mechanisms the assignment names, so this is the largest single gap in the submission and it is stated as one |
+| **Locator memory's full scope** | **Built, at the reduced scope, on the last day.** A table on the volume keyed by `(origin, operation, role)`, written back **only** from `succeeded_verified` runs, 14-day confirmation window, quarantine after three consecutive failures, counters on `/healthz`, and the run page badging each interaction *from memory* / *healed* / *freshly derived*. Not built: cross-site generalisation, ranking, a learned selector model, or any use of memory as a first resort on the model-driven path — it engages where a locator has stopped resolving, which is the case it exists for. The frontend derives the claim from the code, so if this is ever removed the page stops selling it |
 
 **Process finding, stated against ourselves.** Six of the last eight spec amendments concerned the
 measuring apparatus — ledgers, budget ceilings, evaluation provenance, the spec's own change

@@ -369,14 +369,15 @@ rather than discovered as a gap. Amendment 25 is where each one was made.
   product that will not exist is a straight subtraction from the one that will. It is published as a
   *designed, not built* seam because the design is real work and pretending otherwise would be the
   opposite of the point.
-- **Self-maintenance (§8, locator memory) is the reduced version — and check the support page for
-  whether it shipped.** The planned scope is a keyed store on the volume, written back only from
-  `succeeded_verified` runs, with a TTL, quarantine after three consecutive failures, and the run
-  page saying whether a locator came *from memory*, was *freshly derived*, or was *healed*. Not:
-  cross-site generalisation, ranking, or a learned selector model. This is the largest single gap in
-  the submission and it is stated as one. The frontend does not take our word for it: the support
-  page derives the claim from whether the code exists, so if it is not built the page says the
-  trade-off is *intended* rather than made.
+- **Self-maintenance (§8, locator memory) is the reduced version.** A table on the volume keyed by
+  `(origin, operation, role)`, written back **only** from `succeeded_verified` runs — never because
+  a click worked — with a 14-day confirmation window, quarantine after three consecutive failures,
+  counters on `/healthz`, and the run page badging each interaction *from memory* / *healed* /
+  *freshly derived*. What is stored is an element's identity and never a value, and a remembered
+  locator is re-resolved and re-verified like any other: it saves search effort, never proof. Not
+  built: cross-site generalisation, ranking, a learned selector model, or memory as a first resort —
+  it engages where a locator has stopped resolving. The frontend derives the claim from the code, so
+  the page cannot sell it if it is removed.
 - **The mutation suite is two mutations, not nine.** MU-4/5/7/9 and the sweep are cut. Two working
   mutations plus one healing demonstration is evidence; nine is a research programme, and the
   marginal mutation buys nothing the first two have not already shown.
