@@ -1933,3 +1933,56 @@ is a claim we would have to defend rather than a sign of progress (A14.8).
 - [ ] **A-57** Both cold-start numbers appear in the report, with cold-arrival either measured or
   stated as structurally zero with evidence, and the first-task-after-idle latency is reported
   outside the steady-state median (A18.8, A18.9).
+
+### Amendment 19 — The promise has a language, and a constraint that could not be evaluated is not satisfied (2026-07-28)
+
+Extends **S-1.3**, **A17.1**, **A17.6**, **A18.3**, **A14.8**.
+
+#### What is actually English-only
+
+The model-driven path itself is not the problem: the goal is passed verbatim, the reduced view is
+serialised with `ensure_ascii=False`, and the label anchors a run binds to come from the page, which
+is in the page's own language. What is English-only is everything that runs **before** the model —
+`records.py`'s site aliases (`wikipedia`, `toscrape`), the host/URL patterns in `resolve_entry`, and
+the route keywords.
+
+**A19.1** The consequence is that **the declared-tier promise is English-only**, and the system does
+not say so. 「在維基百科的 S&P 500 列表裡，依 CIK 排序，告訴我第一名是哪家公司」 never reaches
+T-DECLARED; the same sentence in English does. A tier is a promise, and a promise that silently
+weakens depending on the language it was asked in is a promise with an undeclared condition. The
+support matrix and the README MUST state the language the declared-tier promise holds in.
+
+#### The half of this that is a defect
+
+**A19.2** Extends A17.6 from claims to constraints. **A constraint the verifier could not evaluate
+MUST be recorded as not evaluated, never as satisfied**, and a run MUST NOT reach
+`succeeded_verified` on the strength of a check that did not run. `verifier.py`'s site binding
+currently appends `named_site_frozen: True` when the task's site cannot be read — a passing check
+standing in for an absent one. That is A11.7's vacuous verification, sitting inside the newest
+safeguard we built.
+
+**A19.3** The combination matters more than either part. A18.3 lets the model propose the entry
+point; A17.1 is what stops the model's choice from being unconstrained. When the task's site cannot
+be read, A17.1 imposes nothing — so **A18.3 plus a task in a language the alias table does not cover
+reproduces the exact defect A17.1 was written for**, in a new coat. Therefore: when a run's entry
+point was model-proposed **and** the site binding is unevaluated, the run MUST fail closed rather
+than proceed. There is no combination in which nothing constrains where a run started.
+
+**A19.4** Site aliases MUST cover the **Chinese names of every promised site**. The graders' own
+assignment ships in Traditional Chinese; assuming they will type English is a guess we do not have to
+make, and the fix is a table entry.
+
+**A19.5** Once A19.4 lands, a limitation entry MUST describe what remains — with a concrete example a
+reader can run, in the language it fails in (A14.8, A18.11). Publishing "Chinese is unsupported"
+while the code silently passes a safety check on Chinese input would be worse than either problem
+alone.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-58** A verifier check that could not be evaluated is recorded as not evaluated and named,
+  and no run reaches `succeeded_verified` with such a check counted in its favour (A19.2).
+- [ ] **A-59** A task naming a promised site in Chinese is assigned T-DECLARED and its evidence is
+  bound to that site; a model-proposed entry point with an unevaluated site binding fails closed
+  (A19.3, A19.4).
+- [ ] **A-60** The support matrix states the language the declared promise holds in, and the
+  limitations list carries the remaining language limitation with a runnable example (A19.1, A19.5).
