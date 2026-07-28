@@ -25,7 +25,7 @@ import pytest
 from app.browser import BrowserSupervisor
 from app.config import settings
 from app.coverage import CoverageLedger
-from app.executor import Executor
+from app.executor import Executor, _compare as _real_compare
 from app.planner import Planner
 from app.provider import CredentialPolicy, Provider, ProviderError
 from app.models import FailureClass, Run, TerminalStatus, Tier, new_id
@@ -130,6 +130,45 @@ def test_absence_mode_b_needs_its_coverage_anchor(executor):
                     if c["name"] == "absence_mode_b_coverage")
     assert coverage["ok"] is True
     assert coverage["detail"]["anchor_total"] == coverage["detail"]["enumerated"] == 14
+
+
+def test_absence_mode_b_answers_the_positive_direction_too(executor):
+    """A17.11/A-53. The same enumeration that proves nothing matches also says *what*
+    matches, and a correct "yes, these two" is a verified success rather than being forced
+    into `verification_mismatch` for having found something. A failure class that fires on
+    correct behaviour is noise, and noise in a failure class is how real failures stop
+    being read."""
+    run = run_task(executor, "Is any product priced over £85?")
+    assert run.terminal_status is TerminalStatus.SUCCEEDED_VERIFIED
+    assert "WF-1002" in run.explanation and "WF-1004" in run.explanation
+    verdict = next(t for t in run.trace if t.summary == "Deterministic verification")
+    checks = {c["name"]: c for c in verdict.detail["verdict"]["checks"]}
+    # The anchor is cited, and it is what makes "exactly these two" a claim about the whole
+    # catalogue rather than about the rows we happened to read.
+    assert checks["absence_mode_b_coverage"]["ok"] is True
+    assert checks["absence_mode_b_coverage"]["detail"]["anchor_total"] == 14
+    assert checks["enumeration_agreement"]["ok"] is True
+    assert checks["enumeration_predicate_frozen"]["detail"]["predicate"] == {
+        "field": "price_gbp", "op": ">", "value": 85.0}
+
+
+def test_the_same_case_with_the_predicate_inverted_is_caught(executor, monkeypatch):
+    """The other half of A-53, and the reason the run states what it found at all.
+
+    The enumeration is correct, the coverage is proven, every claim binds — and the run
+    applies the predicate backwards. Nothing about the shape of this run is wrong. Only
+    the verifier re-deriving the matching set from the artifact, without looking at what
+    the run reported, separates it from the run above.
+    """
+    import app.executor as executor_module
+
+    monkeypatch.setattr(executor_module, "_compare",
+                        lambda value, predicate: not _real_compare(value, predicate))
+    run = run_task(executor, "Is any product priced over £85?")
+
+    assert run.terminal_status is TerminalStatus.FAILED
+    assert run.failure_class is FailureClass.VERIFICATION_MISMATCH
+    assert "WF-1002" in run.explanation
 
 
 def test_pagination_is_verified_against_the_page_that_was_frozen(executor):

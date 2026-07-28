@@ -207,3 +207,56 @@ def test_the_fixtures_own_tasks_still_reach_the_fixture():
     executor = Executor.__new__(Executor)
     assert executor.route("Search the fixture catalogue for lantern")[0] == "search"
     assert executor.route("Is any product priced over £100?")[0] == "absence"
+
+
+# ---- the positive direction (A17.11, A17.12) ------------------------------------
+#
+# A verified exhaustive enumeration answers the question in both directions. What it may
+# not do is answer it *less carefully* in the positive direction: "yes, these two" asserts
+# exactly two, and exactly-two is a claim about the whole set. Without the coverage anchor
+# the honest answer is that at least two exist, said in those words.
+
+def test_a_positive_answer_without_an_anchor_is_weakened_to_existence():
+    status, failure, why = _absence(_items(10.0, 75.0), {}, {"matches": ["book 2"]})
+
+    assert status is TerminalStatus.UNVERIFIED
+    assert failure is FailureClass.POSTCONDITION_UNMET
+    assert "At least 1" in why and "existence claim" in why
+    assert "not a complete answer" in why
+
+
+def test_a_positive_answer_over_a_partial_enumeration_is_also_only_existence():
+    """The site says 40, we read 20, and two of the twenty match. Two of forty is not what
+    the question asked, and neither is "we found two"."""
+    items = _items(*(10.0,) * 18, 75.0, 80.0)
+    status, failure, why = _absence(items, {"count": 40},
+                                    {"matches": ["book 19", "book 20"]})
+
+    assert status is TerminalStatus.UNVERIFIED
+    assert failure is FailureClass.POSTCONDITION_UNMET
+    assert "At least 2" in why
+    assert "40" in why and "20" in why
+
+
+def test_the_anchor_is_what_turns_existence_into_the_answer():
+    """The same items, the same matches, with the listing's own count present."""
+    status, failure, why = _absence(_items(10.0, 75.0), {"count": 2},
+                                    {"matches": ["book 2"]})
+
+    assert status is TerminalStatus.SUCCEEDED_VERIFIED and failure is None
+    assert "book 2" in why and "coverage" in why.lower()
+
+
+def test_the_predicate_and_its_domain_are_recorded_as_frozen():
+    """Condition 1 of A17.12, made visible: the check names the predicate and the container
+    it ranged over, both of which are inside the hash the run committed to."""
+    checks: list = []
+    verifier = Verifier.__new__(Verifier)
+    verifier._absence(_postcondition(), {Relation.LIST_ENUMERATION: _items(10.0),
+                                         Relation.COUNTER_ECHO: {"count": 1}},
+                      checks, {"matches": []})
+
+    frozen = next(c for c in checks if c.name == "enumeration_predicate_frozen")
+    assert frozen.ok is True
+    assert frozen.detail["predicate"] == {"field": "price_gbp", "op": ">=", "value": 60.0}
+    assert frozen.detail["domain"] == "//x"

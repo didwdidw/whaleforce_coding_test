@@ -465,6 +465,14 @@ class Verifier:
                     "no_result_verified (A3.2).")
 
         if predicate and isinstance(enumerated, list):
+            # The predicate and the domain it ranges over were frozen before any member was
+            # seen — the hash check at the top of `verify` is what makes that checkable.
+            # A predicate assembled after the results are in is not a postcondition.
+            domain = next((c.container for c in pc.claims
+                           if c.relation is Relation.LIST_ENUMERATION), "")
+            checks.append(Check("enumeration_predicate_frozen", True,
+                                {"predicate": predicate, "domain": domain,
+                                 "frozen_by": "postcondition_frozen"}))
             # Either form of the site's own count is a coverage anchor. A3.2 names both —
             # "110 results - showing 1 to 20." and "Page 1 of 6" — and a category that fits
             # on one page has no pager at all, so requiring the pager would make single-page
@@ -475,26 +483,42 @@ class Verifier:
                 total, anchor_kind = pager["items"], "pager total"
             elif isinstance(counter, dict) and counter.get("count") is not None:
                 total, anchor_kind = counter["count"], "results counter"
-            if total is None or not pc.coverage_anchor:
+            matches = [i for i in enumerated if _predicate_holds(i, predicate)]
+            found = sorted(str(m.get("sku")) for m in matches)
+            complete = total is not None and total == len(enumerated)
+
+            # The anchor is required in *both* directions (A17.12). "Yes, these two" is a
+            # claim about the whole set — it says exactly two, not at least two — and
+            # without proof that the enumeration was the whole set the honest reading is an
+            # existence claim, which is weaker than the question asked for.
+            if total is None or not pc.coverage_anchor or not complete:
                 checks.append(Check("absence_mode_b_coverage", False,
                                     {"coverage_anchor": pc.coverage_anchor,
-                                     "anchor_kind": anchor_kind}))
+                                     "anchor_kind": anchor_kind, "anchor_total": total,
+                                     "enumerated": len(enumerated),
+                                     "matches_seen": found}))
+                seen = (f"The site's own count says {total} items; {len(enumerated)} were "
+                        f"enumerated from the artifact. "
+                        if total is not None else
+                        "No coverage anchor was located, so nothing states how large the "
+                        "result set is. ")
+                if matches:
+                    return (TerminalStatus.UNVERIFIED, FailureClass.POSTCONDITION_UNMET,
+                            f"{seen}At least {len(matches)} of the {len(enumerated)} items "
+                            f"read from the artifact satisfy the frozen predicate "
+                            f"({', '.join(found)}). That is an existence claim and it is "
+                            f"reported as one: without a coverage anchor there is no proof "
+                            f"the enumeration was the whole set, so \"exactly "
+                            f"{len(matches)}\" is not established and this is not a "
+                            f"complete answer to the question that was asked (A3.2).")
                 return (TerminalStatus.UNVERIFIED, FailureClass.POSTCONDITION_UNMET,
-                        "Absence by enumeration requires a coverage anchor proving the whole "
-                        "result set was seen (A3.2). Without one this is only \"we did not "
-                        "happen to see it\".")
-            complete = total == len(enumerated)
-            matches = [i for i in enumerated if _predicate_holds(i, predicate)]
+                        f"{seen}Absence by enumeration requires a coverage anchor proving "
+                        f"the whole result set was seen (A3.2). Without one this is only "
+                        f"\"we did not happen to see it\".")
             checks.append(Check("absence_mode_b_coverage", complete,
                                 {"anchor_total": total, "enumerated": len(enumerated),
                                  "anchor": pc.coverage_anchor,
                                  "anchor_kind": anchor_kind}))
-            if not complete:
-                return (TerminalStatus.UNVERIFIED, FailureClass.POSTCONDITION_UNMET,
-                        f"The site's own count says {total} items; {len(enumerated)} were "
-                        f"enumerated from the artifact. Coverage is unproven, so absence "
-                        f"cannot be concluded.")
-            found = sorted(str(m.get("sku")) for m in matches)
             claimed = (candidate or {}).get("matches")
             if claimed is None:
                 # A plan that does not say what it found can only be believed about absence,

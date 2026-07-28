@@ -1367,12 +1367,12 @@ class Executor:
         m = re.search(r"(?:over|above|more than|more expensive than)\s*£?\s*"
                       r"([0-9]+(?:\.[0-9]+)?)", low)
         threshold = float(m.group(1)) if m else None
+        predicate = {"field": "price_gbp", "op": ">", "value": threshold}
         pc = Postcondition(
             goal=f"Determine whether any catalogue item is priced over £{threshold}",
             operation="GS-4",
             target_url=self._url("/browse", seed).split("?")[0],
-            inputs={"seed": seed,
-                    "predicate": {"field": "price_gbp", "op": ">", "value": threshold}},
+            inputs={"seed": seed, "predicate": predicate},
             required_actions=(
                 RequiredAction("click", "#next",
                                "every page must be visited before absence is claimed"),
@@ -1422,9 +1422,11 @@ class Executor:
                 "els => els.map(e => ({sku: e.dataset.sku, text: e.innerText}))")
             pm = re.search(r"page\s+(\d+)\s+of\s+(\d+).*?(\d+)\s+products", position,
                            re.I | re.S)
+            # The comparison the verifier will re-apply, not a second spelling of it. Two
+            # rules that agree by coincidence stop agreeing the first time either is edited.
             matches = [r["sku"] for r in rows
                        if (p := re.search(r"£\s*([0-9.]+)", r["text"] or ""))
-                       and float(p.group(1)) > threshold]
+                       and _compare(float(p.group(1)), predicate)]
             ctx.candidate = {
                 "coverage": {"page": int(pm.group(1)) if pm else None,
                              "total": int(pm.group(2)) if pm else None,
