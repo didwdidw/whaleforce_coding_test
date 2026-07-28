@@ -105,7 +105,13 @@ without loosening anything on the public path.
 Starting the service runs the round. It then idles with the browser shut down, so it is not holding
 ~600 MiB of Chromium between rounds; stopping the service entirely is also fine.
 
-A restart **does not** re-run a split whose result file already exists. A platform restart is free
+A round is identified by `EVAL_ROUND`, **not** by the commit. This platform redeploys on
+every push to `master`, and the commit is part of the result's filename — so keying the
+guard on the file alone would hold for restarts, which are free, and fail for a push, which
+is the case that spends a whole round. The marker under `eval-results/.rounds/` is what the
+skip decision reads.
+
+A restart or a redeploy **does not** re-run a split whose round has already been scored. A platform restart is free
 for the platform and not for us: an automatic restart loop would re-spend a paid split and overwrite
 the result it was spent on. To score again, change `EVAL_ROUND` and restart — or set `EVAL_FORCE=1`
 deliberately.

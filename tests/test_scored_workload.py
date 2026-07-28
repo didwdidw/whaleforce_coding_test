@@ -270,3 +270,21 @@ def test_a_restart_does_not_re_run_a_split_that_already_has_a_result(results_dir
     scored_workload.run(["dev"], port=8080, round_id="2", force=False, deadline=1.0,
                         startup_deadline=1.0, idle=False)
     assert len(calls) == 1, "a new round must run"
+
+
+def test_a_redeploy_cannot_start_a_fresh_paid_round(results_dir, monkeypatch):
+    """The commit is in the result's *name*, and this platform redeploys on every push. A
+    sha-keyed guard would hold for restarts, which are free, and fail for a push, which is
+    the case that spends: a new sha means a new filename means a whole round again."""
+    calls = []
+    _staged(monkeypatch, calls)
+    scored_workload.run(["dev"], port=8080, round_id="1", force=False, deadline=1.0,
+                        startup_deadline=1.0, idle=False)
+    assert len(calls) == 1
+
+    monkeypatch.setattr(scored_workload, "wait_until_healthy",
+                        lambda base, deadline: {"ok": True, "git_sha": "def456",
+                                                "provider_spend": {}})
+    scored_workload.run(["dev"], port=8080, round_id="1", force=False, deadline=1.0,
+                        startup_deadline=1.0, idle=False)
+    assert len(calls) == 1, "the same round number on a new commit is still the same round"

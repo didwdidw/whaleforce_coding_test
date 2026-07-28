@@ -191,6 +191,25 @@ def result_path(split: str, git_sha: str, round_id: str,
     return settings.eval_results_dir / f"{split}-deploy-{git_sha}-r{round_id}{suffix}.json"
 
 
+def round_marker(split: str, round_id: str) -> pathlib.Path:
+    """What identifies a round: the operator's round number, not the commit.
+
+    The commit is in the result's name and inside its provenance, and it must not be what
+    the skip decision keys on. This platform redeploys on every push, so a sha-keyed guard
+    would let one `git push` start a fresh paid round — the guard would hold for restarts,
+    which are free, and fail for exactly the case that costs money.
+    """
+    return settings.eval_results_dir / ".rounds" / f"r{round_id}-{split}.json"
+
+
+def mark_round_done(split: str, round_id: str, git_sha: str, result: pathlib.Path) -> None:
+    marker = round_marker(split, round_id)
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(json.dumps({"split": split, "round": round_id, "git_sha": git_sha,
+                                  "result_file": result.name, "at_epoch": time.time()},
+                                 indent=1), encoding="utf-8")
+
+
 def run(splits: list[str], *, port: int, round_id: str, force: bool,
         deadline: float, startup_deadline: float, idle: bool,
         dry_run: bool = False) -> int:
@@ -220,9 +239,13 @@ def run(splits: list[str], *, port: int, round_id: str, force: bool,
             check_affordable(plan)
         for split in splits:
             out = result_path(split, git_sha, round_id)
-            if out.exists() and not force:
-                print(f"[{WORKLOAD_VERSION}] {split}: {out.name} already exists; not "
-                      f"re-running. A restart must not re-spend a scored split.")
+            marker = round_marker(split, round_id)
+            if (marker.exists() or out.exists()) and not force:
+                done = (json.loads(marker.read_text(encoding="utf-8"))
+                        if marker.exists() else {"result_file": out.name})
+                print(f"[{WORKLOAD_VERSION}] {split}: round r{round_id} was already scored "
+                      f"({done.get('result_file')}); not re-running. Neither a restart nor "
+                      f"a redeploy may re-spend a scored round — change EVAL_ROUND.")
                 continue
             cases = DEFAULT_CASES.get(split)
             if cases is None or not cases.exists():
@@ -236,6 +259,7 @@ def run(splits: list[str], *, port: int, round_id: str, force: bool,
             if (report.get("provenance") or {}).get("degraded"):
                 out = result_path(split, git_sha, round_id, degraded=True)
             out.write_text(json.dumps(report, indent=1), encoding="utf-8")
+            mark_round_done(split, round_id, git_sha, out)
             written.append(out.name)
             print(f"[{WORKLOAD_VERSION}] {split}: written {out}")
             print(json.dumps(report["aggregate"], indent=1))
