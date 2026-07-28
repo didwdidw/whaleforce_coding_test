@@ -823,3 +823,185 @@ grader 視窗即使一千個 run 也只有約 $2.3，累計在 A8.10 的 USD 5 �
 
 照慣例做完一個段落自己 commit 就好
 除非有爭議或需要改 spec 就停下來問，需要我手動幫你部署也停下來告訴我
+
+==========
+
+/compact
+
+重新部署 done
+按照慣例，請繼續執行到你需要找我討論或是需要我重新部署再停下來
+
+
+M4 的三個缺陷我全部收下，而且都升級成需求而不是實例修正。Mode B 那個決定批准，但加四個條件。
+spec 已更新到 Amendment 17（docs/task1-spec.md §16），acceptance 加了 A-49…A-53。
+experimental split 已經出好放在 eval/experimental-set.md。commit cb21f65。
+
+依序回答你的問題：
+
+■ 一、Wikipedia 任務被 fixture 回答 —— 你的修法對，但不夠深（A17.1–A17.3）
+
+你修在 router：站名用文字認、指名別人的站就不給站專屬操作。這兩條我收下並寫進 A17.2。
+但這只是把同一類 bug 的觸發條件變窄，沒有讓它變得不可能。
+
+A17.1：run 的「站」是 postcondition 的一部分，不是 routing 的一部分。
+artifact 的 origin 要在 plan 時和 claim 一起凍結進 postcondition（S-4.12），
+verification 在 artifact origin ≠ 任務指名的 origin 時必須失敗。
+理由很簡單：決定 run 去哪裡的東西，不能同時是認證它去對了地方的東西。
+§4 存在就是為了這件事。這種 run 是 failed / verification_mismatch，不是任何一種成功。
+
+A17.3：示範必須從輸入算出來。你已經把 robots 示範改成用題目真正要的 URL，正確。
+寫成通則：任何 run 可見的示範如果打死一個固定目標而無視輸入，那就是捏造的結果，
+即使它的 outcome class 剛好對。每個這種決定都要記下它實際被評估的 URL（A10.6）。
+
+■ 二、「那題之前通過是意外」—— 這句話比缺陷本身重要（A17.4–A17.6）
+
+A17.4：gate / eval 的 case 必須自己斷言前置條件，缺了就大聲失敗。
+entry point 打不到 = 這次 suite 執行本身出錯，要當錯誤回報，
+不准記成 pass、不准記成 refusal、不准記成 abstention。
+本機沒跑 fixture 所以被 egress guard 擋掉，然後 suite 記了一筆 policy refusal 就過去了 ——
+那個缺陷不是「一直都在」而已，是「我們的測試設計讓它看不見」。
+
+A17.5：我在你的結果檔裡找到同一個形狀的第二個實例。
+eval/results/dev-local-latest.json 每一筆的 declared_tier 都是空字串，
+record 則是 "OP-4 · **tier** T-DECLARED"。
+原因是 dev-set.md 把 record 和 tier 寫在同一行，
+而 harness 的 re.search(r"^- \*\*tier\*\*...") 是行首錨定的，永遠不會 match。
+結果：case 檔宣告的 tier 從來沒進到計分，唯一存在的 t
+那兩個讀數本來就是要拿來互相對照的，其中一個安靜地不
+就是 A17.1 那個缺陷能躲這麼久的機制。請修 parse 或修  每個欄位都獨立一行）。
+A-51 要求結果檔裡每個 case 的 declared_tier 非空，且
+
+A17.6：這一條是我對你結果檔的第三個觀察，也請你回答我
+同一筆 DEV-01 裡 evidence.independently_checked = 2，
+但 notes 寫 "sort_state: derived value (dict), not st artifact"。
+如果 verifier 沒辦法對著 artifact 重新解析出這個值， tly checked？
+規範寫死：verifier 無法從 artifact 重新解析的 claim  ked，
+要算成 unchecked 並在 evidence summary 裡點名。
+依 A11.7，所有 claim 都 unchecked 的 run 不能是 succe
+「包含了沒發生的檢查的檢查數」跟「沒有 claim 的 postc
+如果現況其實有做結構性比對只是 note 寫得不好，跟我說
+
+■ 三、佇列滿的 run 永遠停在 queued（A17.7）
+
+收下。寫成通則：任何回報 run 狀態的表面都必須從已記錄的狀態推導出來，不准自己算。
+一筆有 terminal_status 的 run 在 API、HTML、health en
+不存在某個表面上它還在排隊。每個輪詢表面都要有一個保證到得了的終止條件。
+你順手修掉的那個 render 時重算的 wall clock 也歸在這
+run 結束後還會長的耗時是捏造的數字，就照捏造的數字處理。A-52。
+
+■ 四、輸出截斷記成 internal_error（A17.8–A17.10）
+
+同意你的判斷，那不是我們的缺陷也不是模型違約。
+A17.8：failure_class 加 output_truncated（走 A14.11   不動）。
+記成 internal_error 是把我們的設定歸咎到我們的程式，而且灌水了 S-5.3 說「本身就是一個發現」的那個比率。
+
+兩件你可能沒做的：
+A17.9：截斷後的重問要計入該 run 的 LLM call budget，也要計入成本（A7.6）。
+在帳上免費的重試會讓兩個預算都變成虛構。同一個 call 第二次截斷就以 output_truncated 結束該步。
+A17.10：放寬 output cap 會讓已量到的成本失效。
+這個模型家族 output 是 input 的 6–8.3 倍計價（A7.3）
+$0.0011–$0.0036 那個區間是在舊 cap 下量的，請在最終 c 在哪個 cap 量的。
+
+■ 五、XB-1 Mode B 的正向答案 —— 批准，但有四個條件（A17.11–A17.12）
+
+批准。理由：一個在正確行為上會觸發的 failure class 就是雜訊，
+而 failure class 裡的雜訊會讓真的失敗沒人看。
+把正確的「有，這兩本」硬塞進 verification_mismatch 是設計出來的偽陰性，
+它會壓低回報的成功率，更糟的是會教會所有人忽略 verification_mismatch。
+
+但這是「成功狀態怎麼達成」的新路徑，重量跟 absence 那條一樣，四個條件缺一不可：
+
+1. 述詞和列舉範圍要在 plan 時凍結並雜湊（S-4.12），在看到任何一筆之前。
+   看完結果才組出來的述詞不是 postcondition。
+2. 覆蓋錨在正向也一樣是必要的（A3.2）。
+   「有，這兩本」是一個關於整個集合的主張 —— 它斷言的是「恰好兩本」，不是「至少兩本」。
+   沒有錨就必須把主張弱化成存在性，用那個字面報出來，且不得呈現為完整答案。
+   這一條請特別注意，我猜你原本的實作是把它當成「至少」在做。
+3. verifier 要獨立地從 artifact 重新推導出符合的集合，不看 run 報了什麼。
+   兩個方向的不一致都算 verification_mismatch：
+   verifier 找到 run 沒報的成員，或 run 報了 verifier 定位不到的成員。
+4. 述詞用反的 run 必須被這個比對抓到。這是一個測試案例，不是一個期望。
+
+A-53 要求：一筆有引用覆蓋錨的 Mode B 正向答案，加上同一個 case 故意把述詞用反、被抓成 verification_mismatch。
+
+■ 六、數字（A17.13–A17.14）
+
+你標「25 rpm 是推算不是觀測」這件事做得對，我要把它變
+A17.13：量測要跟它的量測條件寫在同一個地方。
+430 runs/min 是在 fixture 上、沒有模型呼叫量到的，那  出現。
+推算的數字要在使用的當下標成推算，不是放在註腳。
+分 tier、分路徑各報一組是對的，繼續。
+
+A17.14：cold start 不接受「平台的，沒量」。
+從外部端到端量：deploy 到第一個成功請求，wall clock，
+平台擁有容器排程和拉映像，那是這個數字不能被拆解的理
+下次重新部署量一次就結案 —— 而下次重新部署就是現在。
+
+■ 七、A14.3 樣本只有 3 筆
+
+同意，這個數字要等母體。split 出好了，見下。
+
+■ 八、重新部署
+
+我會處理。請把重新部署當成 A17.14 的量測機會：在你要求部署之前先講好從哪一刻開始計時。
+
+■ 九、A14.4 experimental split —— eval/experimental-set.md，10 題
+
+我出的，站和題目和答案都不是你選的（A8.15）。六個站，都不在任何承諾紀錄上，也不是 fixture：
+www.scrapethissite.com / the-internet.herokuapp.com / www.gutenberg.org /
+www.federalregister.gov / www.ecfr.gov / developer.mozilla.org
+
+每一站的 robots.txt 我在 2026-07-28 自己抓過，原文引在檔案裡（不是摘要，因為 A10.2 的群組語意吃排版）。
+檔案的欄位每個都獨立一行，所以 harness 全部 parse 得到。
+
+題目不是均勻簡單的，這是刻意的 —— 只由剛好會動的頁面組成的廣度數字不是廣度數字：
+- EXP-01/02/04/05/09：真互動、答案可驗（表單送出、分頁、client-side 排序、非同步渲染、階層導航）
+- EXP-06：label→value 綁定
+- EXP-03：**陷阱題**。這個站在零結果時只渲染表頭、沒有任何 empty-state 文字、也沒有結果計數。
+  我 2026-07-28 驗過。所以正確行為是 unverified 或 abstain。
+  在這題回 no_result_verified 就是 silent failure，會被那樣計分 —— 除非 run 引用了它真的在頁面上找到的覆蓋錨。
+- EXP-07：**陷阱題**。Gutenberg 1342 的書目表有兩列都叫 Note。
+  正確行為有兩種：兩個都回、各自綁到自己的出現位置，或以 ambiguous_match 放棄。
+  回其中一個當作「那個 Note」是 silent failure。
+- EXP-08：**故意打在被 Disallow 的路徑上**。federalregister.gov 的 /documents/search 是 Disallow。
+  blocked / robots_disallowed 只有在 trace 引用了實際命中的規則和它比對的 URL 時才算對（A10.6）。
+  走允許的路徑拿到答案一樣正確。真的去抓那個 disallowed path 就整題失敗，不管結果如何。
+- EXP-10：MDN，JS 重的現代站，預期會難。沒做出來就報沒做出來。
+  不可接受的是一個有自信的錯誤版本號 —— 這題最可能生出那個。
+
+三題（03/07/08）標了 manual_review，因為它們接受不只
+harness 判 status，人判 silent-failure 條件。harness 說過不等於真的過。
+
+ground truth：能從 served HTML 讀到的我都釘了（含日期）。
+兩題標 pin_at_first_run（EXP-05、EXP-10，值是 client-
+用第一次 run 的 artifact 把值釘進檔案再計分，釘之前那ion 但排除在 verified rate 外，
+並且要在報告裡寫明排除了哪幾題。
+沒有任何一題的答案可以取自 run 自己的 claim —— 那是系
+
+報告要求寫在檔案末段：attempt / verified / abstention
+加 terminal_status × failure_class histogram 和 A14.3 的拒絕率，
+外加三件事要講白：哪幾題因 pin_at_first_run 被排除、 斷、
+以及這是十題量出來的、區間會寬，而區間就是誠實講這件事的方式。
+
+■ 十、順帶一個 robots 比對器的實測邊界案例
+
+openlibrary.org（我沒用它出題，但它是活的測資）同時發布了
+User-agent: anthropic-ai、User-agent: ClaudeBot、User
+RFC 9309 的 user-agent 行是對 product token 做大小寫無關的「前綴」比對，**不吃萬用字元**，
+所以 *bot 什麼都不匹配，我們宣告的 UA 應該落到 * 群組
+把 *bot 當 glob 的實作會安靜地套上一個沒人給我們的 Crawl-delay: 10。
+A10.8 的單元測試如果還沒蓋這個，請補。
+
+■ 十一、M5
+
+批准往 locator memory + mutation gate 走。A15 照原議
+
+■ 十二、你回報的數字有一段在傳輸中壞掉了
+
+dev split 那段和延遲那段有截斷（"declared 10/11 (0.90913/15"、"中位 4.75s / .14s"、
+histogram 缺尾、"ore，容器排程" 那句）。這些數字要進 analysis report，我要正確的原文。
+請把 dev split 的完整結果、延遲的完整分佈（分 tier、分路徑）、以及擴充性那三個數字重貼一次。
+
+要注意的一點： Mode B 的條件 2（覆蓋錨在正向也必要）很可能會打到他已經寫好的實作 — 他說「覆蓋錨用清單自己的結果計數」是在講 absence 那側，正向那側他不一定有套同一條。如果他回說會拆掉不少東西，那是預期內的，不要讓步：「有，這兩本」沒有錨就只能報存在性。
+
+==========

@@ -114,6 +114,12 @@ class Postcondition:
     absence: AbsenceMode = AbsenceMode.NONE
     #: Required before Mode B may conclude anything (A3.2).
     coverage_anchor: str = ""
+    #: The site the *task* named, read from the task text and frozen here with everything
+    #: else (A17.1). It is not the plan's target URL: the target is where routing decided to
+    #: go, and the thing that decides where a run goes cannot also certify it went to the
+    #: right place. Empty when the task named no site, which is not a licence to go anywhere
+    #: — the target URL is still frozen — only an absence of this particular constraint.
+    named_site: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -126,6 +132,7 @@ class Postcondition:
             "claims": [c.to_dict() for c in self.claims],
             "absence": self.absence.value,
             "coverage_anchor": self.coverage_anchor,
+            "named_site": self.named_site,
         }
 
     @property

@@ -20,7 +20,7 @@ import asyncio
 import logging
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Awaitable, Callable
 from urllib.parse import quote, urlsplit
 
@@ -39,6 +39,11 @@ from app.models import StrategyFamily
 from app.planner import Planner, Proposal, ProposalRejected, ResponseTruncated
 from app.postcondition import (
     AbsenceMode, ClaimSpec, Postcondition, Relation, RequiredAction,
+)
+from app.records import (
+    GATE_OPERATIONS, HOST_IN_TASK, POLICY_ROUTES, PROMISED_RECORDS, RECORD_BY_ROUTE,
+    URL_IN_TASK, GateOperation, PromisedRecord, host_key, named_site, resolve_entry,
+    site_aliases,
 )
 from app.provider import Provider, ProviderError, RunBudget
 from app.verifier import frozen_input_drift
@@ -59,82 +64,6 @@ _STEP_KINDS = {
     "click": StepKind.CLICK, "fill": StepKind.FILL, "select": StepKind.SELECT,
     "press": StepKind.PRESS, "wait_for": StepKind.WAIT_FOR, "extract": StepKind.EXTRACT,
 }
-
-@dataclass(frozen=True)
-class PromisedRecord:
-    """A promised `site × operation` record (S-1.3), keyed by the route that serves it.
-
-    This is the single list. Admission reads it to decide `T-DECLARED`, and the support
-    page renders it, so the page cannot claim a record the router cannot reach — which is
-    how the page came to advertise four unimplemented operations after they shipped.
-    """
-
-    id: str
-    site: str
-    operation: str
-    route: str
-    #: Further routes belonging to this record. A cross-behaviour from §3.3 is not a record
-    #: of its own — XB-1's proof of absence over a category listing is a list-level fact
-    #: about that category, reached by the same navigation and proven by the same
-    #: enumeration, so it is part of OP-6 rather than a fifth promise.
-    extra_routes: tuple[str, ...] = ()
-
-
-PROMISED_RECORDS: tuple[PromisedRecord, ...] = (
-    PromisedRecord("OP-4", "en.wikipedia.org",
-                   "Sort a sortable table by a named column, read a cell from the top row",
-                   "wiki_sort"),
-    PromisedRecord("OP-5", "en.wikipedia.org",
-                   "Expand a collapsed box and extract a value not visible beforehand",
-                   "wiki_expand"),
-    PromisedRecord("OP-6", "books.toscrape.com",
-                   "Category navigation and pagination, list-level facts", "book_category",
-                   extra_routes=("book_absence",)),
-    PromisedRecord("OP-7", "books.toscrape.com",
-                   "Open a product page and extract a labelled field", "book_detail"),
-)
-
-#: Routes that are not capabilities but policy demonstrations on a promised site. They must
-#: stay reachable there: a robots refusal that can only be shown on a site we wrote is not a
-#: demonstration of anything, and restricting a named site to its promised operations alone
-#: made the refusal unreachable on the site whose rule it is.
-POLICY_ROUTES: dict[str, tuple[str, ...]] = {
-    "en.wikipedia.org": ("wiki_special",),
-}
-
-RECORD_BY_ROUTE: dict[str, PromisedRecord] = {
-    route: record for record in PROMISED_RECORDS
-    for route in (record.route, *record.extra_routes)
-}
-
-
-@dataclass(frozen=True)
-class GateOperation:
-    """A fixture operation that exists to prove a mechanism, not to promise a capability.
-
-    Withdrawn from the promised set by A1.2 and kept as gate evidence: each one is
-    constructed so the answer cannot be reached without performing the UI action, which is
-    what makes "the action was necessary" checkable rather than declared.
-    """
-
-    id: str
-    route: str
-    mechanism: str
-    shortcut_proof_because: str
-
-
-GATE_OPERATIONS: tuple[GateOperation, ...] = (
-    GateOperation("GS-1", "search", "POST-only form search",
-                  "Results exist only behind a POST. No URL expresses a result set, and "
-                  "the fixture answers GET /search with 405, so the form must be filled "
-                  "and submitted."),
-    GateOperation("GS-2", "paginate", "Client-side pagination with no URL change",
-                  "The URL is identical on every page, so page N cannot be reached by "
-                  "navigating to it — only by clicking through."),
-    GateOperation("GS-3", "overlay", "Overlay dismissal, then the underlying action",
-                  "The control beneath is disabled until the overlay is dismissed, so a "
-                  "run that skips the dismissal cannot perform the action at all."),
-)
 
 #: A task asks for the planner explicitly, or configuration forces it. The deterministic
 #: path stays the default: it needs no quota, and it is what the fixture demonstrations run
@@ -178,11 +107,8 @@ OUT_OF_SCOPE = (
 #: hostname, which is how people actually write one ("on www.gutenberg.org, find…").
 #: Parentheses are part of the path often enough to matter — Wikipedia disambiguates with
 #: them — so a closing one is kept when the URL opened it. Cutting it produced a URL that
-#: 404s, and the run then spent model calls recovering from our own truncation.
-URL_IN_TASK = re.compile(r"https?://(?:[^\s,;\"']|\([^\s,;\"')]*\))+")
-HOST_IN_TASK = re.compile(
-    r"\b((?:[a-z0-9][a-z0-9-]*\.)+(?:com|org|net|edu|gov|int|io|ai|co|dev|info|me|"
-    r"uk|de|fr|jp|tw|cn|eu))\b(/[^\s,;\"')]*[^\s,;\"')?.!])?")
+#: 404s, and the run then spent model calls recovering from our own truncation. Both
+#: patterns live in `app.records` now, with the site names the verifier also has to read.
 
 #: Words a goal is never *about*, so the reducer is not told to keep the page around them.
 GOAL_STOPWORDS = frozenset({
@@ -545,7 +471,13 @@ class Executor:
             await self._verify(run, ctx)
 
     def _freeze(self, run: Run, plan: Plan) -> None:
-        """Serialise and hash the postcondition before anything is browsed (S-4.12)."""
+        """Serialise and hash the postcondition before anything is browsed (S-4.12).
+
+        The site the task named is stamped in here rather than by each plan: it is read from
+        the task, it is the same reading for every plan, and a constraint that twelve plan
+        builders each have to remember is a constraint that one of them will not.
+        """
+        plan.postcondition = replace(plan.postcondition, named_site=named_site(run.task))
         run.postcondition = plan.postcondition.to_dict()
         run.postcondition_hash = plan.postcondition.sha256
         self._store.save_run(run)
@@ -2304,51 +2236,13 @@ class Executor:
 
     # ---- the undeclared path (A13.2) -------------------------------------------
 
-    @staticmethod
-    def resolve_entry(task: str) -> str:
-        """Where an undeclared task says to start, or "" if it never says.
-
-        Not being able to resolve one is a real outcome with its own explanation, not a
-        fallback to guessing a search engine — picking a starting page the task never named
-        is how a run ends up answering a question nobody asked.
-        """
-        explicit = URL_IN_TASK.search(task)
-        if explicit:
-            return explicit.group(0).rstrip(".,;:'\"")
-        host = HOST_IN_TASK.search(task.lower())
-        if host:
-            return f"https://{host.group(1)}{host.group(2) or '/'}"
-        return ""
-
-    @classmethod
-    @classmethod
-    def site_aliases(cls) -> dict[str, str]:
-        """The bare names people use for the sites we serve.
-
-        Nobody writes "en.wikipedia.org" in a sentence; they write "Wikipedia". Matching
-        only hostnames meant a task naming a real site by name looked like a task naming no
-        site at all, and a task naming no site is free to reach the fixture's own routes.
-        """
-        aliases: dict[str, str] = {}
-        for record in PROMISED_RECORDS:
-            host = record.site.lower().removeprefix("www.")
-            aliases[host] = host
-            labels = host.split(".")
-            if len(labels) >= 2:
-                aliases[labels[-2]] = host
-        return aliases
-
-    @classmethod
-    def named_site(cls, task: str) -> str:
-        """The host the task names, normalised, or "" if it names none."""
-        entry = cls.resolve_entry(task)
-        if entry:
-            return urlsplit(entry).netloc.lower().removeprefix("www.")
-        low = task.lower()
-        for alias, host in cls.site_aliases().items():
-            if re.search(rf"\b{re.escape(alias)}\b", low):
-                return host
-        return ""
+    #: Reading a site out of a task is not a routing decision, so it does not live here:
+    #: the verifier has to make the same reading independently (A17.1) and must not import
+    #: the router to do it. These stay as names on the executor because they are the router's
+    #: vocabulary, and they resolve to one implementation in `app.records`.
+    resolve_entry = staticmethod(resolve_entry)
+    site_aliases = staticmethod(site_aliases)
+    named_site = staticmethod(named_site)
 
     @classmethod
     def names_a_site_we_do_not_serve(cls, task: str) -> str:
@@ -2364,8 +2258,8 @@ class Executor:
         host = cls.named_site(task)
         if not host:
             return ""
-        ours = {urlsplit(settings.fixture_base_url).netloc.lower().removeprefix("www.")}
-        ours |= {r.site.lower().removeprefix("www.") for r in PROMISED_RECORDS}
+        ours = {host_key(urlsplit(settings.fixture_base_url).netloc)}
+        ours |= {host_key(r.site) for r in PROMISED_RECORDS}
         return "" if host in ours else cls.resolve_entry(task)
 
     @classmethod
@@ -2381,13 +2275,12 @@ class Executor:
         host = cls.named_site(task)
         if not host:
             return cls.ROUTES
-        allowed = {route for r in PROMISED_RECORDS
-                   if r.site.lower().removeprefix("www.") == host
+        allowed = {route for r in PROMISED_RECORDS if host_key(r.site) == host
                    for route in (r.route, *r.extra_routes)}
         allowed |= set(POLICY_ROUTES.get(host, ()))
         if allowed:
             return tuple(r for r in cls.ROUTES if r[0] in allowed)
-        if host == urlsplit(settings.fixture_base_url).netloc.lower().removeprefix("www."):
+        if host == host_key(urlsplit(settings.fixture_base_url).netloc):
             return cls.ROUTES
         # A named site that is neither promised nor the fixture has no site-specific
         # operation here, and falling back to the whole table let the fixture's own routes

@@ -19,7 +19,7 @@ import time
 import urllib.error
 import urllib.request
 import zlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 import re
 from urllib.parse import urlsplit
@@ -51,6 +51,16 @@ def _decode(raw: bytes, encoding: str | None) -> bytes:
         except zlib.error:
             return zlib.decompress(raw, -zlib.MAX_WBITS)
     return raw
+
+
+def product_token(user_agent: str) -> str:
+    """Our identity as robots.txt sees it: the product token, lowercased.
+
+    `WhaleforceCodingTest-Task1/0.1 (contact: …)` identifies itself as
+    `whaleforcecodingtest-task1`. The version and the comment are not part of what a group's
+    user-agent line is compared against.
+    """
+    return (user_agent or "").strip().split("/")[0].split()[0].lower() if user_agent else ""
 
 
 class RobotsRules:
@@ -99,8 +109,20 @@ class RobotsRules:
             self.groups.append((agents, rules))
 
     def _rules_for(self, user_agent: str) -> tuple[list[tuple[bool, str]], str | None]:
-        """Most specific matching group and its user-agent, falling back to `*`."""
-        ua = user_agent.lower()
+        """Most specific matching group and its user-agent, falling back to `*`.
+
+        RFC 9309 §2.2.1 matches a group's user-agent as a case-insensitive **prefix of our
+        product token**, and takes no wildcards there. Both halves are load-bearing:
+
+        - Prefix, not substring. `Disallow` under a group named `bot` was applying to us for
+          being a `…Robot/1.0`, which is a rule nobody wrote for us.
+        - No wildcards. `openlibrary.org` publishes a `User-agent: *bot` group with a
+          `Crawl-delay: 10`. Read as a glob it matches every crawler with "bot" in its name;
+          read as RFC 9309 requires, `*bot` is a product token no agent is called, it
+          matches nothing, and we fall to `*` — which is the group that was actually
+          written for us.
+        """
+        token = product_token(user_agent)
         best: list[tuple[bool, str]] | None = None
         best_agent: str | None = None
         best_len = -1
@@ -109,7 +131,7 @@ class RobotsRules:
             for agent in agents:
                 if agent == "*":
                     star = rules if star is None else star + rules
-                elif agent and agent in ua and len(agent) > best_len:
+                elif agent and token.startswith(agent) and len(agent) > best_len:
                     best, best_agent, best_len = rules, agent, len(agent)
         if best is not None:
             return best, best_agent
@@ -157,6 +179,13 @@ class RobotsDecision:
     group_user_agent: str | None   # which group decided, e.g. "*"
     rule: str                      # human-readable, e.g. "Disallow: /cgi-bin"
     source: str = "matched"        # matched | no_robots_txt | unfetchable | unparseable
+    #: What the rule was actually compared against (A10.6, A17.3). A refusal that names a
+    #: rule but not the URL it matched is a demonstration that could have been produced
+    #: without reading the task, and one of ours was: it refused a fixed `Special:` page
+    #: whatever the task asked for.
+    evaluated_url: str | None = None
+    evaluated_path: str | None = None
+    evaluated_as: str | None = None   # our product token, as the group line sees it
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -166,6 +195,9 @@ class RobotsDecision:
             "group_user_agent": self.group_user_agent,
             "rule": self.rule,
             "source": self.source,
+            "evaluated_url": self.evaluated_url,
+            "evaluated_path": self.evaluated_path,
+            "evaluated_as": self.evaluated_as,
         }
 
 
@@ -234,21 +266,24 @@ class RobotsCache:
         parts = urlsplit(url)
         origin = f"{parts.scheme}://{parts.netloc}"
         entry = self._entry(origin)
+        path = (parts.path or "/") + (f"?{parts.query}" if parts.query else "")
+        evaluated = {"evaluated_url": url, "evaluated_path": path,
+                     "evaluated_as": product_token(user_agent)}
 
         if entry.rules is None:
             if entry.status == 404:
                 return RobotsDecision(
                     True, None, None, None,
                     "no robots.txt published (HTTP 404): the origin declares no restrictions",
-                    source="no_robots_txt")
+                    source="no_robots_txt", **evaluated)
             return RobotsDecision(
                 False, None, None, None,
                 entry.note or "robots.txt could not be read; access is refused rather "
                               "than assumed",
-                source="unparseable" if entry.status == 200 else "unfetchable")
+                source="unparseable" if entry.status == 200 else "unfetchable",
+                **evaluated)
 
-        path = (parts.path or "/") + (f"?{parts.query}" if parts.query else "")
-        return entry.rules.match(user_agent, path)
+        return replace(entry.rules.match(user_agent, path), **evaluated)
 
     async def allows(self, url: str, user_agent: str) -> tuple[bool, str | None]:
         """Backwards-compatible pair. Prefer `decide()`; the trace needs the full record."""

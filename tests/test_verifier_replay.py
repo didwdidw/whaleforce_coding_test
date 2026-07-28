@@ -332,3 +332,94 @@ def test_the_same_page_check_is_not_fooled_by_percent_encoding():
     assert _same_page(escaped, decoded)
     # ...and still says no to a genuinely different page.
     assert not _same_page("https://en.wikipedia.org/wiki/S%26P_500", escaped)
+
+
+# --- Defect E: a task about someone else's site, answered by ours -------------------
+#
+# This one was found by re-running the dev split after the M4 measurement work. The run
+# opened a real browser, submitted a real form, produced a complete evidence bundle and
+# returned `no_result_verified` — on our own fixture, for a task that named Wikipedia.
+#
+# The fix in the router (a site named in words is a named site, and a task naming someone
+# else's site is offered none of our operations) narrows the trigger. It does not make the
+# class impossible, because routing is what chose the wrong site in the first place. So the
+# site the task named is frozen into the postcondition and re-read here (A17.1).
+
+WIKI_SEARCH_TASK = ("Use Wikipedia's search page to find articles mentioning "
+                    "'convertible arbitrage'")
+
+
+def test_replay_e_a_task_about_wikipedia_is_not_answered_by_our_fixture(store):
+    """The postcondition, the artifact and the candidate are the ones from the passing
+    control above — that run verifies. The only difference here is which site the task
+    named, and that alone is the difference between a verified absence and a failure."""
+    pc = _search_postcondition("the fixture catalogue for lant")
+    run = _run(store, WIKI_SEARCH_TASK, pc,
+               [_step(1, StepKind.FILL, "Fill the search field", "#q"),
+                _step(2, StepKind.CLICK, "Submit the search form", "#do-search")])
+    art = _artifact(store, run, "replay-b-search-mangled.html", f"{FIXTURE_HOST}/search")
+
+    verdict = Verifier(store).verify(
+        run, artifact_id=art,
+        candidate={"result_counter": {"count": 0,
+                                      "term": "the fixture catalogue for lant"},
+                   "items": [], "empty_state": True})
+
+    assert verdict.status is TerminalStatus.FAILED
+    assert verdict.failure_class is FailureClass.VERIFICATION_MISMATCH
+    assert verdict.counts_as_success is False
+    check = next(c for c in verdict.checks if c.name == "artifact_origin_is_the_named_site")
+    assert check.ok is False
+    assert check.detail["task_names"] == "en.wikipedia.org"
+    assert check.detail["artifact_origin"] == "wf-fixture.zeabur.app"
+
+
+def test_replay_e_the_router_is_not_the_thing_being_tested(store):
+    """Stated as its own test because it is the point of A17.1: nothing in the verifier
+    consults the router, and the plan above is one the router would happily produce. What
+    rejects it is the evidence's origin against the task's own words."""
+    from app import verifier as verifier_module
+
+    source = pathlib.Path(verifier_module.__file__).read_text(encoding="utf-8")
+    assert "from app.executor" not in source and "import executor" not in source
+
+
+def test_a_plan_that_froze_a_different_site_than_the_task_named_is_rejected(store):
+    """The second reading. The origin check compares the artifact against the task; this
+    compares what the plan *recorded* about the task against the task, so a plan that went
+    to the wrong site and wrote that site down as the answer is caught by the
+    disagreement rather than believed."""
+    from dataclasses import replace
+
+    pc = replace(_search_postcondition("lantern"), named_site="wf-fixture.zeabur.app")
+    run = _run(store, WIKI_SEARCH_TASK, pc, [_step(1, StepKind.EXTRACT, "Read")])
+    art = _artifact(store, run, "replay-b-search-mangled.html", f"{FIXTURE_HOST}/search")
+
+    verdict = Verifier(store).verify(run, artifact_id=art, candidate={})
+
+    assert verdict.status is TerminalStatus.FAILED
+    assert verdict.failure_class is FailureClass.VERIFICATION_MISMATCH
+    frozen = next(c for c in verdict.checks if c.name == "named_site_frozen")
+    assert frozen.ok is False
+    assert frozen.detail == {"frozen_at_plan_time": "wf-fixture.zeabur.app",
+                             "task_names": "en.wikipedia.org"}
+
+
+def test_a_task_naming_no_site_still_reaches_the_fixture(store):
+    """The constraint has to be absent when the task names nothing, or every fixture
+    demonstration fails on a site it never claimed to be about."""
+    pc = _search_postcondition("the fixture catalogue for lant")
+    run = _run(store, "Search the fixture catalogue for lantern", pc,
+               [_step(1, StepKind.FILL, "Fill the search field", "#q"),
+                _step(2, StepKind.CLICK, "Submit the search form", "#do-search")])
+    art = _artifact(store, run, "replay-b-search-mangled.html", f"{FIXTURE_HOST}/search")
+
+    verdict = Verifier(store).verify(
+        run, artifact_id=art,
+        candidate={"result_counter": {"count": 0,
+                                      "term": "the fixture catalogue for lant"},
+                   "items": [], "empty_state": True})
+
+    assert verdict.status is TerminalStatus.NO_RESULT_VERIFIED
+    named = next(c for c in verdict.checks if c.name == "named_site_frozen")
+    assert named.detail["task_names"] is None

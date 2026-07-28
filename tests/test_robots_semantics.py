@@ -271,3 +271,92 @@ def test_the_percent_encoded_spelling_of_the_same_namespace_is_also_disallowed()
     path before comparing would silently allow one of the two spellings."""
     rules = RobotsRules(WIKI)
     assert rules.match(UA, "/wiki/Special%3ARandom").allowed is False
+
+
+# --- A10.8: a group's user-agent is a product-token prefix, and takes no wildcards ---
+#
+# `openlibrary.org` is the live case. It publishes groups for `anthropic-ai`, `ClaudeBot`
+# and `*bot`, and a matcher that reads `*bot` as a glob quietly applies a `Crawl-delay: 10`
+# that was never addressed to us. RFC 9309 §2.2.1 compares the group's user-agent against
+# our **product token** as a case-insensitive prefix, with no wildcard expansion, so `*bot`
+# is a token nothing is called and we fall to `*`.
+
+OPENLIBRARY = """\
+User-agent: anthropic-ai
+Disallow: /search
+
+User-agent: ClaudeBot
+Disallow: /search
+
+User-agent: *bot
+Crawl-delay: 10
+Disallow: /wildcard-group-applied
+
+User-agent: *
+Disallow: /admin
+"""
+
+
+def test_a_wildcard_in_a_group_name_is_not_a_glob():
+    """The rule under `*bot` must not reach us. It is not a rule about us."""
+    rules = RobotsRules(OPENLIBRARY)
+    decision = rules.match(UA, "/wildcard-group-applied")
+    assert decision.allowed
+    assert decision.group_user_agent == "*"
+
+
+def test_the_star_group_is_the_one_that_applies_to_us_there():
+    rules = RobotsRules(OPENLIBRARY)
+    decision = rules.match(UA, "/admin")
+    assert decision.allowed is False
+    assert decision.group_user_agent == "*"
+    assert decision.rule == "Disallow: /admin"
+
+
+def test_a_group_named_for_another_agent_does_not_reach_us():
+    rules = RobotsRules(OPENLIBRARY)
+    assert rules.match(UA, "/search").allowed
+
+
+def test_the_group_name_is_a_prefix_not_a_substring():
+    """`bot` inside our name is not the group `bot`. Substring matching subscribed us to
+    rules written for anything whose name we happen to contain."""
+    rules = RobotsRules("User-agent: coding\nDisallow: /x\n\nUser-agent: *\nDisallow: /y\n")
+    assert rules.match(UA, "/x").allowed
+    assert rules.match("coding-agent/2.0", "/x").allowed is False
+
+
+def test_the_prefix_comparison_ignores_case():
+    rules = RobotsRules("User-agent: WHALEFORCECODINGTEST\nDisallow: /x\n")
+    assert rules.match(UA, "/x").allowed is False
+
+
+@pytest.mark.parametrize("agent,token", [
+    (UA, "whaleforcecodingtest-task1"),
+    ("ClaudeBot", "claudebot"),
+    ("Mozilla/5.0 (compatible; Something/1.0)", "mozilla"),
+    ("", ""),
+])
+def test_the_product_token_is_what_gets_compared(agent, token):
+    from app.robots import product_token
+
+    assert product_token(agent) == token
+
+
+# --- A10.6 / A17.3: every decision records what it was evaluated against -------------
+
+def test_a_decision_carries_the_url_and_path_it_was_matched_against():
+    """A refusal that names a rule but not the URL it matched could have been produced
+    without reading the task — and one of ours was, refusing a fixed `Special:` page
+    whatever the task asked for."""
+    cache = RobotsCache()
+    cache._entries["https://en.wikipedia.org"] = _entry(RobotsRules(WIKI), 200)
+    url = "https://en.wikipedia.org/wiki/Special:Search?search=convertible%20arbitrage"
+
+    decision = cache.decide(url, UA)
+
+    assert decision.allowed is False
+    assert decision.evaluated_url == url
+    assert decision.evaluated_path == "/wiki/Special:Search?search=convertible%20arbitrage"
+    assert decision.evaluated_as == "whaleforcecodingtest-task1"
+    assert decision.to_dict()["evaluated_url"] == url

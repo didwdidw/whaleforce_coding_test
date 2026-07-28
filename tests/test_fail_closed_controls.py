@@ -410,6 +410,7 @@ FROZEN = Postcondition(
                       value_type="string"),),
     absence=AbsenceMode.B_ENUMERATION,
     coverage_anchor="//p[@class='counter']",
+    named_site="books.toscrape.com",
 )
 
 

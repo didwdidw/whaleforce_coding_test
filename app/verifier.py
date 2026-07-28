@@ -34,6 +34,7 @@ from app.evidence import EvidenceBundle
 from app.identity import ElementIdentity
 from app.models import FailureClass, Run, StepKind, TerminalStatus
 from app.postcondition import AbsenceMode, ClaimSpec, Postcondition, Relation, matches_frozen
+from app.records import host_key, named_site
 from app.store import Store
 
 WS = re.compile(r"\s+")
@@ -161,6 +162,10 @@ class Verifier:
                            checks)
         checks.append(Check("artifact_available", True, ref.to_dict()))
 
+        wrong_site = self._named_site(run, pc, ref, checks)
+        if wrong_site is not None:
+            return wrong_site
+
         # A run that navigated somewhere else answers a different question, however clean
         # its trace looks. This check is what catches a mis-routed plan.
         #
@@ -236,6 +241,52 @@ class Verifier:
                 by_relation[spec.relation] = value
 
         return self._decide(pc, results, by_relation, checks, candidate)
+
+    def _named_site(self, run: Run, pc: Postcondition, ref,
+                    checks: list[Check]) -> Verdict | None:
+        """Reject evidence collected somewhere other than the site the task named (A17.1).
+
+        The site is read from the task text here, by this code, and compared against the
+        origin the artifact actually came from. Routing made the same reading earlier to
+        decide where to go; that reading is frozen in the postcondition and compared too, so
+        a plan that went somewhere else *and* recorded that it had is caught by the
+        disagreement rather than believed.
+
+        This is not a second copy of the router's check. The router decides which operations
+        a task may reach; nothing in it looks at where the evidence came from, and a
+        correctly routed plan with a wrong URL in it passes every routing check there is.
+        """
+        expected = named_site(run.task)
+        frozen = pc.named_site
+        if frozen and expected and host_key(frozen) != host_key(expected):
+            checks.append(Check("named_site_frozen", False,
+                                {"frozen_at_plan_time": frozen, "task_names": expected}))
+            return Verdict(
+                TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
+                f"The plan froze {frozen!r} as the site this task named, and the task names "
+                f"{expected!r}. The postcondition is what verification is measured against, "
+                f"so a postcondition about a different site cannot certify this run.", checks)
+        if not expected:
+            checks.append(Check("named_site_frozen", True,
+                                {"task_names": None,
+                                 "note": "the task names no site, so this constraint is "
+                                         "absent; the frozen target URL still applies"}))
+            return None
+        origin = host_key(urlsplit(ref.source_url or "").netloc)
+        ok = origin == host_key(expected)
+        checks.append(Check("artifact_origin_is_the_named_site", ok,
+                            {"task_names": expected, "artifact_origin": origin,
+                             "frozen_at_plan_time": frozen or None,
+                             "artifact_source_url": ref.source_url}))
+        if ok:
+            return None
+        return Verdict(
+            TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
+            f"The task names {expected}, and the evidence was collected on "
+            f"{origin or 'nowhere resolvable'} ({ref.source_url}). Everything else about "
+            f"this run may be correct — the interaction, the anchors, the values — and it "
+            f"still answers a question about a different site, which is the worst outcome "
+            f"this system can produce rather than a technicality.", checks)
 
     # ---- one claim -------------------------------------------------------------
 
@@ -1015,4 +1066,5 @@ def _rehydrate(data: dict[str, Any]) -> Postcondition:
                      for c in data.get("claims", [])),
         absence=AbsenceMode(data.get("absence", "none")),
         coverage_anchor=data.get("coverage_anchor", ""),
+        named_site=data.get("named_site", ""),
     )
