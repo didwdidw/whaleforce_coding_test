@@ -2324,3 +2324,101 @@ side being satisfied is not.
   prohibition (A24.4).
 - [ ] **A-72** A navigation that meets a 401/403/429 or a login wall where content was expected ends
   `blocked`, not `locator_not_found` or `postcondition_unmet` (A24.5).
+
+### Amendment 25 — The promises were never audited, and the calendar is now the constraint (2026-07-28)
+
+Extends **§3**, **§4**, **A13.2**, **A14.8**, **S-5.2**; written after an independent cold review that
+ran the deployed system as a grader would. Two days remain. This amendment is deliberately short on
+new machinery and long on subtraction.
+
+#### Three defects nobody was looking for
+
+**A25.1 A published limitation is false, and it is reproducible in thirty seconds.** `L-1` tells the
+reader *"Adding the article title ('the List of S&P 500 companies article') makes the same task
+succeed."* It does not: `wikipedia_article()` strips leading stopwords and not the trailing noun,
+producing `/wiki/List_of_S%26P_500_companies_article`, and the run ends
+`unsupported / postcondition_unmet`. **Every limitation entry MUST be executed against the deployed
+system before it is published, and re-executed before submission.** A limitation that cannot be
+reproduced as written is worse than no limitation: it converts the honesty surface — this project's
+strongest asset — into evidence against it.
+
+**A25.2 A promised record must hold for every value of its parameters, not for one.** OP-7's plan is
+hardcoded to a single product (`executor.py:1917`, `inputs={"title": "A Light in the Attic"}`;
+`:1935`, `h3 a[title='A Light in the Attic']`). A task asking for a labelled field on any *other*
+books.toscrape product — OP-7's declared operation, exactly — falls to T-EXPERIMENTAL with the
+best-effort banner. A18.1 held that a record is `site × operation` and the page is a parameter; the
+implementation has the parameter frozen, which makes the **published support matrix false in the same
+way L-1 is**. Either the record generalises over its parameter, or the support matrix names the one
+product it holds for. The first is correct; the second is honest. Silence is neither.
+
+**A25.3 A postcondition MUST carry every part the task asked for.** On the deployed system, a live
+experimental-tier request for *"UPC and availability"* froze one unnamed claim with
+`required_actions: []`, verified UPC, silently dropped availability, and returned
+`succeeded_verified`. S-5.2 already forbids presenting a partial result as success; an empty
+postcondition is how that prohibition gets bypassed without anyone writing the word `partial`. A
+task with *n* asked-for parts produces *n* claims or it is `partial`. A13.2.3 permits a weaker
+postcondition on this tier; it does not permit an absent one. **This is the tier the graders' unseen
+tasks land on.**
+
+**A25.4 The dev set declares oracles that do not exist.** Every case reads *"harness fetches the
+table independently, applies the same sort key, compares"*; `check_evidence` re-hashes the stored
+artifact and string-matches inside it, and nothing else. For OP-4 and OP-5 — the two records §4 calls
+structurally shortcut-proof — **zero claims were independently checked in r1**, so S-10.10's
+"verified-but-wrong = 0" gate is currently unfalsifiable on our strongest evidence. This is the fifth
+instance of the broken-instrument family and the first whose direction is optimistic.
+
+Resolution, in cost order: **implement the OP-4 oracle** (fetch the table, apply the sort key, compare
+the top row — the numeric-versus-lexicographic trap is the whole point of the case and the oracle is
+short); **rewrite the `oracle` field of every other case to state what the harness actually does**;
+and say in the analysis report that OP-5 correctness rests on the product's own verifier with no
+independent ground truth. Disclosing a gap costs an hour; being found to have declared an oracle that
+never ran costs the argument.
+
+#### Subtraction
+
+**A25.5** With two days left, the following are **cut**, and the README states each as a decision:
+
+- **All further Task 2 work.** `docs/task2-seam.md` is frozen as a designed-not-built seam. The
+  assignment requires one task; a fully specified contract for a product that will not exist is a
+  straight subtraction from the one that will.
+- **All further spend-ceiling, ledger, and credential-topology work.** Total spend is USD 0.0477. It
+  is done and it was over-done.
+- **The validation split.** Its purpose was to keep the engineering session honest during
+  development, and development is over. Run **test** once against the deployment and report
+  validation as unrun **with the reason**.
+- **MU-4/5/7/9 and the mutation sweep.** Two working mutations plus one healing demonstration is
+  evidence; nine is a research programme.
+- **M6 beyond one item** — a minimal injection detector so `injection_detected` is reachable, or an
+  honest declaration that it is not built. Not the suite.
+- **A24.5's runtime `blocked` detection** is downgraded to opportunistic: build it only if it falls
+  out of other work.
+
+**A25.6 Order, and the ordering itself is the decision.** Every previous plan put the README and the
+analysis report last, and they slipped every time. They move to the front, before code:
+
+1. **Push.** Ten commits are unpushed and the live support page currently sells locator memory that
+   does not exist. The deployed system must be the reviewed system.
+2. **A25.1** — fix L-1 and re-run every other limitation entry against the deployment.
+3. **README and analysis report.** Two Common Requirements at zero. The measurements are committed;
+   this is writing. The product owner drafts the design-decision and AI-collaboration sections and
+   the report's structure; the engineering session supplies the measured numbers.
+4. **The scorer fix and dev r2** (A24.1–A24.3).
+5. **A25.2 and A25.3** — the promise and the postcondition. These decide what a grader's own task
+   does.
+6. **A minimal locator memory** (§8, reduced): a keyed store on the volume, write-back only from
+   `succeeded_verified`, TTL, quarantine after three consecutive failures, a health counter, and the
+   run page showing *from memory* / *freshly derived* / *healed*, plus **one** healing demonstration
+   on an archived real-page DOM (A14.6). Self-maintenance is one of the two mechanisms the assignment
+   names. **Present, small and honestly bounded beats absent**, and absent is where it is now.
+7. **The test split, once**, against the deployment.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-73** Every entry in the published limitations list has been executed against the deployed
+  system and reproduces as written (A25.1).
+- [ ] **A-74** A promised record succeeds for a parameter value that appears in no eval case, or the
+  support matrix names the parameter it is fixed to (A25.2).
+- [ ] **A-75** A task asking for two labelled values produces two claims, and returns `partial` if
+  only one is verified (A25.3).
+- [ ] **A-76** The OP-4 oracle derives the expected top row independently of the run, and every other
+  case's `oracle` field describes what the harness does (A25.4).
