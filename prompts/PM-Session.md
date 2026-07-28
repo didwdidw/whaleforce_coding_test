@@ -576,3 +576,9 @@ scored 服務我照 runbook 建了，但我打算先用 EVAL_SPLITS=validation �
 2. 給 engineering agent 的 prompt
 
 ==========
+
+runtime log 有 error, 正在請 engineer 查
+另外，你是希望我在什麼時機點跑 free -m 看結果？
+redeploy EVAL_DRY_RUN=1 的 service 之後的瞬間嗎
+
+==========
