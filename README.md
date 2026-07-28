@@ -165,9 +165,11 @@ requires the value to be reachable from the label the task named, which is what 
 capability rather than a substring search.
 
 **Tiers exist so the honest answer to "does it work on any site?" is a number.**
-Claiming general capability is easy and unfalsifiable. Declaring seven records with evidence, and
-measuring everything else separately as best-effort, is the falsifiable version of the same claim.
-The cost is that our headline rate covers a smaller surface than a vaguer product would advertise.
+Claiming general capability is easy and unfalsifiable. Declaring four records with evidence, on sites
+we do not control, and measuring everything else separately as best-effort, is the falsifiable
+version of the same claim. The cost is that our headline rate covers a smaller surface than a vaguer
+product would advertise — and it got smaller again when we withdrew the three fixture records for
+being an exam we set ourselves.
 
 **Retry and recovery are different things and the system never conflates them.**
 Re-running the same strategy after a flake is a *retry* and is recorded as one — it is not

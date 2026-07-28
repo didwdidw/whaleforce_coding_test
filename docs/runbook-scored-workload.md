@@ -210,6 +210,76 @@ store** before the cap is applied, so anything listed as `over the size cap` is 
 omission rather than a guess — and that residue, not the whole category, is what A21.4's
 limitation is written against.
 
+## Scoring a held-out split (validation, test)
+
+Held-out case content is **never in the image** and never in the repository (S-10.4), so the
+file arrives by hand and the workload has to be told where it is. Everything else about the
+round is identical.
+
+**The test split is scored once, and that first run is the reported score** (S-10.6). After
+it has been read it is a regression suite and must be described as one — never again as
+held-out. So the steps below are written to be got right the first time.
+
+### Step 1 — put the file on the scored service's volume
+
+Copy the delivered Markdown, **byte for byte**, to somewhere under the scored service's
+volume. It must not go in the repository and must not be pasted into a config editor.
+
+```bash
+# on the host, into the scored service's PVC
+sudo find /var/lib/rancher/k3s/storage -maxdepth 1 -name '*data-service-*'   # find the volume
+sudo mkdir -p <volume>/task1/holdout
+sudo cp /path/to/test-set.md <volume>/task1/holdout/test-set.md
+sha256sum <volume>/task1/holdout/test-set.md      # compare with eval/holdout-manifest.md
+```
+
+Do not edit the file to fix anything — not whitespace, not a typo. Its hash is committed and
+a file that does not match it is a different split.
+
+### Step 2 — configure the round
+
+| Setting | Value |
+|---|---|
+| `EVAL_SPLITS` | `test` |
+| `EVAL_CASES_TEST` | `/data/task1/holdout/test-set.md` — where it is mounted **inside** the container |
+| `EVAL_ROUND` | a round number not used before, e.g. `10` |
+| `EVAL_DRY_RUN` | `1` for the first start |
+
+`EVAL_CASES_<SPLIT>` exists for exactly this and works for any split name. Everything else —
+`CREDENTIAL_POLICY=scored`, the billing key path, the volume — is unchanged from the initial
+setup, and A9.6 is why a held-out split runs here rather than anywhere else.
+
+### Step 3 — dry run first, and read the log
+
+`EVAL_DRY_RUN=1` checks the mount, the credential, the loopback server and the browser, and
+**prices the round**, without submitting a case. The log line to look for is:
+
+```
+[scored-workload/1.x] test: mounted case file matches the committed hash 43ee8ce52acf…
+```
+
+If the file does not match, the workload refuses and holds, naming both hashes. That check
+runs **before** the first case, because a split nobody can identify produces a perfectly
+plausible score, and this is a number we get one attempt at.
+
+### Step 4 — clear `EVAL_DRY_RUN` and restart
+
+The round runs and the service idles. Then, as with any round:
+
+- copy `test-deploy-<sha>-r<round>.json` out of the volume into `eval/results/` and commit it;
+- copy `bundles/test-<sha>-r<round>/` with it.
+
+**The result file carries no per-case detail** and that is deliberate: a held-out split's
+content must not reach the session that is not allowed to see it, so the file holds the
+aggregate score, the `terminal_status` × `failure_class` histogram and the provenance block,
+and says so inside itself. Do not reconstruct the missing detail from the bundles into
+anything the engineering session reads.
+
+**Validation is deliberately not run** (Amendment 25). Its purpose was to keep the
+engineering session honest *during* development; development is over, so running it now buys
+a number instead of the discipline it existed for. It is reported as unrun with that reason
+rather than quietly omitted.
+
 ## Failure modes it refuses rather than works around
 
 - `CREDENTIAL_POLICY` is not `scored` → refuses to start, naming A9.6.

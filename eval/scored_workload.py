@@ -27,9 +27,11 @@ split would spend real money on a schedule and overwrite the result it spent it 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import pathlib
+import re
 import signal
 import subprocess
 import sys
@@ -148,7 +150,7 @@ def forecast(splits: list[str], spend: dict[str, Any]) -> dict[str, Any]:
     while the round's name is already used. So the round is priced before the first case
     and refused whole, which is the same shape as every other precondition here.
     """
-    countable = {split: DEFAULT_CASES.get(split) for split in splits}
+    countable = {split: case_file(split) for split in splits}
     cases = {split: (len(parse_cases(path, BROWSER_TASK)) if path and path.exists() else None)
              for split, path in countable.items()}
     known = sum(n for n in cases.values() if n)
@@ -381,11 +383,15 @@ def run(splits: list[str], *, port: int, round_id: str, force: bool,
                       f"({done.get('result_file')}); not re-running. Neither a restart nor "
                       f"a redeploy may re-spend a scored round — change EVAL_ROUND.")
                 continue
-            cases = DEFAULT_CASES.get(split)
+            cases = case_file(split)
             if cases is None or not cases.exists():
-                print(f"[{WORKLOAD_VERSION}] {split}: no case file in this image "
-                      f"({cases}); skipped. Held-out splits are mounted, not built in.")
+                print(f"[{WORKLOAD_VERSION}] {split}: no case file for this split "
+                      f"({cases}); skipped. Held-out splits are mounted, not built in — "
+                      f"set EVAL_CASES_{split.upper()} to where the file is mounted.")
                 continue
+            mismatch = holdout_hash_mismatch(split, cases)
+            if mismatch:
+                _refuse(mismatch)
             inflight = inflight_marker(split, round_id)
             if inflight.exists() and not force:
                 _refuse(
@@ -452,6 +458,55 @@ def run(splits: list[str], *, port: int, round_id: str, force: bool,
         while True:
             time.sleep(3600)
     return 0
+
+
+#: Where a held-out split's cases are mounted. They are never in the image (S-10.4), so the
+#: path comes from the operator and the file is checked against the committed hash below
+#: before a cent is spent on it.
+def case_file(split: str) -> pathlib.Path | None:
+    override = os.environ.get(f"EVAL_CASES_{split.upper()}", "").strip()
+    if override:
+        return pathlib.Path(override)
+    return DEFAULT_CASES.get(split)
+
+
+HOLDOUT_MANIFEST = pathlib.Path(__file__).parent / "holdout-manifest.md"
+_MANIFEST_ROW = re.compile(r"^\|\s*(\w+)\s*\|\s*\d+\s*\|\s*`([0-9a-f]{64})`", re.M)
+
+
+def holdout_hashes() -> dict[str, str]:
+    """The committed content hashes for the held-out splits.
+
+    Read from `eval/holdout-manifest.md` rather than duplicated here: the manifest is the
+    published claim, and a second copy is a second thing to keep in step.
+    """
+    try:
+        text = HOLDOUT_MANIFEST.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    return {split: digest for split, digest in _MANIFEST_ROW.findall(text)}
+
+
+def holdout_hash_mismatch(split: str, path: pathlib.Path) -> str:
+    """Refuse before spending if a mounted split is not the split we committed a hash for.
+
+    A held-out split is scored **once** and that run is the reported number (S-10.6). A
+    wrong, edited or truncated file produces a perfectly plausible score for a split nobody
+    can identify — and the mount point is exactly where that goes wrong, because the file
+    arrives from outside the repository by hand.
+    """
+    expected = holdout_hashes().get(split)
+    if not expected:
+        return ""
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    if actual == expected:
+        print(f"[{WORKLOAD_VERSION}] {split}: mounted case file matches the committed "
+              f"hash {expected[:12]}…")
+        return ""
+    return (f"{split}: the file mounted at {path} hashes to {actual[:12]}… and "
+            f"eval/holdout-manifest.md commits {expected[:12]}… for this split. A held-out "
+            f"split is scored once and that run is the reported score, so a file nobody can "
+            f"identify is not scored at all. Mount the delivered file, byte for byte.")
 
 
 def main(argv: list[str] | None = None) -> int:

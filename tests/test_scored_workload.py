@@ -510,3 +510,44 @@ def test_a_finished_split_leaves_no_inflight_marker(results_dir, monkeypatch):
                         startup_deadline=1.0, idle=False)
     assert len(calls) == 1
     assert not scored_workload.inflight_marker("dev", "1").exists()
+
+
+# ---- mounting a held-out split (S-10.4, S-10.6) -----------------------------------
+
+def test_a_held_out_split_is_taken_from_where_the_operator_mounted_it(monkeypatch, tmp_path):
+    """Held-out case content is never in the image, so the path comes from the operator."""
+    mounted = tmp_path / "test-set.md"
+    mounted.write_text("# held out\n", encoding="utf-8")
+    monkeypatch.setenv("EVAL_CASES_TEST", str(mounted))
+
+    assert scored_workload.case_file("test") == mounted
+    # A visible split is unaffected and still comes from the image.
+    assert scored_workload.case_file("dev").name == "dev-set.md"
+
+
+def test_the_committed_hashes_are_read_from_the_manifest_not_duplicated():
+    """The manifest is the published claim; a second copy is a second thing to keep in step."""
+    hashes = scored_workload.holdout_hashes()
+    assert set(hashes) == {"validation", "test"}
+    assert all(len(h) == 64 for h in hashes.values())
+
+
+def test_a_mounted_split_that_is_not_the_committed_one_is_refused_before_spending(tmp_path):
+    """A held-out split is scored once and that run is the reported score. A wrong, edited or
+    truncated file produces a perfectly plausible number for a split nobody can identify —
+    and the mount point is where that goes wrong, because the file arrives by hand."""
+    wrong = tmp_path / "test-set.md"
+    wrong.write_text("# not the delivered file\n", encoding="utf-8")
+
+    problem = scored_workload.holdout_hash_mismatch("test", wrong)
+
+    assert "eval/holdout-manifest.md commits" in problem
+    assert "scored once" in problem
+
+
+def test_a_split_with_no_committed_hash_is_not_gated(tmp_path):
+    """Dev and experimental are visible and change with the code; gating them on a hash
+    would refuse every round after an edit to a case."""
+    visible = tmp_path / "dev-set.md"
+    visible.write_text("# anything\n", encoding="utf-8")
+    assert scored_workload.holdout_hash_mismatch("dev", visible) == ""

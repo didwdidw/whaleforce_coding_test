@@ -1871,3 +1871,7 @@ robots 的 RFC 9309 實作加自己的 CI job、eval provenance、buildstate 從
 問題不是機制不夠好，是 grader 會不會看到它。
 
 ==========
+r2：EVAL_ROUND=2 + 重啟 wf-scored: done，重新部署中
+test split 一次（要掛 held-out 檔）這個請給我詳細步驟
+
+==========
