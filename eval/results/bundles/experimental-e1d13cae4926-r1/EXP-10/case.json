@@ -1,0 +1,120 @@
+{
+ "case": "EXP-10",
+ "record": "XB-EXP \u00b7 JS-rendered widget",
+ "declared_tier": "T-EXPERIMENTAL",
+ "tier_as_declared": true,
+ "precondition": {
+  "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat",
+  "checked": true,
+  "ok": true,
+  "reason": "HTTP 200",
+  "http_status": 200,
+  "robots": {
+   "allowed": true,
+   "directive": null,
+   "pattern": null,
+   "group_user_agent": "*",
+   "rule": "no rule matched",
+   "source": "matched",
+   "evaluated_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat",
+   "evaluated_path": "/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat",
+   "evaluated_as": "whaleforcecodingtest-task1"
+  }
+ },
+ "suite_error": false,
+ "run_id": "run_a6991256fbcf",
+ "tier": "T-EXPERIMENTAL",
+ "execution_path": "model_driven",
+ "terminal_status": "unsupported",
+ "failure_class": "postcondition_unmet",
+ "counts_as_success": false,
+ "outcome_kind": "abstained_after_looking",
+ "attempted": true,
+ "expected": [
+  "succeeded_verified"
+ ],
+ "status_as_expected": false,
+ "evidence": {
+  "claims": 0,
+  "verified_claims": 0,
+  "independently_checked": 0,
+  "not_reproducible_here": [],
+  "findings": [],
+  "notes": []
+ },
+ "duration_seconds": 3.61,
+ "latency": {
+  "queue_wait_seconds": 0.008,
+  "run_seconds": 3.611,
+  "total_seconds": 3.62,
+  "time_to_first_result_seconds": null,
+  "steps_measured": 9,
+  "steps_unmeasured": 0,
+  "step_ms": {
+   "median": 6,
+   "p90": 1479,
+   "max": 1479
+  },
+  "slowest_step": {
+   "seq": 5,
+   "kind": "navigate",
+   "summary": "Navigate to https://developer.mozilla.org/en-us/docs/web/javascript/reference/global_objects/array/flat",
+   "ms": 1479
+  },
+  "model_seconds": 1.408,
+  "model_calls": 1,
+  "model_calls_cached": 0,
+  "reportable": true
+ },
+ "budget": {
+  "steps": 9,
+  "llm_calls_exploration": 1,
+  "llm_calls_recovery": 0,
+  "input_tokens": 4551,
+  "output_tokens": 186,
+  "usd": 0.001417,
+  "started_at": 1785249079.5791712,
+  "ended_at": 1785249083.190431,
+  "elapsed_seconds": 3.61,
+  "output_cap_per_call": 2048,
+  "output_cap_per_run": 16000
+ },
+ "timed_out_waiting": false,
+ "passed": false,
+ "artifacts": [
+  {
+   "artifact_id": "art_60e6d76ec1f1",
+   "kind": "dom:step-1",
+   "source_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat",
+   "retrieved_at": 1785249081.3329685,
+   "retrieved_on": "2026-07-28",
+   "media_type": "text/html",
+   "length": 81177,
+   "sha256": "71141325c22d9d1b4707f8c41420a09213f9eabaadedd62963d73ded65ef5653",
+   "state": "stored",
+   "expired_at": null,
+   "expired_on": null,
+   "pinned": false,
+   "available": true,
+   "sha256_on_export": "71141325c22d9d1b4707f8c41420a09213f9eabaadedd62963d73ded65ef5653",
+   "sha256_matches": true
+  },
+  {
+   "artifact_id": "art_ec18b81c07ff",
+   "kind": "dom:abstained-step-1",
+   "source_url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat",
+   "retrieved_at": 1785249083.161314,
+   "retrieved_on": "2026-07-28",
+   "media_type": "text/html",
+   "length": 82575,
+   "sha256": "dd2e91fd38274d8761b0891492764aa881bddbfd68b0e932176b99c1438bc93a",
+   "state": "stored",
+   "expired_at": null,
+   "expired_on": null,
+   "pinned": false,
+   "available": true,
+   "sha256_on_export": "dd2e91fd38274d8761b0891492764aa881bddbfd68b0e932176b99c1438bc93a",
+   "sha256_matches": true
+  }
+ ]
+}

@@ -1,0 +1,176 @@
+{
+ "tool": "bundles/1.0",
+ "split": "experimental",
+ "git_sha": "e1d13cae4926",
+ "written_at": "2026-07-28T14:31:26Z",
+ "cap_mib": 48.0,
+ "measured_bytes_carried": 757142,
+ "measured_mib_carried": 0.722,
+ "cases_total": 10,
+ "non_success_total": 7,
+ "non_success_carried": 7,
+ "sample_declared": [
+  "EXP-01",
+  "EXP-02"
+ ],
+ "sample_carried": [
+  "EXP-01",
+  "EXP-02"
+ ],
+ "sample_short_by": [],
+ "carried": [
+  {
+   "case": "EXP-03",
+   "run_id": "run_870891127bf8",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 183680,
+   "files": [
+    "art_ff89593c403f.bin",
+    "art_426949de7599.bin",
+    "art_5d1f13d2318b.bin",
+    "art_3e5475b1c5b0.bin",
+    "art_a7e8647e2bf1.bin",
+    "art_bcf0b5726e79.bin",
+    "art_86a1e1b93363.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-04",
+   "run_id": "run_c3f17b8d6f63",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 43892,
+   "files": [
+    "art_a0112126ea3d.bin",
+    "art_001179c3b822.bin",
+    "art_313d1472395b.bin",
+    "art_54860233d868.bin",
+    "art_e5b6305f2320.bin",
+    "art_c0a68e96254c.bin",
+    "art_6db02bdce88b.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-05",
+   "run_id": "run_741a40a18ba7",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 6723,
+   "files": [
+    "art_1b2b4cdd9fbd.bin",
+    "art_53c752bad2cd.bin",
+    "art_fae68b289229.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-07",
+   "run_id": "run_1aa3186cf104",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 49470,
+   "files": [
+    "art_eedf7d25da4c.bin",
+    "art_fb1dd5ad7e87.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-08",
+   "run_id": "run_f3a9c6bc4956",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 44623,
+   "files": [
+    "art_f73961e1a442.bin",
+    "art_be59046203da.bin",
+    "art_69fe68d726c5.bin",
+    "art_149c2a472557.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-09",
+   "run_id": "run_3941cec09c6b",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 50632,
+   "files": [
+    "art_9a41d7bbd174.bin",
+    "art_98900ea8c23b.bin",
+    "art_678f98303a7b.bin",
+    "art_ecbf1b04ef22.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-10",
+   "run_id": "run_a6991256fbcf",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 163752,
+   "files": [
+    "art_60e6d76ec1f1.bin",
+    "art_ec18b81c07ff.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-01",
+   "run_id": "run_ccc58ab01753",
+   "counts_as_success": true,
+   "reason": "pre-named success sample (A22.7)",
+   "bytes": 79774,
+   "files": [
+    "art_9a86019c1ce8.bin",
+    "art_fa9c3d40fbc8.bin",
+    "art_e73957153e59.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "EXP-02",
+   "run_id": "run_2e9108e079f2",
+   "counts_as_success": true,
+   "reason": "pre-named success sample (A22.7)",
+   "bytes": 134596,
+   "files": [
+    "art_4a14669b5220.bin",
+    "art_8bffb9b01419.bin",
+    "art_59c25cf35b18.bin",
+    "art_fe69a4d4eb8f.bin",
+    "case.json"
+   ]
+  }
+ ],
+ "omitted": [
+  {
+   "case": "EXP-06",
+   "run_id": "run_95f838a93aaf",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 1,
+    "verified_claims": 1,
+    "independently_checked": 1,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_56cbc1d62e2d",
+     "kind": "dom:step-1",
+     "sha256": "fbbc0c7a5606506f75f5553c086baaa00f3d09665ec629b0945e0f79ce98e9ce",
+     "length": 24099,
+     "source_url": "https://www.gutenberg.org/ebooks/1342"
+    }
+   ]
+  }
+ ],
+ "note": "Sizes are measured, not estimated: every candidate bundle is weighed from the store before the cap is applied. Anything under `omitted` with `over the size cap` is the residue A21.4 is written against \u2014 it names what could not be carried rather than the whole category."
+}

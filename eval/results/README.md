@@ -16,6 +16,10 @@ one worth reading.
 | `coldstart-deploy-e1d13ca.json` | A fifth. Across the five, most of the spread is the platform's build queue before the swap — which is why deploy-to-usable is reported as a range and not a figure. |
 | `coldstart-deploy-0900b95-partial.json` | The 2026-07-28 05:18Z redeploy, **not** the A18.8(1) measurement: the watcher could not verify TLS on the measuring machine and recorded a healthy deployment as a continuous outage. What it holds is what was derivable afterwards from the deployment's own uptime clock. |
 | `load-local-427cd96.json` | Saturation, sustained throughput and local cold start at `427cd96`. Every figure in it is fixture work on the deterministic path with no model call in the loop. |
+| `dev-deploy-e1d13cae4926-r1.json` | **The first paid round.** Dev split, 15 cases, run by the scored workload against the deployment at `e1d13ca`. Not comparable to `dev-local-427cd96.json` case for case: four passing cases are demoted here by evidence findings the scorer produces on titles it cannot re-locate in rendered text, which is a defect in the scorer and is written up rather than corrected in place. |
+| `experimental-deploy-e1d13cae4926-r1.json` | The same round's experimental split, 10 cases — the A-40 breadth deliverable. Wilson intervals are inside the file; ten cases is a small number and the interval is how the file says so. |
+| `bundles/dev-e1d13cae4926-r1/` | The dev split's evidence: every non-success run, plus the success sample named in `eval/bundle-sample.json` before the round. `manifest.json` lists what was left out and why, with hashes for it. |
+| `bundles/experimental-e1d13cae4926-r1/` | The same for the experimental split. Every artifact was re-hashed on the way out and every hash matched. |
 
 A score is only meaningful with the provenance block beside it (S-10.7): the commit, the
 model, the credential tier, the split's own hash. All of that is inside each file.

@@ -1,0 +1,75 @@
+{
+ "case": "DEV-13",
+ "record": "XB-5",
+ "declared_tier": "T-REFUSED",
+ "tier_as_declared": false,
+ "precondition": {
+  "url": null,
+  "checked": false,
+  "ok": true,
+  "reason": "the case declares no reachable entry point, so there is nothing to assert before running it"
+ },
+ "suite_error": false,
+ "run_id": "run_427d3871a722",
+ "tier": "T-EXPERIMENTAL",
+ "execution_path": "scripted",
+ "terminal_status": "blocked",
+ "failure_class": "robots_disallowed",
+ "counts_as_success": false,
+ "outcome_kind": "refused_by_policy",
+ "attempted": false,
+ "expected": [
+  "blocked"
+ ],
+ "status_as_expected": true,
+ "evidence": {
+  "claims": 0,
+  "verified_claims": 0,
+  "independently_checked": 0,
+  "not_reproducible_here": [],
+  "findings": [
+   "declared tier T-REFUSED but the run reports T-EXPERIMENTAL"
+  ],
+  "notes": []
+ },
+ "duration_seconds": 0.16,
+ "latency": {
+  "queue_wait_seconds": 0.011,
+  "run_seconds": 0.156,
+  "total_seconds": 0.167,
+  "time_to_first_result_seconds": null,
+  "steps_measured": 4,
+  "steps_unmeasured": 0,
+  "step_ms": {
+   "median": 9,
+   "p90": 20,
+   "max": 20
+  },
+  "slowest_step": {
+   "seq": 4,
+   "kind": "policy_check",
+   "summary": "Policy check for https://en.wikipedia.org/wiki/Special:Search?search=convertible%20arbitrage",
+   "ms": 20
+  },
+  "model_seconds": 0,
+  "model_calls": 0,
+  "model_calls_cached": 0,
+  "reportable": true
+ },
+ "budget": {
+  "steps": 4,
+  "llm_calls_exploration": 0,
+  "llm_calls_recovery": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "usd": 0.0,
+  "started_at": 1785248912.2292361,
+  "ended_at": 1785248912.3851738,
+  "elapsed_seconds": 0.16,
+  "output_cap_per_call": 2048,
+  "output_cap_per_run": 16000
+ },
+ "timed_out_waiting": false,
+ "passed": false,
+ "artifacts": []
+}

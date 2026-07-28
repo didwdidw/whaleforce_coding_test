@@ -1,0 +1,477 @@
+{
+ "tool": "bundles/1.0",
+ "split": "dev",
+ "git_sha": "e1d13cae4926",
+ "written_at": "2026-07-28T14:28:49Z",
+ "cap_mib": 48.0,
+ "measured_bytes_carried": 6237535,
+ "measured_mib_carried": 5.949,
+ "cases_total": 15,
+ "non_success_total": 4,
+ "non_success_carried": 4,
+ "sample_declared": [
+  "DEV-01",
+  "DEV-02"
+ ],
+ "sample_carried": [
+  "DEV-02",
+  "DEV-01"
+ ],
+ "sample_short_by": [],
+ "carried": [
+  {
+   "case": "DEV-02",
+   "run_id": "run_a106cb488978",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 0,
+   "files": [
+    "case.json"
+   ]
+  },
+  {
+   "case": "DEV-08",
+   "run_id": "run_49063a0d8bb3",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 416926,
+   "files": [
+    "art_452094bcb9af.bin",
+    "art_705376dcc4b9.bin",
+    "art_450ad1eba8e6.bin",
+    "art_06677a2a0ed5.bin",
+    "art_eac84869d042.bin",
+    "art_78c8347d3460.bin",
+    "art_5485e95dee12.bin",
+    "art_8d4c37c09d7c.bin",
+    "case.json"
+   ]
+  },
+  {
+   "case": "DEV-13",
+   "run_id": "run_427d3871a722",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 0,
+   "files": [
+    "case.json"
+   ]
+  },
+  {
+   "case": "DEV-14",
+   "run_id": "run_3dda9fd0d0ff",
+   "counts_as_success": false,
+   "reason": "non-success run (A22.7)",
+   "bytes": 0,
+   "files": [
+    "case.json"
+   ]
+  },
+  {
+   "case": "DEV-01",
+   "run_id": "run_2884791c7903",
+   "counts_as_success": true,
+   "reason": "pre-named success sample (A22.7)",
+   "bytes": 5820609,
+   "files": [
+    "art_362c1d1fc1eb.bin",
+    "art_8d4eeffe56c3.bin",
+    "art_090c42ffd0ad.bin",
+    "case.json"
+   ]
+  }
+ ],
+ "omitted": [
+  {
+   "case": "DEV-03",
+   "run_id": "run_fa85cff9fc6a",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 2,
+    "verified_claims": 2,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "sort_state: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "top_row: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": []
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_17077708aba4",
+     "kind": "dom:step-1",
+     "sha256": "3f4dded2e9484394473e8dd87d8efd2d376ee767ee53ef83e7d4fb30ef7afcc4",
+     "length": 843658,
+     "source_url": "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"
+    },
+    {
+     "artifact_id": "art_382d631fdd54",
+     "kind": "dom:table-sorted",
+     "sha256": "c257aa5257f2c8be4d46801a20f269d3ae4f8a14d12140878aaf3d686f4b844c",
+     "length": 1175813,
+     "source_url": "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"
+    }
+   ]
+  },
+  {
+   "case": "DEV-04",
+   "run_id": "run_c18f60cb5387",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 1,
+    "verified_claims": 1,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "still_collapsed: derived value (bool), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "still_collapsed: label anchor 'collapsed marker of box 1' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_7d5ca08fcdd9",
+     "kind": "dom:step-1",
+     "sha256": "da79c7f9007f4d3868eaff8cba76c23e5b020f32791de4dc6556c198b99a635d",
+     "length": 2519561,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    },
+    {
+     "artifact_id": "art_908c69b52ab5",
+     "kind": "dom:collapsible-1-expanded",
+     "sha256": "32f78bed24d07dfe97b1bd58fa1712f38167c8e9892905b6c06d14a63890a1fd",
+     "length": 2520670,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    }
+   ]
+  },
+  {
+   "case": "DEV-05",
+   "run_id": "run_a359395f290e",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 1,
+    "verified_claims": 1,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "still_collapsed: derived value (bool), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "still_collapsed: label anchor 'collapsed marker of box 2' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_71251f5b4f06",
+     "kind": "dom:step-1",
+     "sha256": "eac7df54ec18c4a98c3ef8b8fbce8f77b721c8c903a2c1ce211a2ddf068b5663",
+     "length": 2399219,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    },
+    {
+     "artifact_id": "art_00e9a10612a8",
+     "kind": "dom:collapsible-2-expanded",
+     "sha256": "35af10d93200cb46d9b818a868898b9a567007a1ec9b2dde0b8056ab085fd08d",
+     "length": 2520516,
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+    }
+   ]
+  },
+  {
+   "case": "DEV-06",
+   "run_id": "run_109ff7e705ca",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "pager: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [
+     "items: 18 enumerated member(s) reported as verified are not present in the delivered artifact: #higherselfie: wake up your life. free your soul. find your tribe., algorithms to live by: the computer science of human decisions, call the nurse: true stories of a country nurse on a scottish isle, everydata: the misinformation hidden in the little data you consume every day, in the country we love: my family divided"
+    ],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_be1eae34ceb2",
+     "kind": "dom:step-1",
+     "sha256": "569f5535da173563ade6cb45bd3f92018d2a691421f889e8e7f669b604235309",
+     "length": 51024,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_a4190eefb1ae",
+     "kind": "dom:category-nonfiction",
+     "sha256": "210cbbfd5ececdb7bfd122c88345d0d0577e33f6d65b2ba78361c6773fd69d3a",
+     "length": 52465,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-07",
+   "run_id": "run_a57e6c85f016",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "pager: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [
+     "items: 4 enumerated member(s) reported as verified are not present in the delivered artifact: crazy rich asians (crazy rich asians #1), jurassic park (jurassic park #1), last one home (new beginnings #1), the da vinci code (robert langdon #2)"
+    ],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_68a88c2e3711",
+     "kind": "dom:step-1",
+     "sha256": "569f5535da173563ade6cb45bd3f92018d2a691421f889e8e7f669b604235309",
+     "length": 51024,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_388d4a27163a",
+     "kind": "dom:step-2",
+     "sha256": "fc3f104167c47b9066bb0e0914199d0cc074dea5b2a9bb35fc15d8ddc753a7a2",
+     "length": 49453,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    {
+     "artifact_id": "art_41b2ed2ec44d",
+     "kind": "dom:step-3",
+     "sha256": "d5e9a70c44fd521ce53bf5f5b797ccc1fa0a6ba49d123f830435b00b8589cd22",
+     "length": 49274,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-2.html"
+    },
+    {
+     "artifact_id": "art_bdb94efd83e5",
+     "kind": "dom:category-fiction",
+     "sha256": "717838ec0979682be9c6086e676db2ed28016089caa8f2ba31c19b1d7b0cf221",
+     "length": 49217,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-3.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-09",
+   "run_id": "run_857adb1d439d",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 3,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_d17943874fa1",
+     "kind": "dom:step-1",
+     "sha256": "26062b24434868264275be9df5a6365b0ad60615e343edae5f3f7c6ee05f750f",
+     "length": 47959,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
+    },
+    {
+     "artifact_id": "art_e87f39a7a339",
+     "kind": "dom:product-detail",
+     "sha256": "fe252d58636096e094a21647402383e8d73949fe5b2b128cfb133e9209eff436",
+     "length": 9037,
+     "source_url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-10",
+   "run_id": "run_e7a1f394392a",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 3,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_26d25fa8e118",
+     "kind": "dom:step-1",
+     "sha256": "26062b24434868264275be9df5a6365b0ad60615e343edae5f3f7c6ee05f750f",
+     "length": 47959,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
+    },
+    {
+     "artifact_id": "art_97a0306c0cc8",
+     "kind": "dom:product-detail",
+     "sha256": "fe252d58636096e094a21647402383e8d73949fe5b2b128cfb133e9209eff436",
+     "length": 9037,
+     "source_url": "https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-11",
+   "run_id": "run_d9ce1c71dfd2",
+   "terminal_status": "no_result_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 2,
+    "verified_claims": 2,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [
+     "items: 11 enumerated member(s) reported as verified are not present in the delivered artifact: A LIGHT IN THE ATTIC, LEAVE THIS SONG BEHIND: TEEN POETRY AT ITS BEST, NIGHT SKY WITH EXIT WOUNDS, OUT OF PRINT: CITY LIGHTS SPOTLIGHT NO. 14, POEMS THAT MAKE GROWN WOMEN CRY"
+    ],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "items: label anchor 'every product entry in the listing' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_b95e9d9ff3d0",
+     "kind": "dom:step-1",
+     "sha256": "569f5535da173563ade6cb45bd3f92018d2a691421f889e8e7f669b604235309",
+     "length": 51024,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_f6c3b8805737",
+     "kind": "dom:absence-poetry",
+     "sha256": "26062b24434868264275be9df5a6365b0ad60615e343edae5f3f7c6ee05f750f",
+     "length": 47959,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-12",
+   "run_id": "run_bd30ca7b760b",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "pager: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [
+     "items: 4 enumerated member(s) reported as verified are not present in the delivered artifact: crazy rich asians (crazy rich asians #1), jurassic park (jurassic park #1), last one home (new beginnings #1), the da vinci code (robert langdon #2)"
+    ],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_2448b2cf8e47",
+     "kind": "dom:step-1",
+     "sha256": "569f5535da173563ade6cb45bd3f92018d2a691421f889e8e7f669b604235309",
+     "length": 51024,
+     "source_url": "https://books.toscrape.com/index.html"
+    },
+    {
+     "artifact_id": "art_db161940088a",
+     "kind": "dom:step-2",
+     "sha256": "fc3f104167c47b9066bb0e0914199d0cc074dea5b2a9bb35fc15d8ddc753a7a2",
+     "length": 49453,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"
+    },
+    {
+     "artifact_id": "art_9e3ab473b0ea",
+     "kind": "dom:step-3",
+     "sha256": "d5e9a70c44fd521ce53bf5f5b797ccc1fa0a6ba49d123f830435b00b8589cd22",
+     "length": 49274,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-2.html"
+    },
+    {
+     "artifact_id": "art_f7352dc79e15",
+     "kind": "dom:category-fiction",
+     "sha256": "717838ec0979682be9c6086e676db2ed28016089caa8f2ba31c19b1d7b0cf221",
+     "length": 49217,
+     "source_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/page-3.html"
+    }
+   ]
+  },
+  {
+   "case": "DEV-15",
+   "run_id": "run_30f0bea706c3",
+   "terminal_status": "succeeded_verified",
+   "counts_as_success": true,
+   "why_omitted": "not required by A22.7 and not in the pre-named success sample",
+   "verification": {
+    "claims": 1,
+    "verified_claims": 1,
+    "independently_checked": 1,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "artifacts": [
+    {
+     "artifact_id": "art_885e1fd3916c",
+     "kind": "dom:step-1",
+     "sha256": "d3de00ba587a5c5585e8d9c85991735e523f359cb70bb4289bb74fc3eb1f12c4",
+     "length": 25508,
+     "source_url": "https://www.gutenberg.org/"
+    },
+    {
+     "artifact_id": "art_1c21892e0573",
+     "kind": "dom:step-2",
+     "sha256": "d3eb412d86edbd2478944920ab4ba80b1e718f148d885b1c891c23972d279461",
+     "length": 40948,
+     "source_url": "https://www.gutenberg.org/ebooks/bookshelf/"
+    },
+    {
+     "artifact_id": "art_89caef031bd7",
+     "kind": "dom:step-3",
+     "sha256": "5dd8be818871f22c861c2da9e6fe0be8442ccc677865088ac41befa90ca7decd",
+     "length": 20063,
+     "source_url": "https://www.gutenberg.org/ebooks/bookshelves/search/?query=Astronomy%20%7C%20Biology%20%7C%20Botany%20%7C%20Chemistry%20%7C%20Ecology%20%7C%20Geology%20%7C%20Mathematics%20%7C%20Microbiology%20%7C%20Microscopy%20%7C%20Mycology%20%7C%20Science%20Fiction%20%7C%20Natural%20History%20%7C%20Physics%20%7C%20Physiology%20%7CScientific%20American%20%7C%20Zoology"
+    }
+   ]
+  }
+ ],
+ "note": "Sizes are measured, not estimated: every candidate bundle is weighed from the store before the cap is applied. Anything under `omitted` with `over the size cap` is the residue A21.4 is written against \u2014 it names what could not be carried rather than the whole category."
+}

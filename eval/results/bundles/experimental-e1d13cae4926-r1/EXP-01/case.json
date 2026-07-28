@@ -1,0 +1,137 @@
+{
+ "case": "EXP-01",
+ "record": "XB-EXP \u00b7 form submission",
+ "declared_tier": "T-EXPERIMENTAL",
+ "tier_as_declared": true,
+ "precondition": {
+  "url": "https://www.scrapethissite.com/pages/forms/",
+  "checked": true,
+  "ok": true,
+  "reason": "HTTP 200",
+  "http_status": 200,
+  "robots": {
+   "allowed": true,
+   "directive": null,
+   "pattern": null,
+   "group_user_agent": "*",
+   "rule": "no rule matched",
+   "source": "matched",
+   "evaluated_url": "https://www.scrapethissite.com/pages/forms/",
+   "evaluated_path": "/pages/forms/",
+   "evaluated_as": "whaleforcecodingtest-task1"
+  }
+ },
+ "suite_error": false,
+ "run_id": "run_ccc58ab01753",
+ "tier": "T-EXPERIMENTAL",
+ "execution_path": "model_driven",
+ "terminal_status": "succeeded_verified",
+ "failure_class": null,
+ "counts_as_success": true,
+ "outcome_kind": "verified",
+ "attempted": true,
+ "expected": [
+  "succeeded_verified"
+ ],
+ "status_as_expected": true,
+ "evidence": {
+  "claims": 1,
+  "verified_claims": 1,
+  "independently_checked": 1,
+  "not_reproducible_here": [],
+  "findings": [],
+  "notes": []
+ },
+ "duration_seconds": 12.17,
+ "latency": {
+  "queue_wait_seconds": 0.007,
+  "run_seconds": 12.169,
+  "total_seconds": 12.177,
+  "time_to_first_result_seconds": 12.129,
+  "steps_measured": 16,
+  "steps_unmeasured": 0,
+  "step_ms": {
+   "median": 50,
+   "p90": 3419,
+   "max": 3687
+  },
+  "slowest_step": {
+   "seq": 13,
+   "kind": "note",
+   "summary": "Model call (exploration) for step 3",
+   "ms": 3687
+  },
+  "model_seconds": 3.756,
+  "model_calls": 3,
+  "model_calls_cached": 0,
+  "reportable": true
+ },
+ "budget": {
+  "steps": 16,
+  "llm_calls_exploration": 3,
+  "llm_calls_recovery": 0,
+  "input_tokens": 5321,
+  "output_tokens": 501,
+  "usd": 0.002082,
+  "started_at": 1785248930.2534885,
+  "ended_at": 1785248942.4226499,
+  "elapsed_seconds": 12.17,
+  "output_cap_per_call": 2048,
+  "output_cap_per_run": 16000
+ },
+ "timed_out_waiting": false,
+ "passed": true,
+ "artifacts": [
+  {
+   "artifact_id": "art_9a86019c1ce8",
+   "kind": "dom:step-1",
+   "source_url": "https://www.scrapethissite.com/",
+   "retrieved_at": 1785248931.5591707,
+   "retrieved_on": "2026-07-28",
+   "media_type": "text/html",
+   "length": 11509,
+   "sha256": "c36bfd0d5eca127ff837e616d0c705632656082bb94bf0d52a4825b5d62ebb6c",
+   "state": "stored",
+   "expired_at": null,
+   "expired_on": null,
+   "pinned": false,
+   "available": true,
+   "sha256_on_export": "c36bfd0d5eca127ff837e616d0c705632656082bb94bf0d52a4825b5d62ebb6c",
+   "sha256_matches": true
+  },
+  {
+   "artifact_id": "art_fa9c3d40fbc8",
+   "kind": "dom:step-2",
+   "source_url": "https://www.scrapethissite.com/pages/",
+   "retrieved_at": 1785248933.9857361,
+   "retrieved_on": "2026-07-28",
+   "media_type": "text/html",
+   "length": 14160,
+   "sha256": "4a4c7f91ac00c7e36290e2ed966e420a4eb2b5a491fce36ad04b6cb9ab053997",
+   "state": "stored",
+   "expired_at": null,
+   "expired_on": null,
+   "pinned": false,
+   "available": true,
+   "sha256_on_export": "4a4c7f91ac00c7e36290e2ed966e420a4eb2b5a491fce36ad04b6cb9ab053997",
+   "sha256_matches": true
+  },
+  {
+   "artifact_id": "art_e73957153e59",
+   "kind": "dom:step-3",
+   "source_url": "https://www.scrapethissite.com/pages/forms/",
+   "retrieved_at": 1785248938.391675,
+   "retrieved_on": "2026-07-28",
+   "media_type": "text/html",
+   "length": 54105,
+   "sha256": "51f574a62487562620e3e0399be6ba6f466002affe8035f72006c30cac54572a",
+   "state": "stored",
+   "expired_at": null,
+   "expired_on": null,
+   "pinned": false,
+   "available": true,
+   "sha256_on_export": "51f574a62487562620e3e0399be6ba6f466002affe8035f72006c30cac54572a",
+   "sha256_matches": true
+  }
+ ]
+}
