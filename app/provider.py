@@ -204,7 +204,10 @@ class Provider:
     _cache: dict[str, Completion] = field(default_factory=dict)
     _lock: threading.Lock = field(default_factory=threading.Lock)
     _last_call: float = 0.0
-    _quota_exhausted: set[CredentialTier] = field(default_factory=set)
+    #: Tier -> the moment it may be tried again. A rate limit is a statement about a
+    #: window, not about the key: RPM resets in a minute, and marking a tier dead for the
+    #: life of the process meant one burst disabled the model path until the next deploy.
+    _quota_exhausted: dict[CredentialTier, float] = field(default_factory=dict)
     #: Where spend is counted. Optional so the adapter still works without a store (the
     #: model comparison runs outside the app), but the deployed path always has one.
     ledger: Any = None
@@ -316,8 +319,12 @@ class Provider:
         self._check_spend()
 
         last_error: ProviderError | None = None
+        cooling: list[str] = []
         for tier in self.available_tiers():
-            if tier in self._quota_exhausted:
+            resume_at = self._quota_exhausted.get(tier, 0.0)
+            if resume_at > time.time():
+                cooling.append(f"{tier.value} (retryable in "
+                               f"{round(resume_at - time.time())}s)")
                 continue
             key = self.key_for(tier)
             if key is None:
@@ -325,7 +332,8 @@ class Provider:
             try:
                 completion = self._call(prompt, key, tier, max_output_tokens)
             except ProviderQuotaExhausted as exc:
-                self._quota_exhausted.add(tier)
+                self._quota_exhausted[tier] = (time.time()
+                                               + settings.provider.quota_cooldown_seconds)
                 last_error = exc
                 log.warning("provider quota exhausted on the %s tier", tier.value)
                 continue
@@ -343,6 +351,15 @@ class Provider:
                     "demo does not fall back to billed credentials, so this run stops here "
                     "rather than spending them.", detail=last_error.detail)
             raise last_error
+        if cooling:
+            # Every usable tier is inside a quota cooldown. This is a quota condition and
+            # has to be named as one: reported as `provider_error` it read as a broken
+            # deployment, and it inflated the class S-5.3 treats as a finding in itself.
+            raise ProviderQuotaExhausted(
+                f"Every credential tier available under the {self.policy.value} policy is "
+                f"rate-limited right now: {', '.join(cooling)}. This is a quota window, not "
+                f"a fault; the tier is tried again when it expires.",
+                detail={"cooling": cooling})
         raise ProviderError(
             f"No usable credential for the {self.policy.value} policy. Expected a key file "
             f"in {settings.provider.key_dir} or {settings.provider.repo_key_dir}.")
@@ -448,7 +465,9 @@ class Provider:
             "output_cap_per_run": settings.budgets.max_output_tokens_per_run,
             "effective_rpm": settings.provider.effective_rpm,
             "cache_enabled": self.cache_enabled,
-            "quota_exhausted_tiers": [t.value for t in self._quota_exhausted],
+            "quota_cooling_tiers": {t.value: round(max(0.0, until - time.time()))
+                                    for t, until in self._quota_exhausted.items()
+                                    if until > time.time()},
             "note": ("Free-tier content is used by the provider to improve its products; "
                      "paid-tier content is not. The tier is recorded per run so that "
                      "disclosure stays accurate (A7.9, A8.9)."),

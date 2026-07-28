@@ -449,3 +449,33 @@ def test_a_derived_value_is_not_counted_as_independently_checked():
     assert result["independently_checked"] == 1
     assert any("sort_state" in n for n in result["not_reproducible_here"])
     assert result["findings"] == []
+
+
+def test_an_enumeration_is_re_derived_member_by_member():
+    """A list-level claim is the one absence rests on, and it *is* checkable from outside:
+    every member either appears in the delivered artifact or it does not."""
+    import hashlib
+
+    body = b"<ul><li>WF-1001</li><li>WF-1002</li></ul>"
+    sha = hashlib.sha256(body).hexdigest()
+    run = {"claims": [{"name": "items", "ok": True, "evidence": {
+        "artifact_id": "art1", "artifact_sha256": sha, "extracted_span": "2 rows",
+        "label_anchor": "rows", "normalised_value": ["WF-1001", "WF-1002"]}}]}
+
+    result = check_evidence(_Deployment({"art1": body}), run)
+    assert result["independently_checked"] == 1
+    assert result["findings"] == []
+
+
+def test_a_member_the_artifact_does_not_contain_is_a_finding():
+    import hashlib
+
+    body = b"<ul><li>WF-1001</li></ul>"
+    sha = hashlib.sha256(body).hexdigest()
+    run = {"claims": [{"name": "items", "ok": True, "evidence": {
+        "artifact_id": "art1", "artifact_sha256": sha, "extracted_span": "2 rows",
+        "label_anchor": "rows", "normalised_value": ["WF-1001", "WF-9999"]}}]}
+
+    result = check_evidence(_Deployment({"art1": body}), run)
+    assert result["independently_checked"] == 0
+    assert any("WF-9999" in f for f in result["findings"])

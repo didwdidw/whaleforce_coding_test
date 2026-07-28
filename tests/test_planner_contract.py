@@ -420,3 +420,36 @@ def test_the_cost_a_run_reports_carries_the_output_cap_it_was_measured_under():
     recorded = BudgetUse(usd=0.0021).to_dict()
     assert recorded["output_cap_per_call"] == settings.budgets.max_output_tokens_per_call
     assert recorded["output_cap_per_run"] == settings.budgets.max_output_tokens_per_run
+
+
+# --- a rate limit is a window, not a verdict on the key -----------------------------
+
+def test_a_rate_limited_tier_is_tried_again_after_its_window(monkeypatch):
+    """RPM resets in a minute. Marking the tier dead for the life of the process meant one
+    burst disabled the model path until the next deploy — every run after it reported
+    `provider_error`, which is neither what happened nor a class anyone can act on."""
+    from app.config import settings
+    from app.provider import (
+        CredentialPolicy, CredentialTier, Provider, ProviderQuotaExhausted, RunBudget,
+    )
+
+    provider = Provider(policy=CredentialPolicy.DEVELOPMENT)
+    monkeypatch.setattr(provider, "available_tiers", lambda: [CredentialTier.FREE])
+    monkeypatch.setattr(provider, "key_for", lambda tier: "test-key")
+    monkeypatch.setattr(provider, "_check_spend", lambda: None)
+    provider._quota_exhausted[CredentialTier.FREE] = (
+        __import__("time").time() + settings.provider.quota_cooldown_seconds)
+
+    # Inside the window: refused, and refused as a quota condition.
+    with pytest.raises(ProviderQuotaExhausted) as caught:
+        provider.complete("p", budget=RunBudget(), purpose="exploration")
+    assert "rate-limited right now" in str(caught.value)
+    assert caught.value.failure_class.value == "provider_quota"
+
+    # Past it: tried again rather than written off.
+    provider._quota_exhausted[CredentialTier.FREE] = 0.0
+    monkeypatch.setattr(provider, "_pace", lambda: 0.0)
+    monkeypatch.setattr(provider, "_record_spend", lambda completion: None)
+    monkeypatch.setattr(provider, "_call",
+                        lambda prompt, key, tier, cap: _completion(GOOD, "STOP"))
+    assert provider.complete("p", budget=RunBudget(), purpose="exploration").text == GOOD

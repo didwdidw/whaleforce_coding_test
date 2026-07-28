@@ -207,6 +207,12 @@ class ProviderPolicy:
     #: Dev-only response cache (A8.13). Off by default: every reported cost or performance
     #: figure must come from uncached runs, so this is opt-in rather than opt-out.
     cache_enabled: bool = field(default_factory=lambda: _bool("LLM_CACHE", False))
+    #: How long a rate-limited tier is left alone before being tried again. The free tier
+    #: publishes a per-minute limit and a per-day one, and a 429 does not say which was hit;
+    #: a minute is the shorter window, so it is the honest wait. Treating exhaustion as
+    #: permanent disabled the model path for the life of the process after one burst.
+    quota_cooldown_seconds: float = field(
+        default_factory=lambda: _float("PROVIDER_QUOTA_COOLDOWN_SECONDS", 60.0))
 
     #: Keys live outside the artifact store on purpose. `/data` is the root the evidence
     #: store serves from, and a secret has no business living in a tree whose contents are

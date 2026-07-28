@@ -383,7 +383,7 @@ async def reachability(url: str) -> Response:
         return JSONResponse({**body, "reachable": False, "origin_up": True,
                              "reason": f"robots.txt: {robots.rule}"})
     try:
-        result = await asyncio.to_thread(fetcher.fetch, url, "text/html,*/*")
+        result = await asyncio.to_thread(lambda: fetcher.fetch(url, accept="text/html,*/*"))
     except Exception as exc:  # noqa: BLE001 - the refusal is the answer here
         detail = getattr(exc, "detail", {}) or {}
         return JSONResponse({**body, "reachable": False,

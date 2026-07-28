@@ -158,11 +158,26 @@ def accepted_statuses(case: dict[str, str],
 
 #: `| `ALIAS` | `https://…` |` in a split's targets table. Cases name their entry point by
 #: alias, and an alias nothing resolves is an entry point nobody can check.
-ALIAS_ROW = re.compile(r"^\|\s*`([A-Z0-9_]+)`\s*\|\s*`(https?://[^`]+)`", re.M)
+ALIAS_ROW = re.compile(r"^\|\s*`([A-Z0-9_]+)`\s*\|\s*`([^`]+)`", re.M)
 
 
 def aliases(path: pathlib.Path) -> dict[str, str]:
-    return dict(ALIAS_ROW.findall(path.read_text(encoding="utf-8")))
+    """The split's own targets table, with its abbreviations expanded.
+
+    A targets table writes the first URL for a site in full and abbreviates the rest —
+    ``.../catalogue/category/books/poetry_23/index.html``. Reading only absolute rows left
+    most cases with no resolvable entry point, which is a precondition silently not checked:
+    the same shape as the defect the precondition exists to catch.
+    """
+    resolved: dict[str, str] = {}
+    origin = ""
+    for name, value in ALIAS_ROW.findall(path.read_text(encoding="utf-8")):
+        if value.startswith("http"):
+            origin = "://".join(urllib.parse.urlsplit(value)[:2])
+            resolved[name] = value
+        elif origin:
+            resolved[name] = origin + "/" + value.lstrip(". /")
+    return resolved
 
 
 def entry_url(case: dict[str, str], alias_map: dict[str, str]) -> str | None:
@@ -360,6 +375,18 @@ def check_evidence(deployment: Deployment, run: dict[str, Any]) -> dict[str, Any
                 # Confirming the artifact's hash says the bytes are the ones recorded; it
                 # says nothing about the claim, and counting it as a check on the claim is
                 # a count of checks that did not happen (A17.6).
+                checked += 1
+        elif isinstance(value, list) and value and all(
+                isinstance(v, (str, int, float)) and not isinstance(v, bool) for v in value):
+            # An enumeration is re-derivable member by member, which is most of what a
+            # list-level claim asserts. Counting it as unreachable would understate what an
+            # outside check can actually confirm, and it is the claim absence rests on.
+            absent = [str(v) for v in value if _collapse(str(v)) not in text]
+            if absent:
+                findings.append(
+                    f"{name}: {len(absent)} enumerated member(s) reported as verified are "
+                    f"not present in the delivered artifact: {', '.join(absent[:5])}")
+            else:
                 checked += 1
         else:
             not_reproducible.append(
