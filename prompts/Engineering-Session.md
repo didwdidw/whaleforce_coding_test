@@ -1230,3 +1230,8 @@ api key 我已經有放進去了
 REFUSING TO RUN THE SCORED WORKLOAD: /data/task1 does not exist: the shared volume is not mounted, so the evidence from scored runs would not reach the public run views.
 
 ==========
+
+在 wf-scored 的 dashboard 不能選既有的
+只能手動輸入一次跟app一樣的資訊
+
+==========
