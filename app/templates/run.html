@@ -112,6 +112,19 @@
   <h2>What was checked</h2>
   <p class="sub">Every gate the verifier ran, in order. A run reaches a success status only
     if all of them pass; the executor cannot set one itself.</p>
+  {% if verdict.evidence_summary %}
+  <p class="sub">
+    <strong>{{ verdict.evidence_summary.independently_checked }} of
+    {{ verdict.evidence_summary.claims }} claims</strong> were independently re-resolved in
+    the stored artifact and compared against what the run read.
+    {% if verdict.evidence_summary.unchecked %}
+      Not re-resolved, and therefore not counted as checked:
+      {% for u in verdict.evidence_summary.unchecked %}
+        <code>{{ u.claim }}</code>{% if not loop.last %}, {% endif %}
+      {% endfor %}.
+    {% endif %}
+  </p>
+  {% endif %}
   <ul class="trace">
     {% for check in verdict.checks %}
     <li class="{% if not check.ok %}bad{% endif %}">

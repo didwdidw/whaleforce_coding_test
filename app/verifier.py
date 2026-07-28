@@ -101,12 +101,29 @@ class Verdict:
         from app.models import counts_as_success
         return counts_as_success(self.status)
 
+    @property
+    def evidence_summary(self) -> dict[str, Any]:
+        """How much was actually re-examined, with the unexamined named (A17.6).
+
+        A claim only counts as independently checked when the verifier re-resolved its
+        anchor in the stored artifact and compared the value it read against the run's. A
+        count that includes claims nobody could re-resolve is a count of checks that did not
+        happen, which is the same defect as a postcondition with no claims in it.
+        """
+        checked = [c.name for c in self.claims if c.ok]
+        unchecked = [{"claim": c.name,
+                      "why": c.reason or "not re-resolved against the artifact"}
+                     for c in self.claims if not c.ok]
+        return {"claims": len(self.claims), "independently_checked": len(checked),
+                "checked": checked, "unchecked": unchecked}
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "status": self.status.value,
             "failure_class": self.failure_class.value if self.failure_class else None,
             "explanation": self.explanation,
             "counts_as_success": self.counts_as_success,
+            "evidence_summary": self.evidence_summary,
             "checks": [c.to_dict() for c in self.checks],
             "claims": [c.to_dict() for c in self.claims],
         }

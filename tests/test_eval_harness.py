@@ -148,11 +148,19 @@ def test_a_held_out_split_returns_no_case_detail(monkeypatch, tmp_path):
     import eval.harness as harness
 
     cases = tmp_path / "holdout.md"
-    cases.write_text('### V-1\n- **task** "do a thing"\n'
-                     "- **expected_terminal_status** `succeeded_verified`\n", encoding="utf-8")
+    # Every field the schema requires, because a split that does not declare them is
+    # refused before the deployment is touched (A17.5) — held-out splits included.
+    cases.write_text('### V-1\n- **record** OP-x · **tier** T-DECLARED\n'
+                     '- **task** "do a thing"\n'
+                     "- **entry_point** `https://example.invalid/`\n"
+                     "- **expected_terminal_status** `succeeded_verified`\n",
+                     encoding="utf-8")
 
     monkeypatch.setattr(harness, "provenance",
                         lambda *a, **k: {"harness_version": "test", "split": "validation"})
+    monkeypatch.setattr(harness, "precondition",
+                        lambda deployment, url: {"url": url, "checked": True, "ok": True,
+                                                 "reason": "stubbed"})
     monkeypatch.setattr(harness.Deployment, "submit",
                         lambda self, task, **kw: {"run_id": "run_1"})
     monkeypatch.setattr(harness.Deployment, "await_run",
@@ -292,3 +300,152 @@ def test_a_split_with_different_fields_needs_a_schema_not_a_second_harness(tmp_p
                       "request": "the FY2024 10-K",
                       "expected_status": "`succeeded_verified`"}]
     assert accepted_statuses(cases[0], schema) == {"succeeded_verified"}
+
+
+# --- A17.4/A-50: a case whose entry point is unreachable is a suite error -------------
+
+class _Probing:
+    """A deployment that answers reachability probes and nothing else."""
+
+    base = "http://test"
+
+    def __init__(self, answers: dict) -> None:
+        self.answers = answers
+        self.asked: list[str] = []
+
+    def json(self, path: str) -> dict:
+        import urllib.parse
+
+        url = urllib.parse.unquote(path.split("url=", 1)[1])
+        self.asked.append(url)
+        return self.answers[url]
+
+
+def test_an_unreachable_entry_point_is_not_a_result_for_the_case():
+    from eval.harness import precondition
+
+    deployment = _Probing({"https://fixture.invalid/browse": {
+        "reachable": False, "origin_up": False,
+        "reason": "egress policy: connection refused"}})
+
+    pre = precondition(deployment, "https://fixture.invalid/browse")
+    assert pre["ok"] is False
+    assert "connection refused" in pre["reason"]
+
+
+def test_a_path_the_site_itself_disallows_is_a_precondition_met():
+    """EXP-08 targets a disallowed path on purpose. The site answered for its own
+    robots.txt, so the suite ran properly and the case is about the refusal."""
+    from eval.harness import precondition
+
+    deployment = _Probing({"https://www.federalregister.gov/": {
+        "reachable": False, "origin_up": True, "reason": "robots.txt: Disallow: /x"}})
+
+    assert precondition(deployment, "https://www.federalregister.gov/")["ok"] is True
+
+
+def test_a_case_with_no_resolvable_entry_point_asserts_nothing():
+    from eval.harness import precondition
+
+    pre = precondition(_Probing({}), None)
+    assert pre["ok"] is True and pre["checked"] is False
+
+
+def test_a_suite_error_is_scored_as_neither_a_pass_nor_a_refusal():
+    """The exact shape of the defect A17.4 is about: the fixture was down, the run was
+    refused, and the suite recorded a policy refusal and moved on."""
+    from eval.harness import BROWSER_TASK, _suite_error, aggregate, breadth
+
+    row = _suite_error(_case("`succeeded_verified`", "T-EXPERIMENTAL"), BROWSER_TASK,
+                       {"ok": False, "reason": "connection refused", "checked": True})
+    assert row["passed"] is False
+    assert row["outcome_kind"] == "suite_error"
+    assert row["terminal_status"] is None
+
+    summary = aggregate([row, _result("succeeded_verified", "T-DECLARED")])
+    assert summary["suite_errors"]["cases"] == 1
+    assert summary["all_cases"] == {"cases": 1, "passed": 1, "rate": 1.0}
+    assert breadth([row])["cases"] == 0
+
+
+def test_an_entry_point_alias_resolves_through_the_split_s_own_table():
+    from eval.harness import aliases, entry_url
+
+    alias_map = aliases(DEV_SET)
+    case = {"id": "DEV-01", "entry_point": "`WIKI_SP500`"}
+    assert entry_url(case, alias_map).startswith("https://en.wikipedia.org/wiki/List_of_S")
+    assert entry_url({"entry_point": "none"}, alias_map) is None
+
+
+# --- A17.5/A-51: the declared tier reaches the score --------------------------------
+
+def test_every_case_in_both_visible_splits_declares_a_tier():
+    """The reading that was silently empty for a whole split. Asserted over the real
+    files, because the parser and the files are the two halves of this."""
+    from eval.harness import DEFAULT_CASES, check_schema
+
+    for path in DEFAULT_CASES.values():
+        cases = parse_cases(path)
+        assert cases, path
+        check_schema(cases)
+        assert all(c["tier"].startswith("T-") for c in cases), path
+
+
+def test_a_split_that_does_not_declare_a_tier_is_refused_before_the_deployment(tmp_path):
+    from eval.harness import check_schema
+
+    cases = parse_cases_text(tmp_path, '### X-1\n- **task** "do a thing"\n'
+                                       "- **entry_point** `https://example.invalid/`\n"
+                                       "- **expected_terminal_status** `succeeded_verified`\n")
+    with pytest.raises(SystemExit) as caught:
+        check_schema(cases)
+    assert "tier" in str(caught.value)
+
+
+def parse_cases_text(tmp_path, text: str):
+    path = tmp_path / "cases.md"
+    path.write_text(text, encoding="utf-8")
+    return parse_cases(path)
+
+
+def test_a_disagreement_between_the_declared_and_reported_tier_is_a_finding():
+    """Neither reading is authoritative; the disagreement is the information."""
+    run = {"id": "run_1", "tier": "T-EXPERIMENTAL", "terminal_status": "succeeded_verified",
+           "counts_as_success": True, "execution_path": "scripted"}
+    scored = score_case(_case("`succeeded_verified`", "T-DECLARED"), run,
+                        {"claims": 1, "independently_checked": 1, "findings": []})
+
+    assert scored["tier_as_declared"] is False
+    assert scored["passed"] is False
+    assert any("declared tier" in f for f in scored["evidence"]["findings"])
+    assert aggregate([scored])["tier_disagreements"] == [
+        {"case": "X-1", "declared": "T-DECLARED", "reported": "T-EXPERIMENTAL"}]
+
+
+# --- A17.6: a check that did not happen is not counted ------------------------------
+
+def test_a_derived_value_is_not_counted_as_independently_checked():
+    """A sort state is a structure this scorer cannot re-derive by string comparison.
+    Counting the artifact's hash as a check on the claim is a count of checks that did not
+    happen — and it read as 2 of 2 on a run where one claim was never examined here."""
+    import hashlib
+
+    body = b"<table><tr><th>UPC</th><td>a897fe39b1053632</td></tr></table>"
+    sha = hashlib.sha256(body).hexdigest()
+    run = {"claims": [
+        {"name": "upc", "ok": True, "evidence": {
+            "artifact_id": "art1", "artifact_sha256": sha,
+            "extracted_span": "a897fe39b1053632", "label_anchor": "UPC",
+            "normalised_value": "a897fe39b1053632"}},
+        {"name": "sort_state", "ok": True, "evidence": {
+            "artifact_id": "art1", "artifact_sha256": sha,
+            "extracted_span": "Date added: descending", "label_anchor": "Date added",
+            "normalised_value": {"column": "Date added", "direction": "descending"}}},
+    ]}
+
+    result = check_evidence(_Deployment({"art1": body}), run)
+
+    assert result["verified_claims"] == 2
+    assert result["independently_checked"] == 1
+    assert any("sort_state" in n for n in result["not_reproducible_here"])
+    assert result["findings"] == []

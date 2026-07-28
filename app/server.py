@@ -30,6 +30,7 @@ from app.config import config_provenance, settings
 from app.coverage import CoverageLedger
 from app.demo import CHIPS, PLACEHOLDER, PRE_EXECUTED
 from app.executor import PROMISED_RECORDS, Executor
+from app.fetcher import ServerFetcher
 from app.latency import summarise as latency_summary
 from app.limitations import limitations
 from app.models import Run, RunState, TerminalStatus, Tier, new_id
@@ -69,6 +70,9 @@ class App:
         self.supervisor = BrowserSupervisor()
         self.robots = RobotsCache()
         self.executor = Executor(self.supervisor, self.store, self.robots)
+        #: The same fetcher the seam uses, sharing the robots cache with the browser tier so
+        #: a reachability probe cannot answer under a policy the runs do not have.
+        self.fetcher = ServerFetcher(robots=self.robots)
         self.coverage = CoverageLedger(self.store)
         self.provider = Provider(ledger=self.store)
         #: Set at startup. A deployment with no credential is a degraded deployment, not a
@@ -347,6 +351,49 @@ async def artifact(artifact_id: str) -> Response:
                                         f"record rather than a dangling pointer (A11.4).")},
                             status_code=410)
     return Response(data, media_type=ref.media_type or "application/octet-stream")
+
+
+@app.get("/api/reachability")
+async def reachability(url: str) -> Response:
+    """Can *this deployment* reach a URL — asked before a case is scored against it.
+
+    An eval case whose declared entry point is unreachable is an error in the run of the
+    suite, not a result for the case (A17.4). One of ours was scored as a policy refusal
+    for a whole milestone because the fixture was not running and the egress guard refused
+    the request, which hid a real defect behind a plausible-looking pass.
+
+    It grants nothing new: the same egress guard and robots decision that gate a run gate
+    this, and no response body is returned — only the status, the size, and the policy
+    decision that was made, so it cannot be used to read a page through us.
+    """
+    fetcher = state.fetcher
+    egress_decision, robots = fetcher.check(url)
+    body: dict[str, Any] = {
+        "url": url,
+        "egress": egress_decision.to_dict(),
+        "robots": robots.to_dict(),
+    }
+    if not egress_decision.allowed:
+        return JSONResponse({**body, "reachable": False, "origin_up": None,
+                             "reason": f"egress policy: {egress_decision.reason}"})
+    if not robots.allowed:
+        # The origin answered for its own robots.txt, so it is up; the path is closed to us
+        # by its policy. A case that targets a disallowed path on purpose is not a broken
+        # case, and must not be reported as one.
+        return JSONResponse({**body, "reachable": False, "origin_up": True,
+                             "reason": f"robots.txt: {robots.rule}"})
+    try:
+        result = await asyncio.to_thread(fetcher.fetch, url, "text/html,*/*")
+    except Exception as exc:  # noqa: BLE001 - the refusal is the answer here
+        detail = getattr(exc, "detail", {}) or {}
+        return JSONResponse({**body, "reachable": False,
+                             "origin_up": bool(detail.get("status")),
+                             "http_status": detail.get("status"),
+                             "reason": str(exc)[:300]})
+    return JSONResponse({**body, "reachable": 200 <= result.status < 400,
+                         "origin_up": True, "http_status": result.status,
+                         "final_url": result.final_url, "bytes": result.length,
+                         "sha256": result.sha256, "reason": f"HTTP {result.status}"})
 
 
 @app.get("/healthz")

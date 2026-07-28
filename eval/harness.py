@@ -73,6 +73,9 @@ class CaseSchema:
     fields: tuple[str, ...]
     request_field: str
     expectation_field: str
+    #: Fields without which a case cannot be scored honestly. Missing one is an error in
+    #: the split, raised before the deployment is touched.
+    required_fields: tuple[str, ...] = ()
 
 
 BROWSER_TASK = CaseSchema(
@@ -80,9 +83,32 @@ BROWSER_TASK = CaseSchema(
     fields=("record", "tier", "task", "entry_point", "expected_terminal_status"),
     request_field="task",
     expectation_field="expected_terminal_status",
+    required_fields=("tier", "entry_point", "expected_terminal_status"),
 )
 
 SCHEMAS: dict[str, CaseSchema] = {BROWSER_TASK.name: BROWSER_TASK}
+
+def field_value(block: str, field: str, fields: tuple[str, ...]) -> str | None:
+    """One declared field, wherever on its line it was written.
+
+    `dev-set.md` writes `- **record** OP-4 · **tier** T-DECLARED`, and a line-anchored
+    pattern parsed `tier` as empty for every case in the split — so the only tier in the
+    results was the one each run reported about itself, and two readings that exist to be
+    compared silently became one (A17.5).
+
+    A value ends at the next *field* marker, not at the next bold text. DEV-15 writes
+    ``succeeded_verified` **or** `unsupported``, and cutting at any `**`
+    would drop two of the three statuses that case accepts.
+    """
+    found = re.search(rf"\*\*{field}\*\*[ \t]*(.*)$", block, re.M)
+    if not found:
+        return None
+    value = found.group(1)
+    others = "|".join(re.escape(f) for f in fields if f != field)
+    cut = re.search(rf"\*\*(?:{others})\*\*", value) if others else None
+    if cut:
+        value = value[:cut.start()]
+    return value.strip().rstrip("·").strip()
 
 
 def parse_cases(path: pathlib.Path,
@@ -90,13 +116,15 @@ def parse_cases(path: pathlib.Path,
     """Cases as the split file declares them. Fields are read, never inferred."""
     text = path.read_text(encoding="utf-8")
     cases = []
-    for block in re.split(r"^### ", text, flags=re.M)[1:]:
+    # `##` or `###`: the two splits head their cases at different levels, and a parser tied
+    # to one of them reads the other as a file with no cases in it.
+    for block in re.split(r"^#{2,3} ", text, flags=re.M)[1:]:
         case: dict[str, str] = {"id": block.split()[0].strip()}
         for field in schema.fields:
-            found = re.search(rf"^- \*\*{field}\*\*\s*(.*)$", block, re.M)
-            if found:
-                case[field] = found.group(1).strip()
-        quoted = re.search(rf'^- \*\*{schema.request_field}\*\*\s+"(.+?)"\s*$', block, re.M)
+            value = field_value(block, field, schema.fields)
+            if value is not None:
+                case[field] = value
+        quoted = re.search(rf'\*\*{schema.request_field}\*\*\s+"(.+?)"\s*$', block, re.M)
         if quoted:
             case[schema.request_field] = quoted.group(1)
         if case.get(schema.request_field):
@@ -104,11 +132,74 @@ def parse_cases(path: pathlib.Path,
     return cases
 
 
+def check_schema(cases: list[dict[str, str]], schema: CaseSchema = BROWSER_TASK) -> None:
+    """Refuse to score a split whose cases do not declare what scoring needs (A17.5).
+
+    Loud, and before the deployment is touched. A field the parser cannot see is a field
+    that silently reads as empty, and an empty declaration compared against a run's
+    self-report agrees with everything.
+    """
+    missing = [f"{case['id']}: {field}" for case in cases
+               for field in schema.required_fields if not case.get(field)]
+    if missing:
+        raise SystemExit(
+            f"{len(missing)} case field(s) missing or unparsed in this split: "
+            + ", ".join(missing[:10])
+            + ". Either the file does not declare them or the parser cannot see them; "
+              "both make the score describe something other than the split.")
+
+
 def accepted_statuses(case: dict[str, str],
                       schema: CaseSchema = BROWSER_TASK) -> set[str]:
     """Every status the case names as acceptable. A case may allow more than one."""
     declared = case.get(schema.expectation_field, "")
     return {s for s in re.findall(r"[a-z_]+", declared) if s in TERMINAL_STATUSES}
+
+
+#: `| `ALIAS` | `https://…` |` in a split's targets table. Cases name their entry point by
+#: alias, and an alias nothing resolves is an entry point nobody can check.
+ALIAS_ROW = re.compile(r"^\|\s*`([A-Z0-9_]+)`\s*\|\s*`(https?://[^`]+)`", re.M)
+
+
+def aliases(path: pathlib.Path) -> dict[str, str]:
+    return dict(ALIAS_ROW.findall(path.read_text(encoding="utf-8")))
+
+
+def entry_url(case: dict[str, str], alias_map: dict[str, str]) -> str | None:
+    """The URL this case says it starts at, or None when it declares no reachable one.
+
+    None is a real answer: a case that is *about* being refused before browsing ("would
+    require /wiki/Special:Search", "none") has no entry point to probe, and inventing one
+    would assert a precondition the case never made.
+    """
+    declared = (case.get("entry_point") or "").strip().strip("`").strip()
+    if declared.startswith("http"):
+        return declared
+    return alias_map.get(declared)
+
+
+def precondition(deployment: "Deployment", url: str | None) -> dict[str, Any]:
+    """Whether the system under test can reach this case's declared entry point (A17.4).
+
+    Asked before the case is submitted, because the alternative is what happened: the
+    fixture was not running, the egress guard refused the request, and the suite recorded a
+    policy refusal and moved on — for a milestone. The defect that hid behind it was not
+    merely present, it was invisible by construction.
+    """
+    if url is None:
+        return {"url": None, "checked": False, "ok": True,
+                "reason": "the case declares no reachable entry point, so there is "
+                          "nothing to assert before running it"}
+    try:
+        probe = deployment.json(f"/api/reachability?url={urllib.parse.quote(url, safe='')}")
+    except RuntimeError as exc:
+        return {"url": url, "checked": True, "ok": False,
+                "reason": f"the deployment could not answer a reachability probe: {exc}"}
+    # A path the site's own robots.txt closes is a live site answering for itself, which is
+    # a precondition met — several cases target exactly that on purpose.
+    ok = bool(probe.get("reachable")) or bool(probe.get("origin_up"))
+    return {"url": url, "checked": True, "ok": ok, "reason": probe.get("reason"),
+            "http_status": probe.get("http_status"), "robots": probe.get("robots")}
 
 
 def outcome_kind(run: dict[str, Any]) -> str:
@@ -228,7 +319,9 @@ def check_evidence(deployment: Deployment, run: dict[str, Any]) -> dict[str, Any
     """
     findings: list[str] = []
     notes: list[str] = []
+    not_reproducible: list[str] = []
     claims = run.get("claims") or []
+    verified = [c for c in claims if c.get("ok")]
     checked = 0
     for claim in claims:
         bundle = claim.get("evidence") or {}
@@ -247,7 +340,6 @@ def check_evidence(deployment: Deployment, run: dict[str, Any]) -> dict[str, Any
         if bundle.get("artifact_sha256") and digest != bundle["artifact_sha256"]:
             findings.append(f"{name}: artifact hash differs from the recorded one")
             continue
-        checked += 1
         text = _collapse(_rendered_text(raw))
         span = _collapse(str(bundle.get("extracted_span") or ""))
         label = _collapse(str(bundle.get("label_anchor") or ""))
@@ -263,15 +355,27 @@ def check_evidence(deployment: Deployment, run: dict[str, Any]) -> dict[str, Any
                 findings.append(
                     f"{name}: the value {str(value)[:60]!r} was reported as verified, and "
                     f"its extracted span is not present in the delivered artifact")
+            else:
+                # The only case where this scorer has independently re-located the value.
+                # Confirming the artifact's hash says the bytes are the ones recorded; it
+                # says nothing about the claim, and counting it as a check on the claim is
+                # a count of checks that did not happen (A17.6).
+                checked += 1
         else:
-            notes.append(f"{name}: derived value ({type(value).__name__}), not "
-                         f"string-checkable against the artifact")
+            not_reproducible.append(
+                f"{name}: derived value ({type(value).__name__}), which this scorer cannot "
+                f"re-derive from the artifact by string comparison")
         # The label anchor is literal page text for some relations and a description of a
         # structural rule for others. Not a finding either way; recorded so the report can
         # say how much of the evidence was confirmable from outside.
         if label and label not in text:
             notes.append(f"{name}: label anchor {label[:40]!r} is a rule, not page text")
-    return {"claims": len(claims), "independently_checked": checked,
+    return {"claims": len(claims), "verified_claims": len(verified),
+            "independently_checked": checked,
+            # Named, not folded away: what this scorer could not re-derive is a limit of
+            # the scorer, and a reader has to be able to see how much of a run's evidence
+            # the outside check actually reached.
+            "not_reproducible_here": not_reproducible,
             "findings": findings, "notes": notes}
 
 
@@ -293,16 +397,30 @@ def _collapse(text: str) -> str:
 # ---- scoring ---------------------------------------------------------------------
 
 def score_case(case: dict[str, str], run: dict[str, Any], evidence: dict[str, Any],
-               schema: CaseSchema = BROWSER_TASK) -> dict[str, Any]:
+               schema: CaseSchema = BROWSER_TASK,
+               pre: dict[str, Any] | None = None) -> dict[str, Any]:
     accepted = accepted_statuses(case, schema)
     produced = run.get("terminal_status")
     status_ok = produced in accepted if accepted else None
+    declared_tier = case.get("tier", "")
+    reported_tier = run.get("tier")
+    # Two readings that exist to be compared. When they disagree that is a finding about
+    # the case or about admission, and it is reported rather than resolved here (A17.5).
+    tier_agrees = (None if not declared_tier or not reported_tier
+                   else declared_tier == reported_tier)
+    findings = list(evidence["findings"])
+    if tier_agrees is False:
+        findings.append(f"declared tier {declared_tier} but the run reports {reported_tier}")
+    evidence = {**evidence, "findings": findings}
     return {
         "case": case["id"],
         "record": case.get("record", ""),
-        "declared_tier": case.get("tier", ""),
+        "declared_tier": declared_tier,
+        "tier_as_declared": tier_agrees,
+        "precondition": pre or {"checked": False, "ok": True},
+        "suite_error": bool(pre and not pre.get("ok")),
         "run_id": run.get("id"),
-        "tier": run.get("tier"),
+        "tier": reported_tier,
         "execution_path": run.get("execution_path"),
         "terminal_status": produced,
         "failure_class": run.get("failure_class"),
@@ -320,6 +438,16 @@ def score_case(case: dict[str, str], run: dict[str, Any], evidence: dict[str, An
     }
 
 
+def scorable(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The rows that measure the product rather than the run of the suite.
+
+    A case whose entry point could not be reached measures our test setup. Leaving it in
+    any rate — as a pass, a refusal, or an abstention — reports a property of the suite as
+    a property of the system (A17.4).
+    """
+    return [r for r in rows if not r.get("suite_error")]
+
+
 def breadth(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Attempt, verified and abstention rates (A14.4), plus the policy-refusal rate (A14.3).
 
@@ -327,8 +455,10 @@ def breadth(rows: list[dict[str, Any]]) -> dict[str, Any]:
     which one a reader is looking at, and they are reported for the experimental tier where
     the graders' own unseen tasks land.
     """
+    excluded = len(rows) - len(scorable(rows))
+    rows = scorable(rows)
     if not rows:
-        return {"cases": 0}
+        return {"cases": 0, "excluded_suite_errors": excluded}
     n = len(rows)
     kinds = [r["outcome_kind"] for r in rows]
 
@@ -338,6 +468,7 @@ def breadth(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
     return {
         "cases": n,
+        "excluded_suite_errors": excluded,
         "attempted": share(sum(1 for r in rows if r["attempted"])),
         "verified": share(sum(1 for k in kinds if k == "verified")),
         "abstained_after_looking": share(sum(1 for k in kinds
@@ -412,10 +543,12 @@ def _aggregate_latency(summaries: list[dict[str, Any]]) -> dict[str, Any]:
 def aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
     """Declared and experimental are counted apart. S-1.3 puts only declared runs in the
     headline rate, and S-5.2 keeps `partial` and `unverified` out of any success figure."""
-    declared = [r for r in results if r["tier"] == "T-DECLARED"]
-    experimental = [r for r in results if r["tier"] == "T-EXPERIMENTAL"]
+    errors = [r for r in results if r.get("suite_error")]
+    counted = scorable(results)
+    declared = [r for r in counted if r["tier"] == "T-DECLARED"]
+    experimental = [r for r in counted if r["tier"] == "T-EXPERIMENTAL"]
     histogram: dict[str, int] = {}
-    for result in results:
+    for result in counted:
         key = result["failure_class"] or "none"
         histogram[key] = histogram.get(key, 0) + 1
 
@@ -427,15 +560,25 @@ def aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "headline_declared": rate(declared),
         "experimental_reported_separately": rate(experimental),
-        "all_cases": rate(results),
+        "all_cases": rate(counted),
+        # Not a score. A case whose entry point was unreachable says the suite did not run
+        # properly, and it is reported as its own number rather than counted as anything.
+        "suite_errors": {"cases": len(errors),
+                         "detail": [{"case": r["case"],
+                                     "reason": r["precondition"].get("reason")}
+                                    for r in errors]},
         "failure_class_histogram": dict(sorted(histogram.items())),
-        "evidence_findings": sum(len(r["evidence"]["findings"]) for r in results),
+        "evidence_findings": sum(len(r["evidence"]["findings"]) for r in counted),
+        # Declared tier against the tier the run reported about itself (A17.5).
+        "tier_disagreements": [{"case": r["case"], "declared": r["declared_tier"],
+                                "reported": r["tier"]}
+                               for r in counted if r.get("tier_as_declared") is False],
         # What the system did when it was not on ground it had declared: the surface the
         # graders' unseen tasks land on (A14.3, A14.4).
         "experimental_breadth": breadth(experimental),
-        "shortcut_refusals": sum(1 for r in results
+        "shortcut_refusals": sum(1 for r in counted
                                  if r["failure_class"] == "required_action_skipped"),
-        "latency": latency_report(results),
+        "latency": latency_report(counted),
     }
 
 
@@ -463,6 +606,23 @@ def provenance(deployment: Deployment, cases_path: pathlib.Path,
 
 # ---- entry point -----------------------------------------------------------------
 
+def _suite_error(case: dict[str, str], schema: CaseSchema,
+                 pre: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "case": case["id"], "record": case.get("record", ""),
+        "declared_tier": case.get("tier", ""), "tier_as_declared": None,
+        "precondition": pre, "suite_error": True,
+        "run_id": None, "tier": None, "execution_path": None, "terminal_status": None,
+        "failure_class": None, "counts_as_success": False,
+        "outcome_kind": "suite_error", "attempted": False,
+        "expected": sorted(accepted_statuses(case, schema)), "status_as_expected": None,
+        "evidence": {"claims": 0, "verified_claims": 0, "independently_checked": 0,
+                     "not_reproducible_here": [], "findings": [], "notes": []},
+        "duration_seconds": None, "latency": None, "budget": None,
+        "timed_out_waiting": False, "passed": False,
+    }
+
+
 def run_split(base_url: str, split: str, cases_path: pathlib.Path,
               deadline_seconds: float, verbose: bool,
               schema: CaseSchema = BROWSER_TASK) -> dict[str, Any]:
@@ -472,12 +632,23 @@ def run_split(base_url: str, split: str, cases_path: pathlib.Path,
     if not cases:
         raise SystemExit(f"No cases parsed from {cases_path}. A split that parses to "
                          f"nothing scores 100% of nothing.")
+    check_schema(cases, schema)
+    alias_map = aliases(cases_path)
     deployment = Deployment(base_url)
     meta = provenance(deployment, cases_path, split)
     meta["case_schema"] = schema.name
 
     results = []
     for case in cases:
+        pre = precondition(deployment, entry_url(case, alias_map))
+        if not pre["ok"]:
+            # Not a result for the case. The suite itself did not run properly here, and
+            # scoring it as a pass, a refusal or an abstention is how a real defect stayed
+            # invisible for a milestone (A17.4).
+            results.append(_suite_error(case, schema, pre))
+            if verbose:
+                print(f"  {case['id']:8} SUITE ERROR  {pre['reason']}")
+            continue
         submitted = deployment.submit(case[schema.request_field],
                                       deadline_seconds=deadline_seconds)
         run_id = submitted.get("run_id")
@@ -491,15 +662,18 @@ def run_split(base_url: str, split: str, cases_path: pathlib.Path,
                 "outcome_kind": "failed_or_blocked", "attempted": False,
                 "expected": sorted(accepted_statuses(case, schema)),
                 "status_as_expected": False,
-                "evidence": {"claims": 0, "independently_checked": 0,
+                "evidence": {"claims": 0, "verified_claims": 0,
+                             "independently_checked": 0, "not_reproducible_here": [],
+                             "notes": [],
                              "findings": [f"not admitted: {submitted.get('explanation')}"]},
                 "duration_seconds": None, "latency": None, "budget": None,
+                "precondition": pre, "suite_error": False, "tier_as_declared": None,
                 "timed_out_waiting": False, "passed": False})
             if verbose:
                 print(f"  {case['id']}: refused at admission")
             continue
         run = deployment.await_run(run_id, deadline_seconds)
-        result = score_case(case, run, check_evidence(deployment, run), schema)
+        result = score_case(case, run, check_evidence(deployment, run), schema, pre)
         results.append(result)
         if verbose:
             print(f"  {result['case']:8} {result['tier'] or '-':15} "
