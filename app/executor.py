@@ -2673,8 +2673,16 @@ class Executor:
     #: Where the asking starts. The parts a task wants are what follows the last of these,
     #: because "open X and tell me A and B" asks for two things and does not ask for X.
     ASK_VERB = re.compile(
-        r"\b(?:tell me|tell us|what (?:is|are|was|were)|read|give me|report|show me|"
-        r"extract|find out)\b", re.I)
+        r"\b(?:tell me|tell us|read|give me|report|show me|extract|find out|"
+        r"what (?:is|are|was|were|does|do|did)|how (?:many|much)|which)\b", re.I)
+    #: "…and tell me X and Y" — the *last* of these starts the asking, because everything
+    #: before it is how to get there.
+    REPORT_VERB = re.compile(
+        r"\b(?:tell me|tell us|read|give me|report|show me|extract|find out)\b", re.I)
+    #: "How many X and how many Y" — the *first* of these starts the asking and stays in
+    #: the text, because each part needs its own interrogative to read as a value.
+    ASK_WORD = re.compile(
+        r"\b(?:what (?:is|are|was|were|does|do|did)|how (?:many|much)|which)\b", re.I)
     #: Splitting on these over-counts before it under-counts, deliberately. A part too many
     #: makes a correct run `partial`, which is loud; a part too few is a value dropped in
     #: silence, which is the failure this project is built against.
@@ -2690,17 +2698,28 @@ class Executor:
         decides whether a run may be called a success, and that decision must not be made
         by the component whose answer it is grading.
         """
-        tail = task.strip()
-        last = None
-        for last in cls.ASK_VERB.finditer(tail):
+        text = task.strip()
+        reporting = None
+        for reporting in cls.REPORT_VERB.finditer(text):
             pass
-        if last:
-            tail = tail[last.end():]
+        if reporting is not None:
+            tail = text[reporting.end():]
+        else:
+            asking = cls.ASK_WORD.search(text)
+            if asking is None:
+                # Nothing marks where the asking starts, so there is no region that is a
+                # list of wanted values — splitting the whole sentence turns "For X on Y,
+                # …" into a claim about a site name. One claim is the conservative end,
+                # and the run still has to bind it to a label.
+                return (text,)
+            tail = text[asking.start():]
         parts: list[str] = []
         for chunk in cls.ASK_SPLIT.split(tail):
-            chunk = chunk.strip(" .?!'\"\n\t")
-            # A fragment carrying its own verb is another instruction, not another value.
-            if len(chunk) < 3 or cls.ASK_VERB.search(chunk):
+            chunk = cls.ASK_WORD.sub("", chunk, count=1).strip(" .?!'\"\n\t")
+            # A fragment carrying its own *reporting* verb is another instruction, not
+            # another value. An interrogative is not: "how many X and how many Y" is two
+            # values, and each part needs its own to have been readable at all.
+            if len(chunk) < 3 or cls.REPORT_VERB.search(chunk):
                 continue
             if chunk.lower() not in {p.lower() for p in parts}:
                 parts.append(chunk)

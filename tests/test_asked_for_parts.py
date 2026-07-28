@@ -32,9 +32,18 @@ MDN = ("On developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Obje
     # "find X and tell me Y" asks for one thing and navigates to another. The asking starts
     # at the *last* verb, or every route to an answer would be counted as an answer.
     ("On www.gutenberg.org, find the Science Fiction bookshelf and tell me how many ebooks "
-     "it lists.", ("how many ebooks it lists",)),
+     "it lists.", ("ebooks it lists",)),
     ("On the-internet.herokuapp.com/dynamic_loading/2, click Start and tell me the text "
      "that appears.", ("the text that appears",)),
+    # Two interrogatives is two values. The *first* is where the asking starts here, unlike
+    # "…and tell me X", where the last reporting verb is — otherwise "how many pages and how
+    # many results" loses the first half to the second.
+    ("On example.org/x, how many pages and how many results are there?",
+     ("pages", "results are there")),
+    # No reporting verb and no interrogative: nothing marks where the asking starts, so
+    # splitting would turn the leading clause into a claim about a site name.
+    ("For 'A Light in the Attic' on books.toscrape.com, look at the product page.",
+     ("For 'A Light in the Attic' on books.toscrape.com, look at the product page.",)),
 ])
 def test_the_parts_a_task_asks_for(task, parts):
     assert Executor.asked_for_parts(task) == parts
