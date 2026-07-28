@@ -471,3 +471,78 @@ A14.3 未宣告任務的拒絕率已經在 harness 裡按 attempt /efused 分開
 接下來我往 M5 走（locator memory + mutation gate），A它的一部分。A15 照你說的等 test split 計分後再動。
 
 ==========
+
+FYI current progress
+那幾件事情幫我決定一下
+然後我再去重新部署
+一樣給我完整可以直接回覆的 prompt
+請先再讀一次原始作業要求，確認每一次決策都沒有偏航
+----------------------
+做完 Amendment 17 全部十四條與 A-49…A-53，共 8 個 commit 已 push（0fb7a2c…8e3553d）。測試 439 passed。以下先回答你點名要我回的三件事，再是新發現、需要你決定的事、數字重貼、部署協定。
+
+一、A17.6：你看到的那個 2 是 harness 的，不是 product 的
+
+product 端有做結構性重解析：sort_state 是 verifier 用 lxml 從 artifact 重新讀 aria-sort / sorter class 算出來的，跟 run 報的值比對過才算 ok。所以 A11.7 那條沒有被違反。
+
+壞的是 harness 的 independently_checked：它在「artifact hash 對得上」時就 +1，然後才去判斷值能不能字串比對。dict/bool 值進到 notes 裡，但那個 +1 已經記下去了 —— 就是你說的「包含了沒發生的檢查的檢查數」。已修：只有真的重新定位到值才計數，其餘進 not_reproducible_here 並點名。順手讓 harness 能真的重推列舉型主張（每個成員都要在 artifact 裡找得到），DEV-09/10 現在是誠實的 3/3。product 端另外加了 evidence_summary（checked / unchecked 各自點名），run 頁面也印出來。
+
+二、Mode B 條件 2 打到實作了，如你所料
+
+正向那側原本確實是「至少」。現在：沒有覆蓋錨 或 列舉不完整時，有 match 也只回 unverified，字面寫「至少 N 筆…這是存在性主張，不是完整答案，因為沒有證據說列舉涵蓋了整個集合」。有錨才是 succeeded_verified。四個條件都在：述詞與列舉容器在 plan 時凍結（新 check enumeration_predicate_frozen）、雙向不一致都是 verification_mismatch、A-53 的反向述詞是真的跑出來的 gate（fixture 端到端，把比較函式反過來注入，被抓成 mismatch）—— 為了讓它可注入，fixture 的 absence plan 改成呼叫 verifier 會再套一次的同一個比較函式，不再是第二種拼法。
+
+三、A17.1 修在 verifier，不是 router
+
+app/records.py 新模組：承諾紀錄與「任務指名了哪個站」的判讀都住在這裡，verifier 不 import executor（有測試斷言這件事）。plan 時把 named_site 凍進 postcondition 並納入雜湊；verifier 從 run.task 自己再讀一次，跟 artifact 的 origin 比。回歸測試用的是那筆會通過的 fixture run，只改「任務指名 Wikipedia」這一件事 —— 同樣的 postcondition、同樣的 artifact、同樣的 candidate，一個 no_result_verified，一個 failed / verification_mismatch。
+
+四、量測工具自己抓到兩個新缺陷（都已修）
+
+1. 一次限流讓 free tier 對整個 process 死掉：_quota_exhausted 沒有到期時間，撞一次 429 之後所有 run 都變 provider_error（連類別都錯了，那是配額不是故障）。改成有冷卻窗（預設 60s），窗內一律回 provider_quota。
+2. planner 狀態在 startup 凍結：開機那一通打在限流窗裡，整個容器活著的期間 /healthz 都說 planner 不可用。配額類的拒絕現在會在冷卻後重驗；缺金鑰不重驗，那個不會自己好。
+
+這兩個都會直接影響部署上的公開 demo。
+
+五、需要你決定的兩件事
+
+1. DEV-02 / DEV-13 的 tier 不一致（A17.5 的機制生效了，這是它抓到的第一
+  - DEV-02 宣告 T-DECLARED，run 報 T-EXPERIMENTAL —— 因為文章是被描述而  任何承諾紀錄（就是 L-1）。
+  - DEV-13 宣告 T-REFUSED，run 報 T-EXPERIMENTAL（blocked / robots_disal
+
+兩邊都可能是對的：可能是 case 宣告要改，也可能是我們的 tier 判定要改。tier 屬於狀態分類，我不自己動。目前 harness 把它記成 finding，因此這兩題算 fail。
+2. eval/results 檔案改名：不再有 latest。今天最後一次本機重跑被 free tieovider_quota），那份留著並在檔名與 eval/results/README.md
+裡標明它不是能力量測。
+
+六、數字重貼（§12，git 427cd96，本機、無快取）
+
+dev split（15 題）
+- headline declared 10/11 = 0.9091
+- experimental 分開報 2/3 = 0.6667
+- 全部 13/15 = 0.8667
+- evidence findings 0、shortcut refusals 0
+- histogram：{budget_exhausted: 1, none: 11, policy_refused: 2, robots_d
+- 兩題沒過：DEV-02（unsupported / policy_refused，文章被描述而非指名）、hausted，深分頁吃掉 25 步）
+
+延遲（秒；median / p90 / min / max）
+
+（表格略，見原訊息）
+
+queue wait 全 0 是因為這是單人在跑，不是併發下的數字。
+
+擴充性三個數字
+- 飽和點：burst 5 開始被拒（配置容量 4 = concurrency 2 + depth 2；1/2/4   6，全部 queue_full）
+- 持續吞吐 430.51 runs/min —— 6 個 closed-loop client、45.71 秒窗、完成 ue wait 中位 0.23s、run 中位 0.21s。條件：fixture
+頁面、決定性路徑、迴圈裡沒有模型呼叫，這個限定詞現在跟數字放在同一個物件註腳。
+- cold start 3.1s，但那是本機 process 起動，不含拉映像與容器排程 —— 見下
+- 推算值 25.26 rpm（concurrency 2 ÷ 4.75s 中位），欄位本身就叫「a projection, not an observation」。
+
+七、部署：我需要你按，計時協定先講好（A17.14）
+
+eval/coldstart.py 已經寫好，從外部端到端量：以 git_sha 改變認新 build（  ），而且不停在 /healthz ——會再送一個真任務跑到終局，因為「有回應」不等於「能做事」。
+
+協定，二選一：
+- 精確版（建議）：你準備好時說一聲，我先把 watcher 跑起來（--t0-now），  再按部署。你按下的那一刻跟我說時間，我用它當 t0。
+- 下界版：你直接部署，我事後補跑也行，但 t0 只能取「舊 build 最後一次回應」，那是下界，輸出會標明。
+部署完成後我會做：cold start 收單 → deployment 上重跑 dev split → 跑 A1410 題，含 EXP-05/EXP-10 的 pin_at_first_run 釘值）。注意：free tier現在正在限流（今天本機重跑撞到），deployment 上的 split 可能要分批跑，我
+
+要我現在啟動 watcher 嗎？
+
+==========
