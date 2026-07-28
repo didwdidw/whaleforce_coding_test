@@ -414,15 +414,39 @@ def check_evidence(deployment: Deployment, run: dict[str, Any]) -> dict[str, Any
             "findings": findings, "notes": notes}
 
 
-def _rendered_text(raw: bytes) -> str:
-    """The artifact's text as a reader would see it. Comparing against raw markup instead
-    reports a finding for every entity and every tag inside a value."""
-    try:
-        from lxml import html as lxml_html
+#: Attributes a browser surfaces to a reader — a tooltip, an image's replacement text, an
+#: accessible name, the ghost text in a field. Everything not listed here is markup.
+VISIBLE_ATTRIBUTES = ("title", "alt", "aria-label", "placeholder")
 
-        return lxml_html.fromstring(raw.decode("utf-8", "replace")).text_content()
+
+def _rendered_text(raw: bytes) -> str:
+    """What a reader can actually see in the artifact (A24.1): the rendered text plus the
+    values of the attributes above.
+
+    Neither end of this is arbitrary. Comparing against raw markup reports a finding for
+    every entity and every tag inside a value, and lets a URL, a class name or a script
+    literal satisfy a claim the artifact never delivered. Comparing against `text_content()`
+    alone was the r1 defect: a site that truncates a long title in the text and carries the
+    whole of it in `title=` made the product's better behaviour — reading the attribute —
+    look like an unbacked claim.
+
+    Script and style text is stripped rather than left in: it is the one place a value can
+    sit that no reader ever sees.
+    """
+    try:
+        from lxml import etree, html as lxml_html
+
+        doc = lxml_html.fromstring(raw.decode("utf-8", "replace"))
     except Exception:  # noqa: BLE001 - unparseable evidence still gets the crude check
         return raw.decode("utf-8", "replace")
+    etree.strip_elements(doc, "script", "style", etree.Comment, with_tail=False)
+    parts = [doc.text_content()]
+    for node in doc.iter():
+        get = getattr(node, "get", None)
+        if get is None:
+            continue
+        parts.extend(value for value in (get(a) for a in VISIBLE_ATTRIBUTES) if value)
+    return " ".join(parts)
 
 
 def _collapse(text: str) -> str:

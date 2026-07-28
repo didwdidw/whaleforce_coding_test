@@ -100,6 +100,66 @@ def test_a_verified_claim_with_no_artifact_is_reported():
     assert any("no artifact reference" in f for f in result["findings"])
 
 
+# --- what counts as present in an artifact (A24.1, A24.2) --------------------------
+
+def _artifact_run(value: str, body: bytes) -> dict:
+    import hashlib
+
+    return _run(value, value, "", "art1", hashlib.sha256(body).hexdigest())
+
+
+def test_a_value_the_page_shows_only_in_a_title_attribute_is_present():
+    """The r1 defect. `books.toscrape` truncates a long title in the rendered text and
+    carries the whole of it in `title=`; the product reads the attribute, which is the
+    better behaviour, and this check called four correct runs unbacked for it."""
+    body = ('<h3><a title="The Boys in the Boat: Nine Americans and Their Epic Quest" '
+            'href="catalogue/x.html">The Boys in the ...</a></h3>').encode()
+    result = check_evidence(
+        _Deployment({"art1": body}),
+        _artifact_run("The Boys in the Boat: Nine Americans and Their Epic Quest", body))
+    assert result["findings"] == []
+    assert result["independently_checked"] == 1
+
+
+def test_the_other_visible_attributes_count_too():
+    for markup, value in (
+            (b'<img alt="Rating: four stars" src="/s.png">', "Rating: four stars"),
+            (b'<button aria-label="Add to basket">+</button>', "Add to basket"),
+            (b'<input placeholder="Search books">', "Search books")):
+        result = check_evidence(_Deployment({"art1": markup}), _artifact_run(value, markup))
+        assert result["findings"] == [], value
+
+
+def test_exp_05_is_the_fence_a_script_literal_is_not_a_delivered_value():
+    """A24.2. EXP-05's answer exists in the stored artifact *only* inside a `setTimeout`
+    literal, and that run correctly abstained. A widening of the corpus that would let this
+    claim stand has gone too far — so the boundary is held by this case rather than by
+    intention. The bytes are r1's own artifact, not a reconstruction.
+    """
+    artifact = (pathlib.Path(__file__).parent.parent / "eval" / "results" / "bundles" /
+                "experimental-e1d13cae4926-r1" / "EXP-05" / "art_1b2b4cdd9fbd.bin")
+    body = artifact.read_bytes()
+    assert b"Hello World!" in body, "the fence needs the artifact that carries the literal"
+
+    result = check_evidence(_Deployment({"art1": body}), _artifact_run("Hello World!", body))
+
+    assert result["independently_checked"] == 0
+    assert any("not present in the delivered artifact" in f for f in result["findings"])
+
+
+def test_markup_a_reader_never_sees_does_not_satisfy_a_claim():
+    """The rest of A-70's list, each one a way an unbacked claim could pass by accident."""
+    for markup, value in (
+            (b'<div class="price_color">x</div>', "price_color"),
+            (b'<div id="basket-total">x</div>', "basket-total"),
+            (b'<div data-upc="a897fe39b1053632">x</div>', "a897fe39b1053632"),
+            (b'<a href="/catalogue/in-a-dark-dark-wood_963/">x</a>', "in-a-dark-dark-wood"),
+            (b"<div><!-- 51.77 --></div>", "51.77"),
+            (b'<style>.x{content:"53.74"}</style><div>x</div>', "53.74")):
+        result = check_evidence(_Deployment({"art1": markup}), _artifact_run(value, markup))
+        assert result["findings"], value
+
+
 # --- scoring -----------------------------------------------------------------------
 
 def _case(expected: str, tier: str = "T-DECLARED") -> dict:
