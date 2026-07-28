@@ -43,6 +43,44 @@ def _run_with(store: Store, pc: Postcondition, artifact: str = "replay-b-search-
 
 # --- A11.7: vacuous verification fails closed --------------------------------------
 
+def test_a_scope_the_verifier_cannot_check_is_reported_unevaluated_not_passed(tmp_path):
+    """The vacuity defect, caught reappearing inside the fix for another one (A26 review).
+
+    Splitting the exact-page gate left a fall-through that appended
+    `artifact_source_matches_plan: True` for every other scope without comparing anything —
+    §5.4's defect 1, a constraint recorded as satisfied that was never evaluated, under a
+    name that says it was. A check this file cannot evaluate says so."""
+    from app.models import Run, Tier, new_id
+    from app.postcondition import ClaimSpec, Postcondition, Relation
+    from app.store import Store
+    from app.verifier import Verifier
+
+    store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
+    pc = Postcondition(
+        goal="read a labelled field", operation="OP-7",
+        target_url="https://books.toscrape.com/x.html",
+        inputs={"url_scope": "a scope from the future"},
+        claims=(ClaimSpec("upc", "UPC", Relation.TABLE_ROW_CELL, "code"),))
+    run = Run(id=new_id("run"), task="t", tier=Tier.DECLARED)
+    run.postcondition, run.postcondition_hash = pc.to_dict(), pc.sha256
+    store.save_run(run)
+    artifact = store.put_artifact(
+        run.id, "dom:step-1", b"<table><tr><th>UPC</th><td>a897fe39b1053632</td></tr></table>",
+        source_url="https://books.toscrape.com/x.html", media_type="text/html")
+
+    verdict = Verifier(store).verify(run, artifact_id=artifact.id,
+                                     candidate={"upc": "a897fe39b1053632",
+                                                "upc_anchor": "UPC"})
+
+    check = next(c for c in verdict.checks if c.name == "artifact_source_matches_plan")
+    assert check.ok is None, "an unevaluated constraint must not read as a satisfied one"
+    assert check.evaluated is False
+    assert "not a scope this verifier knows" in check.detail["not_evaluated_because"]
+    named = [row["check"] for row in verdict.evidence_summary["unevaluated_checks"]]
+    assert "artifact_source_matches_plan" in named, (
+        "and it is named where a reader looks for the safeguards that did not run")
+
+
 def test_a_postcondition_with_no_claims_fails_rather_than_succeeding(store):
     """The original instance. It reported `succeeded_verified` for having done nothing."""
     run, art = _run_with(store, Postcondition(goal="g", operation="GS-x",

@@ -120,6 +120,19 @@ async def _redirect_chain(response: Any) -> list[dict[str, Any]]:
     return hops
 
 
+def _wall_seen(run: Run) -> str:
+    """The URL of a navigation that landed on a visible login form, or "".
+
+    Read from the trace rather than from the live page, because the reclassification it
+    feeds happens when the run ends and the page may be somewhere else by then.
+    """
+    for entry in run.trace:
+        if entry.kind is StepKind.NAVIGATE and entry.detail.get("login_form_visible"):
+            return str(entry.detail.get("page_url_at_navigate")
+                       or entry.detail.get("final_url") or entry.detail.get("url") or "")
+    return ""
+
+
 async def _canonical_url(page: Any) -> str:
     """Where the document says it lives — `<link rel="canonical">`, read at navigate time.
 
@@ -360,8 +373,28 @@ class Executor:
         entry.detail.update(detail)
         self._store.save_trace_entry(run.id, entry)
 
+    #: The two classes a run gets when the answer was not where it should have been. They
+    #: are also what a login wall produces, which is the misattribution A-14b exists to fix.
+    MISATTRIBUTED_BY_A_WALL = (FailureClass.LOCATOR_NOT_FOUND,
+                               FailureClass.POSTCONDITION_UNMET)
+
     def _terminate(self, run: Run, status: TerminalStatus, failure: FailureClass | None,
                    explanation: str) -> None:
+        if failure in self.MISATTRIBUTED_BY_A_WALL and (wall := _wall_seen(run)):
+            # Deliberately *only* a reclassification. A visible password field shows that a
+            # login form is present, not that content was replaced by one — a page offering
+            # a sign-in beside its content would look identical. So it may not end a run
+            # that could still have got somewhere: it may only correct the reason a run
+            # that was already failing gets recorded under, which is the direction where
+            # being wrong costs nothing. Left to terminate, it would be a check reporting a
+            # coincidence — the coincidence being that a password field was on the page.
+            status, failure = TerminalStatus.BLOCKED, FailureClass.SITE_UNAVAILABLE
+            explanation = (
+                f"A visible login form was standing on {wall} when this run failed, so the "
+                f"outcome is recorded as an obstacle met during the run rather than as a "
+                f"missing element (A-14b). What was originally recorded: {explanation} "
+                f"The detection is presence of a visible password field and nothing more; "
+                f"recognising a paywall by how it looks is not attempted.")
         run.state = RunState.DONE
         run.terminal_status = status
         run.failure_class = failure
@@ -1190,21 +1223,14 @@ class Executor:
                 f"met during the run, and reporting it as a missing element would blame "
                 f"the page for something the site refused.")
             return False
+        # Recorded, never acted on here. Presence of a login form is not proof that content
+        # was replaced by one, so it may not stop a run that can still proceed; `_terminate`
+        # uses it only to correct the class of a run that was failing anyway.
         try:
-            walled = await ctx.page.locator('input[type="password"]:visible').count()
+            if await ctx.page.locator('input[type="password"]:visible').count():
+                nav.detail["login_form_visible"] = True
         except Exception:  # noqa: BLE001 - a selector that cannot run is not a finding
-            walled = 0
-        if walled:
-            self._finish_step(run, nav, ok=False, error="a login form stands on the page")
-            self._terminate(
-                run, TerminalStatus.BLOCKED, FailureClass.SITE_UNAVAILABLE,
-                f"A visible login form is standing where the content was expected "
-                f"({ctx.page.url}). This is the minimal detection A-14b requires: a "
-                f"visible password field. A page that offers a login *beside* its content "
-                f"is read as a wall by this rule, and recognising a paywall by how it "
-                f"looks is not attempted at all — that bound is a declared limitation "
-                f"rather than a silent misclassification.")
-            return False
+            pass
         for selector, why in self.ABSENT_PAGE_MARKERS:
             try:
                 if await ctx.page.locator(selector).count():

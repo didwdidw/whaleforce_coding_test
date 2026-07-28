@@ -126,9 +126,11 @@ class Verdict:
                 "checked": checked, "unchecked": unchecked,
                 # A19.2: a constraint nobody could evaluate is named here rather than
                 # counted anywhere, so a reader can see which safeguards did not run.
-                "unevaluated_checks": [{"check": c.name,
-                                        "why": c.detail.get("note", "not evaluated")}
-                                       for c in self.checks if not c.evaluated]}
+                "unevaluated_checks": [
+                    {"check": c.name,
+                     "why": (c.detail.get("not_evaluated_because")
+                             or c.detail.get("note") or "not evaluated")}
+                    for c in self.checks if not c.evaluated]}
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -217,15 +219,25 @@ class Verifier:
                     TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
                     f"The evidence was captured on {ref.source_url}, which is not inside "
                     f"{pc.target_url}.", checks)
-        site_scope = scope == "site"
-        if site_scope and not _same_site(ref.source_url, pc.target_url):
-            checks.append(Check("artifact_source_matches_plan", False,
+        elif scope == "site":
+            on_site = _same_site(ref.source_url, pc.target_url)
+            checks.append(Check("artifact_source_matches_plan", on_site,
                                 {"artifact_source_url": ref.source_url,
                                  "plan_target_site": pc.target_url, "scope": "site"}))
-            return Verdict(
-                TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
-                f"The evidence was captured on {ref.source_url}, which is not on the site "
-                f"the task named ({pc.target_url}).", checks)
+            if not on_site:
+                return Verdict(
+                    TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
+                    f"The evidence was captured on {ref.source_url}, which is not on the "
+                    f"site the task named ({pc.target_url}).", checks)
+        elif scope is not None:
+            # An unrecognised scope evaluates nothing, and says so. Recording a pass here
+            # would be defect 1 of §5.4 — a constraint reported as satisfied that was never
+            # evaluated — reintroduced by the change that fixed defect 7.
+            checks.append(Check("artifact_source_matches_plan", None,
+                                {"artifact_source_url": ref.source_url, "scope": scope,
+                                 "not_evaluated_because": (
+                                     f"`{scope}` is not a scope this verifier knows how to "
+                                     f"check, so nothing was compared")}))
         if scope is None:
             # Two questions, asked separately (A26). Comparing the plan's frozen target with
             # one recorded endpoint answered neither: with a redirect in the way they are
@@ -234,14 +246,14 @@ class Verifier:
             # happened to be recorded.
             # The plan's own target counts as reached: evidence from the page the task
             # named needs no navigation record to account for it.
-            reached = list(dict.fromkeys([pc.target_url, *_urls_the_run_reached(run)]))
-            came_from_a_page_the_run_was_on = any(
-                _same_page(ref.source_url, url) for url in reached)
-            checks.append(Check("artifact_source_is_a_url_the_run_reached",
-                                came_from_a_page_the_run_was_on,
+            accounted = _urls_accounted_for(run, pc.target_url)
+            matched = next((entry for entry in accounted
+                            if _same_page(ref.source_url, entry["url"])), None)
+            checks.append(Check("artifact_source_is_accounted_for_by_the_trace",
+                                matched is not None,
                                 {"artifact_source_url": ref.source_url,
-                                 "urls_the_run_reached": reached}))
-            if not came_from_a_page_the_run_was_on:
+                                 "matched": matched, "accounted_for": accounted}))
+            if matched is None:
                 return Verdict(
                     TerminalStatus.FAILED, FailureClass.VERIFICATION_MISMATCH,
                     f"The evidence was captured on {ref.source_url}, and no navigation in "
@@ -1060,25 +1072,61 @@ def _same_page(source_url: str | None, target_url: str) -> bool:
             == (b.scheme, b.netloc, unquote(b.path).rstrip("/")))
 
 
-def _urls_the_run_reached(run: Run) -> list[str]:
-    """Every URL any navigation in the trace is recorded as having been at.
+def _urls_accounted_for(run: Run, target_url: str) -> list[dict[str, str]]:
+    """Every URL the trace accounts for this run being at, each with how it is accounted for.
 
-    Requested, each redirect hop, the response's URL, the page's URL afterwards, and the
-    canonical the document declared. They are listed rather than reduced to one, because
-    reducing them is how a value that differs between two of them turns a check into a
-    coin toss.
+    Requested, each redirect hop, the response's URL and the page's URL afterwards are all
+    observations of where the browser was. They are listed rather than reduced to one,
+    because reducing them is how a value that differs between two of them turns a check
+    into a coin toss.
+
+    A declared canonical is different in kind: it is a claim made by an untrusted page, not
+    an observation. It is here because it is the only recorded fact when a page moves the
+    address bar from script after the response — but it carries the same trust boundary it
+    has in `_how_the_landing_was_reached`: **a page may rename itself only within its own
+    origin.** Without that this list would be the wider of the two, and a name saying "the
+    run reached it" would be covering a sentence a third party wrote.
     """
-    urls: list[str] = []
+    accounted = [{"url": target_url, "how": "the plan's target"}]
     for entry in run.trace:
         if entry.kind is not StepKind.NAVIGATE:
             continue
-        for key in ("url", "final_url", "page_url_at_navigate", "canonical_url"):
+        requested = str(entry.detail.get("url") or "")
+        for key, how in (("url", "requested by a navigation"),
+                         ("final_url", "the response's final URL"),
+                         ("page_url_at_navigate", "the page's URL after that navigation")):
             if value := str(entry.detail.get(key) or ""):
-                urls.append(value)
+                accounted.append({"url": value, "how": how})
         for hop in entry.detail.get("redirect_chain") or ():
             if isinstance(hop, dict) and (value := str(hop.get("url") or "")):
-                urls.append(value)
-    return list(dict.fromkeys(urls))
+                accounted.append({"url": value, "how": "a hop in the recorded redirect chain"})
+        canonical = str(entry.detail.get("canonical_url") or "")
+        if canonical and requested and _same_site(canonical, requested):
+            accounted.append({"url": canonical,
+                              "how": "the canonical URL that page declared for itself, "
+                                     "same-origin"})
+    seen, unique = set(), []
+    for row in accounted:
+        if row["url"] and row["url"] not in seen:
+            seen.add(row["url"])
+            unique.append(row)
+    return unique
+
+
+def _chain_from(chain: list[dict], target_url: str, source_url: str) -> bool:
+    """Whether this redirect chain really carries the target to the source, hop by hop.
+
+    Checking only the last entry would let a chain that began somewhere else, or one with a
+    gap in the middle, stand as an explanation — and a check that reads one element of a
+    list it describes as a chain is the kind of claim this file exists to stop making.
+    """
+    if len(chain) < 2:
+        return False
+    if not _same_page(str(chain[0].get("url") or ""), target_url):
+        return False
+    if not _same_page(str(chain[-1].get("url") or ""), source_url):
+        return False
+    return all(300 <= (hop.get("status") or 0) < 400 for hop in chain[:-1])
 
 
 def _how_the_landing_was_reached(run: Run, source_url: str, target_url: str) -> dict:
@@ -1087,7 +1135,8 @@ def _how_the_landing_was_reached(run: Run, source_url: str, target_url: str) -> 
     Three routes count, and each is a recorded fact rather than a tolerance:
 
     - the plan's target is the page itself;
-    - a redirect chain that **begins at the target** and ends there, hop by hop;
+    - a redirect chain that begins at the target and ends at the page, every hop before the
+      last carrying a redirect status;
     - the document served at the target declaring it as its canonical URL, which is the
       only recorded evidence when the move happens in script after the response — the
       `/wiki/Apple_Inc` case, where there is no HTTP hop to point at.
@@ -1095,9 +1144,15 @@ def _how_the_landing_was_reached(run: Run, source_url: str, target_url: str) -> 
     A canonical is a claim by an untrusted page, so it counts only from the page the task
     itself named and only same-origin. Otherwise a third-party page could explain away
     evidence that came from somewhere else entirely.
+
+    **Every** navigation to the target is examined, not the first. A run that navigates to
+    its target, is recovered onto another strategy family, and navigates there again is
+    ordinary behaviour in this system — and stopping at the first record would let an
+    unexplained first attempt condemn a second one that is fully accounted for.
     """
     if _same_page(source_url, target_url):
         return {"explained": True, "by": "the plan's own target page"}
+    attempts = []
     for entry in run.trace:
         if entry.kind is not StepKind.NAVIGATE:
             continue
@@ -1105,7 +1160,7 @@ def _how_the_landing_was_reached(run: Run, source_url: str, target_url: str) -> 
             continue
         chain = [hop for hop in (entry.detail.get("redirect_chain") or ())
                  if isinstance(hop, dict)]
-        if len(chain) > 1 and _same_page(str(chain[-1].get("url") or ""), source_url):
+        if _chain_from(chain, target_url, source_url):
             return {"explained": True, "by": "an HTTP redirect chain from the plan's target",
                     "redirect_chain": chain}
         canonical = str(entry.detail.get("canonical_url") or "")
@@ -1114,11 +1169,15 @@ def _how_the_landing_was_reached(run: Run, source_url: str, target_url: str) -> 
             return {"explained": True,
                     "by": "the canonical URL declared by the document at the plan's target",
                     "canonical_url": canonical}
+        attempts.append({"step": entry.seq, "redirect_chain": chain,
+                         "canonical_url": canonical})
+    if attempts:
         return {"explained": False,
-                "why": (f"the run navigated to {target_url}, and nothing it recorded there "
-                        f"— no redirect chain, no declared canonical URL — accounts for "
-                        f"the evidence coming from {source_url}"),
-                "redirect_chain": chain, "canonical_url": canonical}
+                "why": (f"the run navigated to {target_url} {len(attempts)} time(s), and "
+                        f"nothing recorded on any of them — no redirect chain, no declared "
+                        f"canonical URL — accounts for the evidence coming from "
+                        f"{source_url}"),
+                "navigations_examined": attempts}
     return {"explained": False,
             "why": (f"no navigation to the plan's target ({target_url}) was recorded, so "
                     f"however right {source_url} looks, nothing says the run was sent "

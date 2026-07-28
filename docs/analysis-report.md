@@ -177,8 +177,9 @@ engineered as though it were.** The interesting cost question is the opposite on
 be true for this to get expensive. That is the scalability section.
 
 We over-invested here. Roughly five of the spec's amendments concern spend ceilings,
-ledgers and credential topology, protecting a total outlay under a tenth of a dollar (the ledger has
-the figure). That is recorded in §6
+ledgers and credential topology, protecting an outlay whose size is in
+[`docs/spend-ledger.md`](spend-ledger.md) and nowhere else — including not in this sentence, which
+is the shape the last three stale figures took. That is recorded in §6
 as a process finding rather than hidden.
 
 ---
@@ -505,7 +506,7 @@ honest about a two-day calendar.
 | **The validation split** | Its purpose was to keep the engineering session honest during development. Development ended. Test is run once against the deployment; validation is reported as unrun, with this reason |
 | **The mutation sweep (9 → 2 mutations)** | Two working mutations plus one healing demonstration is evidence. Nine is a research programme |
 | **Most of the safety suite** | **Not built, and declared as not built.** What exists is the egress guard, robots enforcement and the refusal taxonomy, all of which are load-bearing and tested. What does not exist is a safety split (`eval/safety-set.md`) or an injection detector — so `injection_detected` is a declared status **no code path currently reaches**, and `/coverage` says exactly that. The build-state flags are derived from whether the module and file exist, so the support page cannot advertise a suite that is not there |
-| **Further spend-ceiling and ledger work** | Total spend is in [`docs/spend-ledger.md`](spend-ledger.md) and is under a tenth of a dollar. It was done, and it was over-done |
+| **Further spend-ceiling and ledger work** | [`docs/spend-ledger.md`](spend-ledger.md) has what it protected. It was done, and it was over-done |
 | **Locator memory's full scope** | **Built, at the reduced scope, on the last day.** A table on the volume keyed by `(origin, operation, role)`, written back **only** from `succeeded_verified` runs, 14-day confirmation window, quarantine after three consecutive failures, counters on `/healthz`, and the run page badging each interaction *from memory* / *healed* / *freshly derived*. Not built: cross-site generalisation, ranking, a learned selector model, or any use of memory as a first resort on the model-driven path — it engages where a locator has stopped resolving, which is the case it exists for. The frontend derives the claim from the code, so if this is ever removed the page stops selling it |
 
 **Process finding, stated against ourselves.** Six of the last eight spec amendments concerned the

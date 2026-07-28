@@ -93,7 +93,7 @@ What needs a key is the model-driven path, which is everything on a site we did 
 ### Tests and evaluation
 
 ```bash
-pytest                                    # 595 tests, ~16 s (a real browser runs
+pytest                                    # 600 tests, ~17 s (a real browser runs
                                           # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
@@ -115,6 +115,10 @@ visible on the form, in the result, and in the API response.
 | **T-REFUSED** | Violates the policy in §5. Refused before any browsing | n/a |
 
 ### Support matrix
+
+<!-- FROM-r3: every Status cell below must be regenerated from round r3 before shipping. The
+     r2 numbers are known to be low in a known direction — OP-5's "1 of 2" is the redirect gate
+     defect Amendment 26 fixed, not the operation failing. -->
 
 **The promised set is four records, not seven.** OP-1…OP-3 were on our own fixture, and a record
 measured on a site we wrote is us setting our own exam — so they were **withdrawn from the promise**
@@ -251,6 +255,11 @@ Four splits, all authored by us against public pages. Every result file carries 
 provenance — git SHA, pinned model, credential tier, and the SHA-256 of the split file it scored —
 because a score without them describes a system nobody can identify. Full numbers, per-case tables
 and the evidence bundles are in `eval/results/` and `docs/analysis-report.md`.
+
+<!-- FROM-r3: the headline round, the pass rate and the per-record numbers in this section are
+     to be regenerated from r3. r2 was scored on the build *before* Amendment 26, so at least one
+     of its misses is a defect in the gate rather than in the run. Publishing it as final would be
+     publishing a number we already know is wrong in a known direction. -->
 
 **The headline round is `r2`.** Its provenance, and `r1`'s beside it, because a score without them
 describes a system nobody can identify:
@@ -432,17 +441,21 @@ built to a stated minimum and whose bounds are the entry.
   `/coverage` says so rather than leaving it to be assumed.
 - **Spend controls stopped where they were.** Every spend total in this repository is generated into
   one file, [`docs/spend-ledger.md`](docs/spend-ledger.md), because three documents each carrying
-  their own figure meant three figures that went stale on the same day. It is under a tenth of a
-  dollar. The ceiling, the ledger and the credential topology are done and were over-done relative
-  to a bill that size.
-- **Runtime `blocked` detection is built to its minimum and no further.** Pre-browse refusal of
-  authentication and payment tasks ends `unsupported / policy_refused` before any navigation — *we
-  do not do this kind of thing*. An obstacle met **during** a run now ends `blocked` — *something
-  stopped us* — on HTTP 401/403/429 and on a visible password field standing where the content was
-  expected. That is the whole detection. A page offering a login *beside* its content is read as a
-  wall by that rule, and recognising a paywall by how it looks is not attempted at all. Both bounds
-  are stated here rather than discovered: the reason the minimum exists is that without it these
-  runs ended as `locator_not_found`, blaming the page for a value the site declined to serve.
+  their own figure meant three figures that went stale on the same day — and a fourth written in
+  words rather than digits would have gone stale just as quietly. The ceiling, the ledger and the
+  credential topology are done, and the ledger is where a reader sees how over-done.
+- **Runtime `blocked` detection is built to its minimum, and the two halves have deliberately
+  different powers.** Pre-browse refusal of authentication and payment tasks ends `unsupported /
+  policy_refused` before any navigation — *we do not do this kind of thing*. An obstacle met
+  **during** a run is *something stopped us*, and ends `blocked`. **HTTP 401/403/429 ends the run**:
+  the status is on the response, it needs no heuristic, and it is not a judgement about what the
+  page contains. **A visible login form does not.** It only *reclassifies* a run that was already
+  failing as `locator_not_found` or `postcondition_unmet` — the exact misattribution this exists to
+  correct, and the one direction in which the rule being wrong costs nothing. The reason for that
+  asymmetry is that a visible password field shows a login form is *present*, not that content was
+  replaced by one; a page offering a sign-in beside its content looks identical, and letting that
+  end a run would turn a live experimental case into a `blocked` on a coincidence. Recognising a
+  paywall by how it looks is not attempted at all.
 
 ---
 

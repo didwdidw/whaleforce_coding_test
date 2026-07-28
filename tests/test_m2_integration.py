@@ -28,7 +28,9 @@ from app.coverage import CoverageLedger
 from app.executor import Executor, _compare as _real_compare
 from app.planner import Planner
 from app.provider import CredentialPolicy, Provider, ProviderError
-from app.models import FailureClass, Run, StepKind, TerminalStatus, Tier, new_id
+from app.models import (
+    FailureClass, Run, StepKind, TerminalStatus, Tier, TraceEntry, new_id,
+)
 from app.store import Store
 
 pytestmark = pytest.mark.integration
@@ -582,31 +584,60 @@ def _navigate_for_real(executor, path: str) -> Run:
     return run
 
 
-@pytest.mark.parametrize("path,expected", [
-    ("/rate-limited", "429"),
-    ("/members", "login form"),
-])
-def test_an_obstacle_met_during_a_run_is_blocked_not_a_missing_element(executor, path,
-                                                                      expected):
+def test_a_refusal_status_ends_the_run_as_blocked(executor):
     """A-14b, which A24.5 split out of A-14 and required a minimal detection for.
 
     `unsupported` is *we do not do this kind of thing*, decided before browsing.
-    `blocked` is *something stopped us*, met during it. Left undetected, a wall met
-    mid-run ends as `locator_not_found` — which blames the page for a value the site
-    declined to serve, and puts the wrong reason into the refusal rate."""
-    run = _navigate_for_real(executor, path)
+    `blocked` is *something stopped us*, met during it. A 429 is the free half of that
+    detection: it is on the response, it needs no heuristic, and it is not a judgement
+    about what the page contains — so it may end the run."""
+    run = _navigate_for_real(executor, "/rate-limited")
 
     assert run.terminal_status is TerminalStatus.BLOCKED
     assert run.failure_class is FailureClass.SITE_UNAVAILABLE
-    assert expected in run.explanation
+    assert "429" in run.explanation
 
 
-def test_an_ordinary_page_is_not_read_as_a_wall(executor):
-    """The false-positive side. The detection is one visible password field, so the pages
-    the product actually promises must be unaffected by it."""
+def test_a_login_form_reclassifies_a_failing_run_and_never_ends_a_live_one(executor):
+    """The narrowed half. A visible password field shows a login form is *present*, not
+    that content was replaced by one — a page offering a sign-in beside its content looks
+    identical. So it may only correct the class of a run that was already failing, the
+    direction in which being wrong costs nothing. Terminating on it would be a check
+    reporting a coincidence, and the coincidence would be scored on unseen sites."""
+    ex, store, loop = executor
+    run = _navigate_for_real(executor, "/members")
+
+    # The wall is recorded, and the run is still alive: nothing terminated it.
+    assert run.terminal_status is None, run.explanation
+    assert run.trace[-1].detail["login_form_visible"] is True
+
+    # It takes effect only when the run ends for the reason a wall gets misattributed to.
+    ex._terminate(run, TerminalStatus.FAILED, FailureClass.LOCATOR_NOT_FOUND,
+                  "The expected label was not on the page.")
+    assert run.terminal_status is TerminalStatus.BLOCKED
+    assert run.failure_class is FailureClass.SITE_UNAVAILABLE
+    assert "What was originally recorded" in run.explanation
+
+
+def test_a_login_form_does_not_touch_a_run_that_failed_for_another_reason(executor):
+    """The bound on the reclassification itself: it corrects one misattribution, and is
+    not licence to relabel every outcome on a page that happens to have a login box."""
+    ex, store, loop = executor
+    run = _navigate_for_real(executor, "/members")
+
+    ex._terminate(run, TerminalStatus.FAILED, FailureClass.BUDGET_EXHAUSTED, "Out of steps.")
+
+    assert run.terminal_status is TerminalStatus.FAILED
+    assert run.failure_class is FailureClass.BUDGET_EXHAUSTED
+
+
+def test_an_ordinary_page_records_no_wall(executor):
+    """The false-positive side. The pages the product actually promises must be untouched
+    by the rule, whichever direction it acts in."""
     run = _navigate_for_real(executor, "/product/WF-1013")
 
     assert run.terminal_status is None, run.explanation
+    assert "login_form_visible" not in run.trace[-1].detail
 
 
 def _verdict_for(executor, run: Run, *, plan_target: str, artifact_source: str):
@@ -657,7 +688,7 @@ def test_a_redirect_the_plan_asked_for_passes_both_assertions(executor):
                            artifact_source="/product/WF-1013")
 
     assert verdict.status is TerminalStatus.SUCCEEDED_VERIFIED, verdict.explanation
-    assert _check(verdict, "artifact_source_is_a_url_the_run_reached").ok is True
+    assert _check(verdict, "artifact_source_is_accounted_for_by_the_trace").ok is True
     landing = _check(verdict, "landing_explained_from_the_plan_target")
     assert landing.ok is True
     assert landing.detail["by"] == "an HTTP redirect chain from the plan's target"
@@ -676,10 +707,50 @@ def test_the_right_final_url_by_a_route_the_plan_never_named_is_not_explained(ex
     assert verdict.status is TerminalStatus.FAILED
     assert verdict.failure_class is FailureClass.VERIFICATION_MISMATCH
     # The first assertion holds — the bytes really did come from a page the run was on.
-    assert _check(verdict, "artifact_source_is_a_url_the_run_reached").ok is True
+    assert _check(verdict, "artifact_source_is_accounted_for_by_the_trace").ok is True
     landing = _check(verdict, "landing_explained_from_the_plan_target")
     assert landing.ok is False
     assert "no navigation to the plan's target" in landing.detail["why"]
+
+
+def test_a_second_navigation_to_the_target_is_examined_when_the_first_explains_nothing(
+        executor):
+    """Recovery re-navigates. That is designed behaviour, not a theoretical path: a run
+    that reaches its target, is diagnosed onto another strategy family and navigates there
+    again produces two records for the same URL. Stopping at the first would let an
+    unexplained attempt condemn a second one that is fully accounted for."""
+    ex, store, loop = executor
+    run = _navigate_for_real(executor, "/moved")
+    explained = run.trace[-1]
+    # The same navigation twice, the first one recording nothing that could explain the
+    # landing — the shape a first attempt that failed before the response takes.
+    blank = TraceEntry(seq=0, kind=StepKind.NAVIGATE, summary="Navigate to /moved", ok=False,
+                       detail={"url": explained.detail["url"]})
+    run.trace = [blank, explained]
+
+    verdict = _verdict_for(executor, run, plan_target="/moved",
+                           artifact_source="/product/WF-1013")
+
+    assert verdict.status is TerminalStatus.SUCCEEDED_VERIFIED, verdict.explanation
+    assert _check(verdict, "landing_explained_from_the_plan_target").ok is True
+
+
+def test_a_chain_that_did_not_begin_at_the_plan_target_does_not_explain_the_landing(
+        executor):
+    """The chain is checked hop by hop, not by its last element. A docstring saying
+    "begins at the target" while the code reads `chain[-1]` is the defect this file is
+    about — a claim wider than what was verified."""
+    ex, store, loop = executor
+    run = _navigate_for_real(executor, "/detour")
+    hijacked = run.trace[-1]
+    # Claims to have been asked for /moved while carrying /detour's chain.
+    hijacked.detail["url"] = f"{BASE}/moved"
+
+    verdict = _verdict_for(executor, run, plan_target="/moved",
+                           artifact_source="/product/WF-1013")
+
+    assert verdict.status is TerminalStatus.FAILED
+    assert _check(verdict, "landing_explained_from_the_plan_target").ok is False
 
 
 def test_a_move_that_never_touched_http_is_explained_by_the_declared_canonical(executor):
@@ -712,6 +783,6 @@ def test_evidence_from_a_page_no_navigation_reached_fails_the_first_assertion(ex
                            artifact_source="/product/WF-1002")
 
     assert verdict.status is TerminalStatus.FAILED
-    source = _check(verdict, "artifact_source_is_a_url_the_run_reached")
+    source = _check(verdict, "artifact_source_is_accounted_for_by_the_trace")
     assert source.ok is False
     assert "/product/WF-1002" in source.detail["artifact_source_url"]

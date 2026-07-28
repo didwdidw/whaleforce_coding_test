@@ -764,3 +764,43 @@ dev split 在容器被換掉之前跑完了，寫成乾淨檔名、沒有 degrad
 所以我這端現在不用改環境變數然後 re-deploy wf-scored 嗎
 
 另外，把你講的這些打包一下變成我可以直接貼給 engineering agent 的 prompt
+
+==========
+
+全部清掉了，沒有 push。595 tests passing。
+
+五、先回答會卡住 r3 的問題：自動放行，什麼都不用做
+
+marker 的鍵是 r{round}-{split}.inflight.json —— round 和 split 都是鍵。r3 讀的是 r3-experimental.inflight.json，不存在，直接跑。
+
+已寫進 runbook（含一張處置表）並加了一支測試 lock 住這個行為。而且明寫「不准刪」：那個檔不是待清理的殘留狀態，它是「這一輪付過錢、沒有產出」的紀錄。刪掉就把「已花費未完成」變成「從沒跑過」—— 正是會讓一輪被付兩次的那個誤解。只有同一個 EVAL_ROUND 重啟才會被擋，那時要嘛換 round 號，要嘛 EVAL_FORCE=1（＝決定再付一次）。
+
+一、A26：你判得對，而且比你知道的更糟
+
+我照你要的做了 —— 但先報一件實測結果，它改變了修法：
+
+/wiki/Apple_Inc 根本沒有 HTTP 重導向。 用瀏覽器實測（不是推論）：回 200，chain 長度 1，網址列是 約兩秒後被 MediaWiki 自己的 script 改成 /wiki/Apple_Inc. 的。
+
+所以我第一次的修法（記 response URL）會把閘門釘死在 /wiki/Apple_Inc —— 一個永遠不會等於 artifact 來源的值。**它會把間歇性失敗變成穩定失敗。**你說的「換一個比較不會抖的巧合」，實際上是換到輸的那一面。
+
+三個值都記了（plan 目標、完整 chain 含每跳 status、response URL），另外加記文件自己宣告的 rel=canonical —— 因為在這個 case 裡，那是唯一不隨讀取時機改變的記錄事實。它是不可信頁面的宣稱，所以只從 task 自己指名的那一頁、且同源才採信。
+
+閘門拆成兩條，各自可以單獨失敗：
+1. artifact_source_is_a_url_the_run_reached — bytes 來自 trace 交代得出的頁面
+2. landing_explained_from_the_plan_target — 落點由 plan 目標經「同一頁／重導向鏈／宣告的 canonical」到達
+
+fixture 兩條路由都補了。負向案例是 /detour —— 301 到跟 /moved 完全相同的頁面。比最終 URL 會通過；缺的是「一個該從 /moved 出發的 run 怎麼到那裡的」交代。另加 /soft-moved 重現「從不碰 HTTP 的移動」，不必依賴 Wikipedia。§5.4 第 7 列改寫成「發現 → 第一次修 → 前提是錯的 → A26」。
+
+二～三、B/N 全部處理完，其中一項數字要更正
+
+- B-1 / B-3 — 表格以 limitations.py 為準改寫。另外掃到第三處：L-6 的 task 欄是 "…the nonfiction category listing, second page…"                           這種省略式，打不進輸入框，違反這節的定義。全部七列現在都寫出 terminal st把表格綁到程式碼，不再靠審查者的注意力。- B-2 — 改指 tests/test_policy.py 的實際案例（loopback / RFC 1918 / 169.＋ guard 關閉即啟動失敗），並明說 injection detector 與 adversarial sweep不存在。- B-4 — 實際數字是 USD 0.0798，不是 0.20。 我去讀了兩個 volume 的 provid9756 billed / 100 calls；app 服務只有 free tier（0.0448notional，一毛沒收）。我先前回報的 ~0.20 是估的、沒對帳。單一來源做好了 ython -m eval.spend_ledger 從 ledger 讀數＋各輪 provenance 生成（含每個split 花多少），--check 進了測試套件 —— 下一次數字過期是測試失敗，不是讀者發現。三份文件現在都只連過去，一個總數都不寫，而且有測試禁止它們再寫。
+- N-1~N-5 — r1/r2 provenance 對照表、support matrix 加 From 欄（OP-7 標  ）、headline 明定為 r2、repo map 補 app/memory.py 等、測試數用真實collect（595）。
+
+我自己加的一件，要你裁A-14b 是 A24.5 明文要求的，一直沒建，而 README 把它列成「刻意不做」。 這重（規格說必做）。我建了最小版：401/403/429 ＋ 可見的 password 欄位 →blocked / site_unavailable。沒有它，撞牆的 run 會以 locator_not_found 收頁面缺元素，refusal rate 進了錯的理由。fixture 加/rate-limited、/members，另有一支測「正常頁不會被誤判成牆」。兩個邊界（登入表單與內容並存、視覺判斷 paywall）寫在 README 而不是等人發現。                    
+這是我主動擴的範圍，凍結前你可以直接叫我 revert。 相對的，我放棄了 EXP-08 的 A-14b 註記 —— 那會改動 experimental-set.md 的 SHA，在 r3 要計分它之前換掉 split 身分，不划算。規格本身已經寫著 EXP-08 是那個 worked example。
+
+另外：docs/task1-spec.md:2384 的 A25 正文也帶著 USD 0.0477。凍結文本我不 。
+
+待你
+
+第二次驗收（只看改動）。HEAD 1ff03ab，五個 commit 全部未推。累計 billed

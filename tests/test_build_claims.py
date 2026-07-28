@@ -194,14 +194,62 @@ def test_the_readme_states_the_outcome_the_code_produces_for_each_limitation():
                        f"`{limit.outcome}` / `{limit.failure_class}`")
 
 
+#: Money written as words. Every real figure in these documents is `USD x.xxxx` in a table
+#: or is in the ledger, so this vocabulary only ever appears as a total in disguise — and a
+#: total in words goes stale exactly as fast as one in digits while looking like commentary.
+MONEY_IN_WORDS = re.compile(r"(?i)\b(cents?|dollars?|pennies|a tenth of a)\b")
+
+#: A claim about what was spent *in total*, as opposed to a price or a per-unit figure.
+A_TOTAL = re.compile(r"(?i)\b(total|totals|cumulative|altogether|across every|"
+                     r"across all|all development)\b")
+SPEND = re.compile(r"(?i)\b(spend|outlay|bill)\b")
+AN_AMOUNT = re.compile(r"(?i)(\bUSD\b|\$\d|\d+\.\d)")
+
+
 def test_no_published_document_states_a_spend_total_of_its_own():
     """Three documents each carried one, all three went stale on the same day, and one was
-    false rather than merely old. The generated ledger is the only place a total lives."""
-    pattern = re.compile(r"(?i)total[^\n]{0,40}(?:spend|outlay)[^\n]{0,60}\d")
+    false rather than merely old. The generated ledger is the only place a total lives.
+
+    Two rules, because the first version of this test looked for digits and the first thing
+    to slip past it was *"under a tenth of a dollar"* — the same stale total, spelled out,
+    on a wrapped line that no longer contained the word `spend`. `--check` regenerates a
+    file; it cannot read a sentence, so the sentences are what this has to cover.
+    """
     for path in (README, ANALYSIS):
-        found = pattern.findall(path.read_text("utf-8"))
-        assert not found, f"{path.name} states its own total: {found}"
-        assert "spend-ledger.md" in path.read_text("utf-8"), f"{path.name} must link to it"
+        text = path.read_text("utf-8")
+        assert "spend-ledger.md" in text, f"{path.name} must link to the ledger"
+        spelled = MONEY_IN_WORDS.findall(text)
+        assert not spelled, (
+            f"{path.name} writes an amount in words ({spelled}); every figure belongs in a "
+            f"table or in the generated ledger, where something keeps it true")
+        for block in re.split(r"\n\s*\n", text):
+            if not (SPEND.search(block) and A_TOTAL.search(block)):
+                continue
+            if "spend-ledger.md" in block:
+                continue          # a block whose subject is the ledger itself
+            assert not AN_AMOUNT.search(block), (
+                f"{path.name} states a spend total of its own:\n  {block.strip()[:200]}")
+
+
+def test_the_r3_markers_are_present_until_r3_is_committed_and_gone_afterwards():
+    """The two places holding numbers that are known to be wrong in a known direction.
+
+    `r2`'s dev split ran on the build *before* Amendment 26, so OP-5's "1 of 2" is the
+    redirect gate failing a correct run rather than the operation. Shipping that as the
+    published rate would be publishing a figure we already know is low. The marker is a
+    note to a reader of the source; this is what makes forgetting it a test failure —
+    the moment an r3 result lands in `eval/results/`, the markers have to be resolved."""
+    scored_r3 = sorted((REPO / "eval" / "results").glob("*-r3.json"))
+    markers = README.read_text("utf-8").count("<!-- FROM-r3")
+
+    if not scored_r3:
+        assert markers == 2, (
+            "the support matrix and the evaluation section carry pre-r3 numbers and must "
+            "say so until r3 replaces them")
+    else:
+        assert markers == 0, (
+            f"r3 has been scored ({[p.name for p in scored_r3]}) — regenerate the support "
+            f"matrix and §6 from it, then remove the FROM-r3 markers")
 
 
 def test_the_committed_spend_ledger_is_up_to_date():
