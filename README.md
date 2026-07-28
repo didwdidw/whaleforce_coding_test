@@ -93,7 +93,7 @@ What needs a key is the model-driven path, which is everything on a site we did 
 ### Tests and evaluation
 
 ```bash
-pytest                                    # 528 tests, ~20 s (a real browser runs
+pytest                                    # 583 tests, ~25 s (a real browser runs
                                           # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
@@ -121,17 +121,17 @@ measured on a site we wrote is us setting our own exam — so they were **withdr
 and kept as *mechanism evidence* (GS-1…GS-3 at `/support`), which appears in no success rate. The
 promise is what is left, on sites we do not control.
 
-| ID | Site | Operation | Why it is hard | Status, from `dev-deploy-e1d13cae4926-r1` |
+| ID | Site | Operation | Why it is hard | Status, from `dev-deploy-aa1ee6c5d5eb-r2` |
 |---|---|---|---|---|
-| OP-4 | en.wikipedia.org | Sort a sortable wikitable by a named column, read a cell from the new top row | Client-side sort: the DOM order changes, the URL does not, so the answer cannot be obtained by fetching a URL | **2 of 3 dev cases as expected.** The third (DEV-02) names the article by description rather than by title and correctly stops before browsing — see L-1 |
-| OP-5 | en.wikipedia.org | Expand a collapsed section/navbox and read a value not visible beforehand | The value is not in the DOM-visible state until a real interaction happens | **2 of 2.** No independent oracle: correctness here rests on our own verifier (A25.4) |
+| OP-4 | en.wikipedia.org | Sort a sortable wikitable by a named column, read a cell from the new top row | Client-side sort: the DOM order changes, the URL does not, so the answer cannot be obtained by fetching a URL | **2 of 3 dev cases as expected**, and one of the two carries an independently derived top row that agreed. The third (DEV-02) names the article by description rather than by title and correctly stops before browsing — see L-1 |
+| OP-5 | en.wikipedia.org | Expand a collapsed section/navbox and read a value not visible beforehand | The value is not in the DOM-visible state until a real interaction happens | **1 of 2 in `r2`**, 2 of 2 in `r1`. The one that moved is the redirect defect in §7, not the operation. No independent oracle either way: correctness here rests on our own verifier (A25.4) |
 | OP-6 | books.toscrape.com | Navigate a category, page through it, extract list-level facts | Multi-page state, and the honest answer often requires proving coverage | **2 of 3.** The third exhausts the step budget on a long category and returns no answer — L-2 |
 | OP-7 | books.toscrape.com | Open a product detail page and extract a **labelled** field (UPC, Availability, Price excl. tax) | The answer is a label→value binding, not a string that happens to appear | **2 of 2 in `r1`**, when the record was fixed to one product. It now takes the product from the task and reaches it by paging the listing, bounded to 6 pages — a title beyond that ends `unsupported` naming the bound rather than reporting the wrong book |
 
-Two of the six *evidence findings* in that round were the harness disagreeing with itself, not the
+Four of the six *evidence findings* in `r1` were the harness disagreeing with itself, not the
 product: it re-checked values against rendered text only, and `books.toscrape` carries long titles in
-the `title` attribute. The product read the attribute, which is the better behaviour. The fix is
-committed and `r2` re-measures with it as the only change; `r1` stays as the record.
+the `title` attribute, which the product read — the better behaviour. In `r2` those four are gone and
+two findings remain, both tier disagreements. `r1` stays committed as the record.
 
 **These records are the promise. Everything else is best-effort and is labelled as such in the UI.**
 A grader submitting a task we have never seen gets a T-EXPERIMENTAL run that browses honestly and
@@ -186,7 +186,7 @@ rather than reporting the page we happened to have reached as though it were the
 this decision showing up as a limitation, and we left it in.
 
 **Every non-success has a `terminal_status` × `failure_class` from two closed sets.**
-Seven statuses, fifteen failure classes, extended only by a written amendment. `partial` and
+Seven statuses, eighteen failure classes, extended only by a written amendment. `partial` and
 `unverified` are never rendered, aggregated, or described as success anywhere in the product — a
 guarantee that only means something because the sets are closed and the rule is mechanical.
 
@@ -260,12 +260,20 @@ acceptable. The two that did not are both the product refusing rather than guess
 before browsing because the article is described and not named (L-1), and DEV-08 exhausts its step
 budget paging a long category and returns no answer (L-2).
 
-The **headline pass rate is lower than that — 6 of 11** — because a case passes only when the status
-is as expected *and* the harness can re-locate every verified value in the stored artifact. Four
-cases were demoted by the harness's own defect: it searched rendered text only, and the site carries
-long titles in the `title` attribute the product correctly read. The fix is committed and re-measured
-as `r2`, with the scorer as the only change, so the difference between the two rounds is attributable.
-`r1` stays as the record rather than being re-run away.
+The **headline pass rate is lower than that — 6 of 11 in `r1`** — because a case passes only when the
+status is as expected *and* the harness can re-locate every verified value in the stored artifact.
+Four cases were demoted by the harness's own defect: it searched rendered text only, and the site
+carries long titles in the `title` attribute the product correctly read.
+
+**Round `r2`, on the corrected harness, is 9 of 11**, with evidence findings down from six to two —
+and the two that remain are the DEV-02 and DEV-13 tier disagreements rather than anything about a
+value. `r1` stays committed as the record rather than being re-run away.
+
+`r2` is **not** a single-variable change and the analysis report says so: the build it ran on also
+carries OP-7's parameter generalisation, the n-claim postcondition and locator memory. What separates
+the measurement defect from the product changes is not the round boundary but the artifact replay —
+r1's own stored bytes, re-checked under the corrected corpus, account for exactly four of the five
+cases r1 was missing.
 
 **Experimental split — 10 cases, all on sites we had never touched.** Attempted 10/10; **verified
 3/10** (95% Wilson interval **0.11–0.60**); **abstained after looking 5/10**; failed or blocked 2/10;
@@ -350,6 +358,15 @@ of seven entries did not reproduce as written**:
 It also caught a regression in this repository that no test had: the accessibility snapshot added by
 Amendment 24 took its own trace entry, every trace entry charges the step budget, and capture-heavy
 runs therefore had half the browsing headroom they were designed with. One capture is one step again.
+
+**And one more, found by scoring the same split twice.** DEV-04 passed in `r1` and failed in `r2` on
+inputs that had not changed. The cause was not the operation: the run's frozen target was
+`/wiki/Apple_Inc`, the article redirects to `/wiki/Apple_Inc.`, and the navigation step recorded
+where the page was *at the instant `page.url` was read* — post-redirect in one round, pre-redirect in
+the next. A correct run then failed the check that its evidence came from the planned page, against
+its own artifact. The step now records the response's URL, which does not depend on timing, and the
+fixture has a redirecting route so a test holds it. A hard gate whose outcome depends on when a
+variable was read is not a gate, and every earlier pass of it was worth slightly less than it looked.
 
 The list is only worth something if it is executable. It is now, and it stays that way — the check is
 re-run before submission, and its report is committed beside the eval results.

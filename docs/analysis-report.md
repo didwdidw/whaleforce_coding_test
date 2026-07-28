@@ -17,7 +17,7 @@ because a single mixed number would describe neither case.
 | Host | Zeabur on a self-hosted Ubuntu 24.04 box running k3s. `nproc` 2, `free -m` total **3,723 MB**, swap 1,987 MB provisioned. Swap was observed at a flat 102 MB during a scored round with **zero growth**, which was M0's pass condition |
 | Browser | One Chromium process, two contexts. Not two processes — see §4 |
 | Model | `gemini-3.1-flash-lite`, pinned. Never a `latest` or preview alias — a moving model makes every earlier measurement describe a system that no longer exists |
-| Build under measurement | `e1d13cae4926` for the scored round `r1`; `427cd96` for the load measurements; each result file carries its own |
+| Build under measurement | `e1d13cae4926` for round `r1`, `aa1ee6c5d5eb` for round `r2`, `427cd96` for the load measurements; each result file carries its own |
 | Measurement files | `eval/results/`, `docs/m0-*`, `docs/m1-report.md`, `docs/m3-model-comparison.md` |
 
 ---
@@ -283,11 +283,37 @@ fifteen claiming a derivation that no code performed.
 Disclosing that costs a paragraph. Being found to have declared an oracle that never ran costs the
 argument.
 
+### 5.3.1 What the difference between r1 and r2 does and does not measure
+
+The dev split has been scored twice against the deployment. The headline moved from **6 of 11** to
+**9 of 11**, and the honest reading of that is narrower than the number looks.
+
+**r2 is not a single-variable change, and the plan that it would be was overtaken.** It was supposed
+to carry the scorer's corpus fix and nothing else, so that `r1 → r2` would isolate a measurement
+defect from a product improvement. It does not: the build it ran on also carries OP-7's parameter
+generalisation, the n-claim postcondition, and locator memory. The engineering session continued down
+the amendment's ordering while waiting for an operator action that only the product owner could take,
+and the round boundary that was to do the isolating was spent before those changes landed. That is a
+sequencing mistake and it is recorded as one.
+
+**What isolates the measurement defect instead is stronger than the round boundary would have been.**
+The four cases that r1 demoted were re-checked against **r1's own stored artifacts** — the actual
+bytes, pulled from the scored volume — under the corrected corpus. All four resolve, and none of them
+resolves in any of the places the corpus deliberately excludes (a script literal, a class name, an
+`id`, a `data-` attribute, a URL, a comment). The measurement defect accounts for exactly four of the
+five cases the r1 headline was missing, on evidence that predates the fix and cannot have been
+influenced by it.
+
+So: **r1 → r2 is a measurement defect removed *and* three product changes, in one step**, and the
+artifact replay is what separates them. Conceding the confounding and pointing at independent
+evidence is worth more here than re-running a round and asserting it was clean — the re-run would be
+a fourth build, and this document would have to explain why *that* one was single-variable.
+
 ### 5.4 Verifying the verifier
 
 A system whose central claim is "our checks are real" has to expect the checks themselves to be
-wrong. Five defects of that exact shape were found and fixed during development, all the same
-species — **a check that reported on a coincidence**:
+wrong. **Seven** defects of that exact shape were found and fixed, all the same species — **a check
+that reported on a coincidence**. The first five were found during development:
 
 | | The defect |
 |---|---|
@@ -300,6 +326,52 @@ species — **a check that reported on a coincidence**:
 The first four made correct behaviour look broken; the fifth made unproven behaviour look proven.
 That asymmetry is why the fifth survived longest, and it is the reason an independent review that
 ran the deployed system found things that reading diffs did not.
+
+Two more of the same species were found after that list was written, and both are here rather than in
+an appendix because the pattern is the finding rather than the count:
+
+| | The defect |
+|---|---|
+| 6 | The accessibility snapshot took its own trace entry, and every trace entry charges the step budget — so capture-heavy runs silently had half the browsing headroom they were designed with. Found by *executing the published limitations list*, not by a test |
+| 7 | `page.url` was sampled at one instant to record where a navigation ended up. On identical inputs — a frozen target of `/wiki/Apple_Inc` and a page that redirects to `/wiki/Apple_Inc.` — one scored round recorded the post-redirect URL and the next recorded the pre-redirect one, so a correct run failed `artifact_source_matches_plan` against **its own artifact**. The step now records the response's URL, which is not timing-dependent |
+
+Number 7 is the one worth reading twice. It is not a wrong answer being accepted; it is a hard gate
+whose outcome depended on when a variable was read, which means every previous pass of that gate was
+worth slightly less than it looked. It cost one case in round r2 and it was found because the case
+had passed in r1 on inputs that had not changed.
+
+### 5.5 The one operational failure, and what the system did about it
+
+Everything above is a defect in code. This is a mistake by a person, on the live system, and it is
+recorded here because the response to it is the best evidence in this document that the design works.
+
+**What happened.** The product owner started scored round `r2` and said so. Four minutes later the
+engineering session pushed a commit. On this host a push to `master` **is** a deployment (Amendment
+20), so the scored container was replaced while it was scoring a paid round. Nothing about this was
+arranged, simulated, or triggered on purpose; the engineering session had been told the round was
+starting and pushed anyway.
+
+**What the system did.**
+
+- The **dev split had already crossed its boundary** and was written under its clean name,
+  `dev-deploy-aa1ee6c5d5eb-r2.json`, with the commit it ran on inside it. It is a valid measurement
+  and is used as one.
+- The **experimental split was interrupted mid-way**. It left
+  `eval-results/.rounds/r2-experimental.inflight.json`, and the next start of the workload **refuses
+  to run that split again** rather than silently re-spending the money — the operator has to read the
+  log and decide, which is the entire point of the marker.
+- Nothing was written under a name that would later read as a completed round, and no partial result
+  was aggregated into anything.
+
+**Why it is in the main text.** Twenty-five amendments argue for this behaviour: that a push is a
+deployment, that a round is locked to the build it started on, that an interrupted paid split must
+fail closed rather than re-run itself. This is the first time any of it was triggered in the wild,
+by an actual mistake rather than by a test. A clean `r2` would have added one row of numbers; this
+file demonstrates that the mechanism fires. Three cents was a good price.
+
+The correction was procedural, not technical: the remaining rounds are run on a frozen commit with
+no pushes in between, and the test split is run **on its own** rather than sharing a round with a
+split that might be interrupted — a held-out first run cannot be taken twice.
 
 **Mutation results, as shipped.** The fixture declares a mutation catalogue and **two** mutations are
 wired: `mu2-text` (control and label text changed under the locator) and `mu6-overlay` (a banner that
@@ -328,7 +400,7 @@ the field evidence for it is one demonstration rather than a rate. A mechanism w
 and cannot point at a production instance of is exactly the kind of claim this report is supposed to
 make uncomfortable.
 
-### 5.5 Silent failure — the metric we actually care about
+### 5.6 Silent failure — the metric we actually care about
 
 Loud failures are cheap: the run says what it could not do and a reader believes it. A silent failure
 is a plausible wrong answer, and it is the only outcome that damages the user.
@@ -391,7 +463,7 @@ honest about a two-day calendar.
 **Process finding, stated against ourselves.** Six of the last eight spec amendments concerned the
 measuring apparatus — ledgers, budget ceilings, evaluation provenance, the spec's own change
 discipline — rather than what the product can do. The instinct that produced them is the same one
-that found all five broken checks in §5.4, and it is genuinely the most valuable thing in this
+that found all seven broken checks in §5.4, and it is genuinely the most valuable thing in this
 repository. It also became the failure mode: while it was auditing the instruments, nobody audited
 the promises, which is how a false limitation and a support matrix that overstated a record both
 survived to a live deployment. The correction was to run the deployed system as an adversary instead
