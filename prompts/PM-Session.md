@@ -591,3 +591,17 @@ so what about just wait after the test?
 （ENG 更新摘要：Amendment 21 已寫入 spec — A21.1 scored 掛自己的 volume、A21.2 一輪的結果檔要 commit 進 eval/results/、A21.3 /api/eval-results 服務 repo ∪ volume 聯集、A21.4 計分輪 evidence bundle 網頁點不到列為 limitation、A21.5「用別的行程的副作用滿足的前置檢查不是前置檢查」、A21.6 記下兩條否決的路、A-63…A-65。A21.7 為 open item：volume 分家導致 ledger 分家，$1/天上限被執行兩次、系統最壞 $2/天，切分方式由 product owner 決定，未定之前付費輪不跑。481 tests passing。）
 
 ==========
+
+latest reply from ENG:
+（摘要：Amendment 22 實作完成並推送，t0 = 1785247648 | 14:07:28Z，watcher 在跑。新版偵測到殘留的 PROVIDER_SPEND_CEILING_USD_PER_DAY 會拒絕啟動。做了 A22.1–A22.4 單一宣告上限、A20.3 輪次鎖 SHA + .inflight marker、A20.6 帳本已正確（dry run log remaining_today_usd 0.9998 證明啟動驗證呼叫有進帳）、A22.7/A22.8 evidence 帶出 repo（eval/bundles.py、bundle-sample.json、EVAL_BUNDLE_CAP_MIB=48、出庫重新雜湊、GET /api/eval-bundles）、A17.10 答案：$0.0042 是放寬後量的，且 /healthz 現在報 budgets 與 prices。501 tests passing。
+
+部署活了 e1d13ca。要 PM 決定：帳本把免費呼叫也算進上限 —— app 的 today_usd 0.001107 但該容器沒有付費金鑰，公開 demo 會在花 $0.00 真金的情況下撞到 $0.25 並開始回 blocked / provider_quota。提案：spend() 加 today_billed_usd / cumulative_billed_usd 只算 paid tier，上限對 billed 執行，免費層名目金額照記照顯示但不擋人。
+
+deploy-to-usable n=5：112–176 s（中位 149.7 s），中斷 12–23 s，離散來自平台建置佇列。）
+
+幫我決定該決定的事
+並且告訴我我這邊要去 dashboard 操作什麼幫他
+我看到裡面有提到預算，現在由於時間緊迫，預算可以放寬一點
+只要這個task總共(包含過程中所有實驗，算到你有信心可以deliver為止，後續grader測驗不算)不要花超過我10美金都算可以接受
+
+==========
