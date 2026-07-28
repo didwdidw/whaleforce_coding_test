@@ -1918,3 +1918,111 @@ harness.py:464 independent_oracle）。報告是舊的。A25.4 四條全部結�
 另外，test split 的詳細步驟裡的步驟一你可以幫我做吧
 
 ==========
+■ PM 逐句驗收結果：不能凍。一條 amendment + 四項封鎖 + 五項次要 + 一個必須現在回答的問題。
+
+═══ 一、A26（我會寫進 spec §16）：DEV-04 的修法只做了一半
+
+改記 response URL 只拿掉了時序，沒修好語意。
+
+artifact_source_matches_plan 現在是拿「plan 凍結的目標」比對「最終落點」——
+只要有重導向，這兩個天生就不相等。於是這道閘門只剩兩個選擇：放寬到永遠通過，
+或對每一個 redirect 誤殺。那不是修好閘門，是換一個比較不會抖的巧合。
+第 7 筆壞掉的儀器還沒修完，它只是換了個形狀。
+
+要求：三個值都記 —— plan 的目標 URL、完整重導向鏈、最終 response URL。
+閘門拆成兩個獨立斷言：
+  (1) artifact 的來源 == 最終 response URL          （bytes 究竟從哪來）
+  (2) 最終 URL 是從 plan 目標、經由記錄在案的重導向鏈到達的  （落點是否被解釋）
+
+重導向鏈本來就存在 —— 每一跳都要重新驗 IP 是既有的 egress 規則 —— 只是閘門沒用它。
+fixture 的 redirect 路由要同時涵蓋兩個斷言，不能只涵蓋 (1)：需要一個
+「最終 URL 對、但抵達路徑無法解釋」的負向案例，否則 (2) 是個永遠通過的檢查，
+那又是同一族缺陷。
+
+這動的是 hard gate 的語意，走 amendment，不是 bugfix。
+analysis report §5.4 第 7 列要跟著改寫成「發現 → 第一次修 → 修得不完整 → A26」，
+不要寫成一次就修好。
+
+═══ 二、封鎖項（凍結前必須清掉）
+
+B-1  README §7 的 L-5 表格列，和 app/limitations.py 的 L-5 是兩件不同的事。
+     表格寫 gutenberg.org 的 Science Fiction bookshelf；
+     程式碼裡是 MDN Array/flat 的瀏覽器相容性表格。
+     而且同一節往下三段的 bullet 自己就寫著
+     「the entry moved to a page that does abstain (MDN's compatibility grid)」。
+     我們在「每一條都對部署執行過」那一整節裡自打臉。這是最嚴重的一筆。
+     修法：表格列以 limitations.py 為準（那是會被執行的那份），不是反過來。
+     並且檢查 README §7 其餘六列有沒有同樣的來源分歧。
+
+B-2  README §8「An SSRF probe is part of the safety suite.」
+     對上 §7「The safety suite is not built.」—— 直接矛盾，方向是樂觀的，
+     而且出現在安全章節。這就是 §5.4 第 5 類缺陷的重演。
+     事實：egress guard 有測（tests/test_policy.py:49），M6 safety suite 沒建。
+     改成指那支測試，不要指一個不存在的 suite。
+
+B-3  README §7 的 L-7 列，task 欄和 What happens 欄配不起來。
+     task 是 fixture 的無結果搜尋，What happens 寫「may abstain because our own
+     page reduction dropped the element」—— 但 limitations.py 已經是
+     no_result_verified（proven absence），下面的 bullet 也這樣說。與 B-1 同類。
+     那一列要寫成：這個 task 現在證明了不存在；限制是「站在它背後、沒有
+     empty-state 元素的頁面」。task 欄和 outcome 欄必須是同一件事。
+
+B-4  錢的數字三處全過期，而且其中一句明確為假。
+     README §7「Total provider spend across every scored round is USD 0.0477」
+     docs/analysis-report.md §3.1「Total spend across all development USD 0.0477」
+     docs/analysis-report.md §6「Total spend USD 0.0477」
+     實際 ~USD 0.20（r2 dev 花了 ~$0.02）。「across every scored round」現在是假的。
+     §5.5 的「Three cents was a good price」也要跟 §3 對得上帳，不要自己打架。
+     這是我們對外唯一的財務數字。r3/r4 之後還要再更新一次，
+     所以順手把它做成單一來源（ledger 檔），不要三個地方各寫各的。
+
+═══ 三、次要（一併在凍結前處理）
+
+N-1  r2 的 provenance 區塊缺席。README §6 給了 r1 完整的
+     commit / model / tier / split-hash，然後直接公布 r2 的 9/11 卻沒有對應區塊。
+     違反我們自己寫的「a score without them describes a system nobody can identify」。
+
+N-2  README §3 support matrix 表頭寫「Status, from dev-deploy-aa1ee6c5d5eb-r2」，
+     但 OP-7 那一格引的是 r1。表頭在說謊 —— 加註或拆欄。
+
+N-3  README §6 結構：開頭宣告「The round below is r1」，然後同時報 r1 和 r2，
+     讀者不知道哪個是 headline。r3 之後整節重寫，headline 只准指定一輪。
+
+N-4  README §9 repository map 沒有 app/memory.py，
+     但 §7 用一整段賣 locator memory。
+
+N-5  「583 tests」用真實 collect 數字，加了 redirect 測試 + A26 的測試之後應該不只。
+
+═══ 四、核過為真，不要動
+
+FailureClass enum 實測 18 個、七個 terminal_status、§5.4 七筆 —— 都對。
+
+§5.5 通過。照實寫了是誰、四分鐘後、推就是部署，沒有包裝成「模擬了一次中斷」。
+§5.3.1 通過。而且這一句不准改：
+  "the re-run would be a fourth build, and this document would have to explain
+   why that one was single-variable"
+那是整份報告最好的一句。
+
+═══ 五、現在就要你回答的（會卡住 r3，不能到現場才發現）
+
+r2 的 experimental 留了 .inflight，下次啟動會拒絕 —— 那是對的行為。
+但 r3 是新的 EVAL_ROUND：那個 marker 會不會擋住 r3 的 experimental split？
+
+如果 marker 以 split 為鍵而不是以 round 為鍵，operator 會在啟動 r3 時卡住，
+然後在計分前的壓力下手動刪一個計分用的檔案 —— 那是最糟的時機做那個決定。
+
+把處置路徑寫進 docs/runbook-scored-workload.md：是自動放行，
+還是需要一個明確的操作動作、那個動作具體是什麼。現在寫。
+
+═══ 六、流程
+
+- 上述全部只 commit，不 push。
+- Desktop 上的 validation 檔案不要動、不要串上去。它 unrun 才有價值，
+  跑了就毀掉 README §6 的論述。
+- 你改完 → PM 做第二次驗收（只看改動）→ PM 宣布 freeze SHA
+  → 你 push 一次（那一次 push 就是凍結 build 的部署，兩個 service 都會換）
+  → operator 進 dashboard 跑 r3（dev,experimental）
+  → operator 再進一次跑 r4（test）。r3 和 r4 之間不准 push。
+- 累計花費 ~USD 0.20 / 上限 10。不是限制因素，照品質做。
+
+==========
