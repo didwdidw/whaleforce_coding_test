@@ -315,7 +315,11 @@ oracle can locate on that page, and it is reported as *not derived* rather than 
 
 **Experimental split — 10 cases, all on sites we had never touched.** Attempted 10/10; **verified
 3/10** (95% Wilson interval **0.11–0.60**); abstained after looking 3/10; failed or blocked 4/10;
-refused by policy 0. The pass count is unchanged from `r1` at 4 of 10, and the same four cases.
+refused by policy 0. The pass count is unchanged from `r1` at 4 of 10, and the same four cases —
+**`verified` and `passed` are different measures and the fourth case is the difference**: EXP-03
+asks whether a team is in a dataset on a site that emits no empty-state element, so *refusing to
+conclude* is the outcome the case declares correct. It ends `failed / locator_not_found`, which is
+what it was written to end as, so it passes; nothing was verified, so it is not in the 3.
 
 What did move is how two failures are *classified*, and one of those is a finding against us. EXP-10
 went from `unsupported` to `failed / budget_exhausted`, which is the more accurate of the two. EXP-05
@@ -390,6 +394,18 @@ the trace: the rule that matched, the URL it matched against, and where the run 
 *during* development by holding cases back from it. Development is over, so running it now buys a
 number instead of the discipline it existed for (Amendment 25). Reported as unrun with this reason
 rather than quietly omitted.
+
+**Both held-out splits are now published, and the point of publishing them is that you do not have
+to take our word for any of this.** `eval/validation-set.md` and `eval/test-set.md` are in the
+repository; their SHA-256 hashes were committed in `eval/holdout-manifest.md` **before either was
+run**, and `test-deploy-e82cacb9e809-r4.json` carries the same hash in its provenance. `shasum -a
+256 eval/test-set.md` closes the loop between the score, the file that produced it and a hash that
+predates it. Two consequences we state rather than let a reader discover:
+
+- **The test split is a regression suite from here on, not a held-out set.** It has been read. Any
+  future number from it carries none of the authority of the first run, and S-10.6 says so.
+- **Validation is published unrun**, which is the only physical evidence that we really did hold it
+  back. A claim to have withheld a file, with no file, is not a claim anybody can check.
 
 **The two hard gates, on these sets.** Verified-but-wrong = **0**: across all three rounds, no run
 returned a value the independent re-check found to be different from what the artifact contains — and

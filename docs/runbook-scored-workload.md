@@ -203,7 +203,9 @@ project. It is then served publicly from the image:
 - `GET /api/eval-results/<file>` — the report. The repository's copy resolves first.
 
 Held-out splits carry no per-case detail; the harness withholds it where the file is written, not
-where it is served. Held-out case files are never in the image — they are mounted at score time.
+where it is served. Held-out case files were never in the image while a split was still held out —
+they were mounted at score time. Both are published at submission (`eval/holdout-manifest.md`), so
+this paragraph describes how the scored rounds were run, not the repository's state today.
 
 ### The evidence comes out too (A22.7)
 
@@ -235,9 +237,12 @@ limitation is written against.
 
 ## Scoring a held-out split (validation, test)
 
-Held-out case content is **never in the image** and never in the repository (S-10.4), so the
-file arrives by hand and the workload has to be told where it is. Everything else about the
-round is identical.
+Held-out case content is **not in the image** and not in the repository while the split is still
+held out (S-10.4), so the file arrives by hand and the workload has to be told where it is.
+Everything else about the round is identical. **Both splits were published at submission**, after
+the test split had been scored once — so these steps describe how `r4` was actually run, and a
+re-run today would find `eval/test-set.md` in the image and would be a regression check rather than
+a held-out round.
 
 **The test split is scored once, and that first run is the reported score** (S-10.6). After
 it has been read it is a regression suite and must be described as one — never again as

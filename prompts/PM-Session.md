@@ -854,3 +854,43 @@ FROM-r3
 
 ---
 HEAD 0a5660a，本輪三個 commit（含 prompt log）全部未推。等第三次驗收。
+
+==========
+
+lateset progress, FYI
+下一步要幹嘛？
+
+
+1. r4 的證據撈回來了 —— 八筆全部，24 個 artifact
+
+eval/results/bundles/test-e82cacb9e809-r4/，10.68 MiB。沒有改 code、沒有重跑、沒有花錢。
+
+case 8/8（含唯一那筆成功的 TST-02）／artifact 24 個，雜湊驗兩次 —— 匯出時比對 store 紀錄，落進 repo 後再重算一次，全對／trace 每筆完整（run.json，含 postcondition、claims、每一步 detail）
+
+兩個細節值得講：
+
+case id 是用任務字串精確比對出來的，不是靠提交順序。 因為 concurrency 2，有兩筆 run 的起始時間差不到 100 ms —— 照順序編號會編錯。我讀了 volume 上的 test-set.md 做 exact match，8/8 全中、0 unmatched。（照你說的，計分已取，不再迴避讀它。）
+
+manifest 自己承認它不是 exporter 產的。 "tool": "rescued-by-hand/1.0"，並寫明為什麼形狀不同（帶 run.json 而非 case.json、沒有 cap 帳，因為沒有東西被 cap 篩過 —— 那一輪產出的全部都在這裡）。一份看起來像正常匯出的搶救，是比搶救更糟的產物。
+
+五筆沒有 artifact，那是結果不是漏撈，manifest 明寫：它們在任何導航之前就被拒絕，沒有頁面可抓；對一次拒絕而言，證據就是 trace —— 匹配到的規則、被比對的 URL、停在哪一步。
+
+線上可達，我實測過：/api/eval-bundles 六輪全列，test-e82cacb9e809-r4/TSTrs 會先點的那七筆，現在點得開。
+
+2–3. 結論搬到該在的位置
+
+那句話進 README §6，就在分數旁邊，並在前面補上你要的拆解（五筆從沒瀏覽 → 對什麼）。
+
+§3 support matrix 上方加了量測警語，就在承諾旁邊：declared 路由認得的比表格承諾的窄，held-out 四筆宣告層 case 有兩筆沒到達承諾表面，並明說「我們自己的 dev split 量不到這件事」以及「把上面每一列都視為以措辭符合我們預期為條件」。
+
+三筆 robots 照你的判讀重寫了 —— 從「雜訊」變成該節最強的證據：那是我們自己的 case 打到我們自己的政策，沒有人是為了被拒絕才寫它們。所以發現不是「robots 生效了」（那本來就有測），而是我們對「一般任務」的直覺比我們自己選的政策寬，八取三。政策正確且不動，剩下的落差就是可觸及表面。
+
+4. 部署 SHA ≠ 計分 SHA
+
+§6 加了一段明講：每次 push 都重新部署，e82cacb9e809 之後的 commit 全是結果、證據與文字，沒有 code；權威是每個結果檔自己的 provenance，不是跑著的容器，並告訴讀者怎麼自己比對（eval/results/*-r3.js 。最後一句：要把這個距離補到零就得把 held-out split 跑第二次，而那正是唯一不能做的事。
+
+狀態
+
+HEAD 6f3ec87，已推／部署 app 0767aa7e1e9d，ok: true（bundle 之後那次 doc commit 尚在建）／tests 600 passing／花費 billed USD 0.1515 / 上限 8.00
+
+可以做最後一次通讀了。
