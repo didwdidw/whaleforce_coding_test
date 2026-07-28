@@ -2237,3 +2237,90 @@ A11.2's phrasing overstated the cost; this supersedes it.
   totals appear on the health endpoint distinctly labelled (A23.1, A23.2).
 - [ ] **A-69** The cumulative development ceiling refuses a round that would exceed USD 8.00 before
   its first case, and the analysis report's cost figures are the billed ones (A23.4, A23.2).
+
+### Amendment 24 — What counts as present in an artifact, and five reconciliations (2026-07-28)
+
+Extends **§4**, **A17.2**, **A22.7**, **A22.9**, **§14**; supersedes **A-14**'s single expected status
+and **A-66**'s literal figure.
+
+#### The scorer's corpus
+
+The r1 headline fell from 10/11 to 6/11 on four cases the engineering session verified by hand to be
+correct. `books.toscrape` truncates long titles in the rendered text and carries the full title in
+the `title` attribute; the product reads the attribute — the better behaviour — and the harness's
+independent check read `text_content()` only. Long titles failed, short titles passed. This is the
+fourth defect in one family: **a broken measuring instrument producing a plausible number.** Its
+direction is pessimistic rather than optimistic, which does not make it a different defect.
+
+**A24.1** The corpus a value is re-resolved against is **the rendered text plus the values of
+human-visible attributes** — `title`, `alt`, `aria-label`, `placeholder`. It is **not** the raw
+markup. Raw markup would let a URL, a class name, an `id`, a `data-` attribute, a comment, or a
+script literal satisfy a claim, and a value that a reader cannot see is not a value the artifact
+delivered.
+
+**A24.2** Widening a corpus loosens a gate, so the boundary MUST be fenced by a test, not by
+intention. **EXP-05 is that test**: its answer (`Hello World!`) exists in the stored artifact **only**
+inside a `setTimeout` script literal, and the run correctly abstained. A corpus change that would
+turn EXP-05 into a pass has gone too far, and that is now a regression case rather than a judgement
+call.
+
+**A24.3** r1 stays committed as the record (A21.2). **dev is re-run as r2 with the scorer fix as the
+only change**, and again as r3 after the product fixes. Two re-runs at USD 0.03 each buy clean
+attribution — r1→r2 is the measurement defect removed, r2→r3 is the product improving — and the
+analysis report carries all three with that reading. A single clean number would be worth less than
+the sequence: the sequence is the evidence of the discipline the assignment grades.
+
+#### Five reconciliations between the spec and the code
+
+**A24.4 (D-1) A17.2 stands; the code changes and the test is inverted.** A task naming no site MUST
+NOT be answered by the fixture. The fixture's data is invented, so answering an unnamed-site question
+from it returns fabricated data as an answer — the silent failure at its maximum severity, which is
+not a close call. `test_a_price_question_naming_no_site_still_reaches_the_fixture` asserts the defect
+as a requirement; it is inverted, not deleted, so the prohibition is what the suite holds. **A test
+that encodes a defect as a requirement is A22.9's family inside the test suite**: 505 passing tests
+say nothing about whether the right thing is asserted.
+
+**A24.5 (D-5) A-14 was one item describing two different situations.** It splits:
+
+- **A-14a — refusal before browsing.** A task that requires authentication, payment, or defeating an
+  anti-bot control is recognised before execution and ends `unsupported / policy_refused`. This
+  matches the implementation and DEV-14; the spec's wording was wrong, not the code. *We do not do
+  this kind of thing* is `unsupported`.
+- **A-14b — an obstacle met during execution.** A navigation that lands on a login wall, a paywall,
+  a rate-limit page or an interstitial ends **`blocked`**. *Something stopped us* is `blocked`. This
+  is **not implemented**, and its absence is not merely a missing feature: without it these runs end
+  as `locator_not_found` or `postcondition_unmet`, which misclassifies them and corrupts A14.3's
+  refusal rate exactly as D-3 does. A **minimal detection is required** — HTTP 401 / 403 / 429 on a
+  navigation, and a login form standing where the expected content was — and it is cheap. Detection
+  beyond that (visual paywall recognition) is a declared limitation, honestly stated. EXP-08 is the
+  worked example.
+
+**A24.6 (D-6) The accessibility snapshot is required, and cost is not the reason.** S-4.5 stands. The
+accessibility tree is the corpus **F1 (semantic role + name) locators are derived from**; without it
+stored, an F1 locator claim — and any healing or recovery that moved through F1 — cannot be
+re-derived from the artifact, which is the premise §4 rests on. It is load-bearing for §7 and §8, not
+an inspection nicety. It MUST land **before M5**, so M5's evidence is complete from its first run
+rather than retrofitted.
+
+**A24.7 (D-7) Acceptance items assert invariants, not literals.** A-66 is rewritten to *"each
+process's ceiling is derived from one declared system total, and the health endpoints agree with it"*
+— no figure. An amendment that changes a number MUST NOT be able to make a §14 item read as failed to
+a reviewer who takes it literally. Any other acceptance item carrying a literal an amendment can move
+is rewritten the same way.
+
+**A24.8 (D-10) Bundles are carried by `passed`, and the general rule is broader.** Classifying by
+`counts_as_success` withheld evidence for exactly the four cases where the run's verdict and the
+independent check disagreed — the cases most worth looking at, and the ones that required an SSH
+session to examine. The rule: **any case where the run's self-report and the independent check
+disagree is carried in full, whichever of them says it passed.** Disagreement is the signal; either
+side being satisfied is not.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-70** A value present only in a script literal, a class name, an `id`, a `data-` attribute,
+  a URL or a comment does not satisfy an evidence check, and EXP-05 fails if it ever does (A24.1,
+  A24.2).
+- [ ] **A-71** A task naming no site is not answered by the fixture, and the suite asserts the
+  prohibition (A24.4).
+- [ ] **A-72** A navigation that meets a 401/403/429 or a login wall where content was expected ends
+  `blocked`, not `locator_not_found` or `postcondition_unmet` (A24.5).
