@@ -2096,3 +2096,76 @@ A20.5's failure in a form A20.5 does not catch. The rule that follows: **the sys
 is the sum of the per-process ceilings, and that sum is the number the project promises.** The split
 between the public demo and the scored workload is the product owner's to set. Until it is set, no
 paid round runs.
+
+### Amendment 22 — The ceiling split, and the scored runs must stay inspectable (2026-07-28)
+
+Closes **A21.7**; extends **A12.5**, **A20.5**, **A21.2**, **A21.3**, **A21.4**.
+
+#### The split
+
+**A22.1** **The system's daily ceiling remains USD 1.00.** That is the number this project promises,
+and A21.7 is correct that two ledgers enforcing USD 1 each is a raise nobody authorised. A20.5
+forbade raising a ceiling to accommodate a forecast; it applies with more force to a ceiling raised
+by an accident of storage.
+
+**A22.2** The split, effective immediately:
+
+| Process | Daily ceiling | Why this number |
+|---|---|---|
+| **Scored workload** | **USD 0.75** | A round forecasts at USD 0.157 and costs USD 0.051 measured. 0.75 covers "every case behaves like the most expensive case we have ever observed" (USD 0.104) seven times over. It deliberately does **not** cover the theoretical tail of USD 0.975 — the forecast gate warns on the tail, and A20.5 says a ceiling is not sized to it. |
+| **Public-serving app** | **USD 0.25** | Under A12.2 this container holds no billing credential, so its real spend today is USD 0.00 and this is a reservation, not an allowance. It becomes live only at the A15 switchover, where it caps paid fallback at roughly 125 runs/day on top of whatever the free tier served first. |
+| **System total** | **USD 1.00** | The promise. |
+
+**A22.3** The two ceilings MUST be **derived from a single declared source** — one place that states
+the system total and the split — rather than set as two independent values. Two numbers that are
+only equal by convention will drift, and the drift is invisible because no process can see the other
+one's ledger. This is the same reasoning as A20.3: the discipline is right and the discipline is not
+the mechanism.
+
+**A22.4** The health endpoint of each process reports **its own ceiling, its own spend, and the
+system total**. A promised number that has to be reconstructed by adding up two services is not a
+visible promise (A12.5, A17.13).
+
+**A22.5** The split is **revisited at the A15 switchover**, which is the first moment the public side
+can spend at all, and is therefore the first moment there is traffic data to set it from. Revisiting
+it then is planned, not a change of mind.
+
+#### A21.4 is accepted as a shape and not yet as a limitation
+
+**A22.6** A21.4's reasoning is sound — the verification record is the claim and the bundle is
+corroboration — and A21.6 is right to refuse to open a door on the scored service to fix it. But the
+assignment asks that the system *make failures inspectable*, and as written A21.4 means the runs
+whose numbers we publish are exactly the runs nobody can look at, with the failures the least
+reachable of all. Nothing in A12.3 requires the **service** to be reachable; it requires the
+**credential** to be unreachable. The artifacts are not the credential.
+
+**A22.7** A21.2 already established the mechanism: the record of a paid round travels in the
+repository. It extends to the evidence. A scored round MUST commit, alongside its result file:
+
+- the complete evidence bundle for **every non-success run** — these are the ones a reader has reason
+  to doubt, and they are also the fewest;
+- the complete bundle for a **named sample of successes**, chosen before the round, so that a reader
+  can check that a pass looks like a pass;
+- for anything omitted, the per-case verification record, the artifact hashes, and **an explicit list
+  of what was left out and why**, so absence is recorded rather than inferred (A11.8).
+
+**A22.8** A size cap governs this, stated in the report and measured rather than guessed. If a round's
+required bundles exceed it, what exceeds it is named under A22.7's third clause — and *that* residue
+is the A21.4 limitation, written against what actually could not be carried rather than against the
+whole category. `/api/eval-results` serves these through A21.3's union, so the public frontend
+reaches them without the scored service ever being reachable.
+
+#### Ratified
+
+**A22.9** A21.5 — *"a check satisfied by another process's side effect is not a check"* — is the most
+generally useful clause in Amendment 21. It is the same defect as A11.7's vacuous verification and
+A19.2's unevaluated-constraint-recorded-as-satisfied, found in a third place: **preconditions,
+verification, and constraints all fail the same way, by reporting on a coincidence.** Any new check
+added to this system is to be read against it.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-66** Both ceilings derive from one declared source, each health endpoint reports its own
+  ceiling and the system total, and the total is USD 1.00 (A22.1–A22.4).
+- [ ] **A-67** A scored round's committed output includes every non-success run's evidence bundle and
+  the pre-named success sample, with anything omitted listed explicitly (A22.7).
