@@ -349,6 +349,12 @@ class Executor:
             if not entry.ok or entry.kind not in _MEMORABLE_STEPS:
                 continue
             element = entry.detail.get("element") or {}
+            # An element with nothing in it is not a locator. The deterministic verification
+            # step is an `extract` with no element, and without this it wrote an empty row
+            # that could never match anything and held the key that a real one needs.
+            if not any(element.get(f) for f in
+                       ("role", "name", "label", "text", "id", "testid", "title")):
+                continue
             role = str(element.get("role") or entry.kind.value)
             origin = _origin(str(entry.detail.get("url") or entry.detail.get("final_url")
                                  or (run.postcondition or {}).get("target_url") or ""))

@@ -36,8 +36,24 @@ def mem(tmp_path) -> LocatorMemory:
     return LocatorMemory(Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts"))
 
 
-def test_nothing_is_remembered_until_it_is_written():
-    pass
+def test_a_step_with_no_element_is_not_a_locator(tmp_path):
+    """The deterministic verification step is an `extract` with no element. Without this it
+    wrote an empty row that could never match anything and held the key a real one needs."""
+    from app.executor import Executor
+    from app.models import Run, StepKind, TerminalStatus, Tier, TraceEntry, new_id
+
+    store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
+    executor = Executor.__new__(Executor)
+    executor._locator_memory = LocatorMemory(store)
+    run = Run(id=new_id("run"), task="t", tier=Tier.DECLARED)
+    run.postcondition = {"operation": "OP-6", "target_url": f"{ORIGIN}/x"}
+    run.trace = [TraceEntry(seq=1, kind=StepKind.EXTRACT, summary="Deterministic verification",
+                            ok=True, detail={"locator_provenance": "freshly derived"})]
+    run.terminal_status = TerminalStatus.SUCCEEDED_VERIFIED
+
+    executor._write_back_locators(run)
+
+    assert LocatorMemory(store).stats()["rows_stored"] == 0
 
 
 def test_a_written_locator_comes_back(mem):
