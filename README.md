@@ -318,7 +318,7 @@ itself the point of the rule.
 
 | | The task | What happens |
 |---|---|---|
-| **L-1** | ⟨FILL-6: L-1 is being rewritten — Amendment 25. Fill from the corrected entry⟩ | |
+| **L-1** | *"In the S&P 500 constituents table on Wikipedia, sort by CIK ascending and tell me which company is first."* | Stops before browsing: `unsupported / policy_refused`. The article is described, not named, and picking a starting page the task never named is how a run answers a question nobody asked. **Naming it does not finish the job either** — *"In the List of S&P 500 companies article on Wikipedia, …"* now reaches the right table and sorts it, then fails to recognise that the sort landed and spends its remaining steps re-searching for the article: `failed / budget_exhausted`. Both halves are executed against the deployment; an earlier version of this entry claimed the second one succeeded. |
 | **L-2** | *"How many books are listed on the last page of the Nonfiction category on books.toscrape.com?"* | Runs out of step budget while paging and stops with **no answer**. Paging to "the last page" costs a model call per page. The budget is fail-closed on purpose: the alternative is reporting whichever page it reached as though it were the last. |
 | **L-3** | *"Is there any book in the Fiction category on books.toscrape.com priced over £50?"* | Reads 20 of the listing's own count of 65 and reports coverage **unproven** (`unverified`). Absence is only concluded from positive proof, and a multi-page category spans several artifacts while this build verifies against one. Single-page categories are answered. |
 | **L-4** | *"Use Wikipedia's search page to find articles mentioning 'convertible arbitrage'."* | Refuses before navigating and quotes the robots rule. Wikipedia disallows `/wiki/Special:Search`. The refusal is correct **and** it is a limitation: an ordinary question with no permitted route has no answer here. |
@@ -326,8 +326,30 @@ itself the point of the rule.
 | **L-6** | *"…the nonfiction category listing, second page, without the planner."* | Answers correctly — **on the deterministic path**. Both paths satisfy the same postcondition and are verified identically, but no model is in that loop, so it is not evidence of self-correction. Every run records its path and rates are reported per path. |
 | **L-7** | *"Search the fixture catalogue for a term that appears on no page"* | May abstain because **our own page reduction** dropped the element, not because the site lacked it. Runs are audited for that condition and badged. The audit only covers what we thought to look for. |
 
-⟨FILL-7: add any limitation found while executing A25.1 — including, if it survives, the honest entry
-for whatever OP-7's parameter generalisation does not cover⟩
+**What executing the list actually found.** `python -m eval.limitations_check --base-url
+https://wf-agent.zeabur.app` runs every entry, and the remedy phrasing where one is claimed, against
+the deployed system and writes `eval/results/limitations-<sha>.json`. The first time it ran, **four
+of seven entries did not reproduce as written**:
+
+- L-1's remedy failed, as above — the defect the independent review found.
+- L-4 published `policy_refused`; the run ends `robots_disallowed`, which is the more accurate class.
+- L-5's Project Gutenberg task had started **succeeding**. An abstention published after it stopped
+  happening is the same defect as a remedy published after it stopped working, so the entry moved to
+  a page that does abstain (MDN's compatibility grid, whose label is an icon and a column position).
+- L-7's fixture search now **proves** absence via the empty-state element instead of abstaining.
+
+It also caught a regression in this repository that no test had: the accessibility snapshot added by
+Amendment 24 took its own trace entry, every trace entry charges the step budget, and capture-heavy
+runs therefore had half the browsing headroom they were designed with. One capture is one step again.
+
+The list is only worth something if it is executable. It is now, and it stays that way — the check is
+re-run before submission, and its report is committed beside the eval results.
+
+**OP-7's open item.** The record promises *"open a product detail page and extract a labelled field"*
+on books.toscrape.com; the plan behind it is fixed to one product. Asking for the UPC of any other
+book is the same operation and lands on T-EXPERIMENTAL with the best-effort banner. Until the record
+generalises over its parameter, the support matrix row above states the product it holds for — which
+is the honest version rather than the correct one, and both beat leaving it unsaid.
 
 ### What is not built, and is not claimed
 
@@ -340,17 +362,21 @@ rather than discovered as a gap. Amendment 25 is where each one was made.
   product that will not exist is a straight subtraction from the one that will. It is published as a
   *designed, not built* seam because the design is real work and pretending otherwise would be the
   opposite of the point.
-- **Self-maintenance (§8, locator memory) is the reduced version.** A keyed store on the volume,
-  written back only from `succeeded_verified` runs, with a TTL, quarantine after three consecutive
-  failures, and the run page saying whether a locator came *from memory*, was *freshly derived*, or
-  was *healed*. Not: cross-site generalisation, ranking, or a learned selector model. Present, small
-  and honestly bounded beats absent, and absent is where it was until the last day.
+- **Self-maintenance (§8, locator memory) is the reduced version — and check the support page for
+  whether it shipped.** The planned scope is a keyed store on the volume, written back only from
+  `succeeded_verified` runs, with a TTL, quarantine after three consecutive failures, and the run
+  page saying whether a locator came *from memory*, was *freshly derived*, or was *healed*. Not:
+  cross-site generalisation, ranking, or a learned selector model. This is the largest single gap in
+  the submission and it is stated as one. The frontend does not take our word for it: the support
+  page derives the claim from whether the code exists, so if it is not built the page says the
+  trade-off is *intended* rather than made.
 - **The mutation suite is two mutations, not nine.** MU-4/5/7/9 and the sweep are cut. Two working
   mutations plus one healing demonstration is evidence; nine is a research programme, and the
   marginal mutation buys nothing the first two have not already shown.
-- **The safety suite is one item.** A minimal injection detector so `injection_detected` is reachable
-  on our own injection page — not a suite. If the detector is not in the shipped build, `/coverage`
-  says the status has never been produced, which is the honest form of the same statement.
+- **The safety suite is not built.** What exists — the egress guard, robots enforcement, the refusal
+  taxonomy — is load-bearing and tested. What does not exist is a safety split or an injection
+  detector, so `injection_detected` is a declared status no code path currently reaches, and
+  `/coverage` says so rather than leaving it to be assumed.
 - **Spend controls stopped where they were.** Total provider spend across every scored round is
   **USD 0.0477**. The ceiling, the ledger and the credential topology are done and were over-done
   relative to a bill that size.
@@ -393,16 +419,8 @@ rather than discovered as a gap. Amendment 25 is where each one was made.
 ---
 
 <!--
-FILL LIST — engineering session. Everything else in this file is final prose.
-  FILL-1  public URL (appears in several places)
-  FILL-2  local-run env var block
-  FILL-3  test count
-  FILL-4  support matrix status per record, from committed eval results
-  FILL-5  §6 Evaluation, written from committed results
-  FILL-6  L-1 rewritten after A25.1
-  FILL-7  new limitations found by A25.1
-  FILL-8  shipped state of the Amendment 25 cuts
-Do not soften any claim in §1, §4, §5 or §7 to make a number look better. If a claim here is
-no longer true of the built system, the claim is the defect — fix the system or change the
-sentence, and say which in the commit message.
+Every FILL in this file has been filled from committed measurements. Do not soften any claim in
+§1, §4, §5 or §7 to make a number look better. If a claim here is no longer true of the built
+system, the claim is the defect — fix the system or change the sentence, and say which in the
+commit message.
 -->

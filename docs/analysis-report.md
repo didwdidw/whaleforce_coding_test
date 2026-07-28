@@ -14,10 +14,10 @@ because a single mixed number would describe neither case.
 
 | | |
 |---|---|
-| Host | ⟨FILL-A: provider / region⟩, 2 vCPU, 4 GB RAM, no swap beyond ⟨102 MB observed — confirm⟩ |
+| Host | Zeabur on a self-hosted Ubuntu 24.04 box running k3s. `nproc` 2, `free -m` total **3,723 MB**, swap 1,987 MB provisioned. Swap was observed at a flat 102 MB during a scored round with **zero growth**, which was M0's pass condition |
 | Browser | One Chromium process, two contexts. Not two processes — see §4 |
-| Model | ⟨FILL-B: pinned model ID⟩ |
-| Build under measurement | ⟨FILL-C: git SHA⟩ |
+| Model | `gemini-3.1-flash-lite`, pinned. Never a `latest` or preview alias — a moving model makes every earlier measurement describe a system that no longer exists |
+| Build under measurement | `e1d13cae4926` for the scored round `r1`; `427cd96` for the load measurements; each result file carries its own |
 | Measurement files | `eval/results/`, `docs/m0-*`, `docs/m1-report.md`, `docs/m3-model-comparison.md` |
 
 ---
@@ -26,15 +26,34 @@ because a single mixed number would describe neither case.
 
 ### 2.1 Latency
 
-⟨FILL-D: fill from committed results. Report **per path**, because mixing them describes neither:
+From `r1`, inside the deployment, across 25 real cases. Reported per path, because a mixed figure
+describes neither.
 
-- deterministic path (declared records, no model in the loop): median / p90 end-to-end
-- model-driven path: median / p90 end-to-end
-- and the split within it — how much is provider time, browser time, verification time
+| | Deterministic path | Model-driven, declared (n=12) | Model-driven, experimental (n=10) |
+|---|---|---|---|
+| End to end, median | **0.16 s** | **5.85 s** | **12.18 s** |
+| End to end, p90 | 0.16 s | 13.07 s | 27.73 s |
+| End to end, max | 0.16 s | 16.43 s | 30.29 s |
+| Time to first result, median | — | 5.13 s | 12.13 s |
+| Provider time, median | **0.00 s** | 1.65 s | 3.74 s |
+| Queue wait, median | 0.01 s | 0.01 s | 0.01 s |
 
-Verification cost deserves its own line: the whole design rests on re-resolving inside stored
-artifacts, so the report should say what that costs. If it is cheap, say so — it is a real finding
-that the honesty mechanism is not the expensive part.⟩
+Three readings worth taking off this rather than off the headline:
+
+**The experimental tier costs about 2.1× the declared tier.** A declared record runs against a frozen
+plan: the model is asked what to do next, not what the page is. An experimental run has to work out
+the shape of a page nobody described — more calls, more captures. That is what the breadth costs, and
+it is paid per run rather than amortised.
+
+**Provider time is a minority of wall clock — 28% of the median declared run, 31% of the median
+experimental one.** The rest is browser: navigation, waiting for a document to settle, and the
+captures. Optimising the model would not move this product's latency much.
+
+**Verification is not the expensive part, and that is a real finding.** Deterministic re-resolution
+inside the stored artifact does not appear as a distinguishable term in any of these medians — it is
+lxml parsing and XPath evaluation over a document already in memory, tens of milliseconds against a
+5–12 s run. The whole design rests on doing that check, and the check is close to free. The costs
+this design actually pays are in **storage** (§4) and in **abstentions** (§3), not in latency.
 
 ### 2.2 Cold start
 
@@ -44,11 +63,24 @@ Two numbers, because they answer different questions and conflating them was a d
 |---|---|
 | **Deploy to usable** — a push landing, the container building, the app answering | **112–176 s** |
 | **Interruption to a user already using it** — the window where requests fail rather than queue | **12–23 s** |
-| **First request to a cold-but-deployed container** | ⟨FILL-E⟩ |
+| **First request to a cold-but-deployed container** | **not measured** — see below |
 
 The second number is the one that matters to a grader, and it is an order of magnitude smaller than
 the first. It was measured externally rather than from inside the process being restarted — a
-process cannot time its own unavailability.
+process cannot time its own unavailability. Six readings are committed
+(`eval/results/coldstart-deploy-*.json`); the most recent, across a push of ten commits, was **141.1 s
+to a completed task with 16.3 s of outage**. Most of the spread across the six is the platform's
+build queue before the container swap, which is why this is a range and not a figure.
+
+**Cold arrival is not measured, and the reason is stated rather than the number estimated.** It needs
+an idle window long enough for the platform to evict a container that nothing has touched, and every
+window this project had was occupied by a deploy or a scored round. We also never established that
+this deployment goes cold at all. An estimate here would be a guess wearing a measurement's clothes,
+so the row says *not measured*.
+
+Our own assumption about this was wrong, and the measurement is what corrected it: A11.2 assumed cold
+arrival would dominate the wait a grader feels. Five readings showed the build queue does. That is
+recorded as an assumption overturned by our own data rather than quietly dropped.
 
 The mitigation is design, not money: the homepage carries pre-executed runs, including failures, that
 are inspectable with no container work at all (S-11.5). A grader's first impression is never an
@@ -56,10 +88,27 @@ unexplained spinner. We accepted cold start rather than paying to avoid it.
 
 ### 2.3 Throughput and load
 
-⟨FILL-F: from `eval/loadtest.py`. Concurrency 2, queue depth 2, HTTP 429 with `Retry-After` beyond
-that. Report: sustained rate at concurrency 2, behaviour at the queue limit, and confirm the 429
-path is a designed state in the UI rather than an error page. Several runs fired back-to-back is a
-stated grader behaviour (S-11.10b) and must be shown to be designed, not lucky.⟩
+From `load-local-427cd96.json`, on the deterministic path with no model call in the loop.
+
+| | Measured |
+|---|---|
+| Configured capacity | concurrency 2, queue depth 2 |
+| Saturation onset | a burst of **5** is the first to be refused |
+| Sustained throughput | **430 runs/minute** over a 45.7 s window, 6 clients, 328 completed, 421 refused at admission |
+| Queue wait under that load | median 0.23 s, max 0.47 s |
+| Run duration under that load | median 0.21 s, max 0.50 s |
+
+**That throughput figure is not a capability claim and must not be quoted as one.** These runs take
+~0.2 s, so the queue drains underneath a burst while the burst is still arriving. A model-driven run
+takes 5–30 s, nothing drains during a burst, and refusal therefore begins at the first submission
+past `concurrency + depth` — four in flight. The saturation point of 5 is a property of the workload
+as much as of the queue, and the result file says so in its own text.
+
+**The 429 is a designed state, not an error page.** Firing several runs back-to-back is stated
+grader behaviour (S-11.10b), so a rejected run is `blocked / queue_full` carrying `Retry-After`, and
+it reads as terminal on the API, on the run page and on the health endpoint alike. Nothing is left
+hanging until it times out, and no request is silently dropped. An unbounded queue on a 4 GB box is
+how a demo becomes an outage.
 
 ### 2.4 Memory — the binding constraint
 
@@ -67,7 +116,7 @@ stated grader behaviour (S-11.10b) and must be shown to be designed, not lucky.�
 |---|---|
 | Peak observed under load | **2,320 MB** of 4 GB |
 | Swap | flat at 102 MB — the system did not fall into swap under measurement |
-| Headroom | ⟨FILL-G⟩ |
+| Headroom | **1,457 MB available at the peak**, with two browsers up — measured by sampling host `free -m` every 10 s from 30 s before the round's restart to 5 minutes after. Baseline 1,795 MB used; back to 1,836 MB within a minute of the round ending and flat for five, so the memory is returned rather than merely not exhausted |
 
 Memory, not CPU and not money, is what caps concurrency here. Two browser **contexts** in one process
 rather than two processes is the decision that makes concurrency 2 fit; the measurement is why the
@@ -83,7 +132,7 @@ number is 2 and not 4.
 |---|---|
 | Median cost per model-driven run | **USD 0.0019** |
 | Full dev evaluation round (r1) | **USD 0.0477** |
-| Total spend across all development | **USD 0.0477** ⟨FILL-H: confirm final figure⟩ |
+| Total spend across all development | **USD 0.0477** — confirmed against the ledger; `r1` is where effectively all of it was spent |
 | Runs on the deterministic path | **USD 0** — no model call |
 
 Every figure is billed spend. A ledger that counts free-tier usage at notional prices measures
@@ -92,12 +141,27 @@ after ~125 runs having spent nothing. Both are tracked; only one is called cost.
 
 ### 3.2 What the number depends on
 
-⟨FILL-I: state the conditions, because the figure is invalidated when they change:
+The figure is only valid under the conditions it was taken in, and each of these invalidates it if
+it changes:
 
-- the output cap in force when it was measured (raising it invalidates the figure)
-- the snapshot reduction that determines input size — this is the dominant term
-- how many model calls a typical run makes, and what a recovery adds
-- what a re-ask costs, since re-asks count against both budget and cost⟩
+- **Prices**: USD 0.25 / 1M input tokens, USD 1.50 / 1M output tokens.
+- **Output cap**: 2,048 tokens per call, 16,000 per run. Raising either raises the ceiling on what a
+  single run can cost, and the measured median says nothing about the new ceiling.
+- **Input size, which is the dominant term.** At these prices input is 6× cheaper per token than
+  output and runs are input-heavy — a measured declared case used 10,341 input tokens against 328
+  output. The page reduction that decides input size is therefore the single biggest cost lever in
+  the system, and a change to the element cap moves cost more than a change of model would.
+- **Calls per run**: 12 maximum, 8 exploration and 4 recovery. A typical declared run used **2**
+  exploration calls; a recovery adds one call at roughly the same size, so a recovering run costs
+  about 1.5× a clean one rather than several times it.
+- **Re-asks count twice.** A reply truncated by our own output cap is re-asked, and both calls appear
+  on the bill and against the budget. The failure that produces (`output_truncated`) is classified as
+  ours rather than the provider's, for the same reason.
+
+The forecast constant the harness prices rounds with is `EVAL_USD_PER_RUN = $0.0042`, taken as the
+most expensive dev case at an earlier commit. `r1`'s most expensive case came in at **$0.0048** — the
+tail passed the constant, and the 1.5× safety factor absorbed it. That is what a safety factor is
+for, and it is why the constant is documented as *last round's maximum* rather than as a parameter.
 
 ### 3.3 The honest framing
 
@@ -123,18 +187,36 @@ already stateless-per-run.
 pure function of (stored artifact, frozen postcondition) and could run anywhere; runs share nothing.
 Horizontal scaling is a matter of more browser capacity behind the same queue.
 
-**What does not.** ⟨FILL-J: be specific and unflattering:
+**What does not.**
 
-- the single volume holding artifacts — growth rate per run, and what the retention story is
-- provider rate limits as the real ceiling above ~⟨n⟩ concurrent model-driven runs
-- per-site politeness constraints (SEC's 10 req/s, crawl delays) which cap throughput per site
-  independently of our capacity
-- anything measured that degrades non-linearly⟩
+- **The volume.** Artifacts are the growth term: a real-page DOM runs ~50 KB, an accessibility
+  snapshot adds 22–32% of that, and a run stores one of each per capture — call it 0.2–0.5 MB per
+  model-driven run. `r1`'s dev split produced 5.95 MiB of carried evidence for 15 cases. Retention is
+  14 days and expiry is recorded as a dated state rather than a dangling reference, so the disk is
+  bounded — but it is bounded by a policy, not by the architecture, and a heavier workload needs the
+  policy revisited rather than more disk.
+- **The provider's rate limit binds before our browser does.** 15 requests/minute, configured with a
+  margin of 2. At a 12 s median and 2 concurrent runs the system offers ~10 model-driven runs/minute,
+  each making 2–3 calls — so the account limit is reached at roughly **five concurrent runs**, which
+  is below where memory would stop us. Raising concurrency without raising the provider limit buys
+  nothing.
+- **Per-site politeness caps throughput per site independently of our capacity.** A crawl delay or a
+  documented request ceiling on a target site is binding no matter how much of our own capacity is
+  idle, and it is not a limit we would want to engineer around.
+- **The one non-linear degradation we measured is memory across concurrent browsers**, and it is why
+  concurrency is 2. A third browser context is not a third of the cost of three — the peak, not the
+  mean, is what has to fit.
 
-**What would change the design at 100× volume.** ⟨FILL-K: one honest paragraph. The likely answer is
-that the deterministic path scales and the model-driven path does not, and that the declared-record
-architecture is exactly the thing that makes volume affordable — say it plainly, with the caveat that
-it only covers surfaces someone has declared.⟩
+**What would change the design at 100× volume.** The deterministic path scales and the model-driven
+path does not. A declared record executes a frozen plan at 0.16 s and USD 0, and 100× of that is a
+capacity problem with a known shape: more browser memory behind the same queue, a stateless verifier
+that can run anywhere, and an append-only content-addressed store. 100× of the model-driven path is a
+different product — it hits the provider's rate limit first, then its own token bill, and the honest
+answer is that we would spend the volume on **declaring more records** rather than on more inference.
+The declared-record architecture is exactly the thing that makes volume affordable. The caveat is the
+one the whole submission rests on: it only covers surfaces somebody has declared and evaluated, and
+the experimental tier — which is where a grader's unseen task lands — is the part that does not get
+cheaper with scale.
 
 ---
 
@@ -161,8 +243,8 @@ Three properties follow, and each is checkable by a reader:
 
 | Gate | Result |
 |---|---|
-| Verified-but-wrong claims = 0 | ⟨FILL-L⟩ |
-| Required-evidence coverage on `verified` results = 100% | ⟨FILL-L⟩ |
+| Verified-but-wrong claims = 0 | **Holds on `r1`** — no run returned a value the independent re-check found to differ from the artifact's contents. Read §5.3 before relying on it |
+| Required-evidence coverage on `verified` results = 100% | **Holds on `r1`** — every claim marked verified carries the artifact id and SHA-256 it was re-extracted from, and the harness re-fetched and re-hashed each one |
 
 **These hold on our evaluation sets, on first runs. They are not a system-level guarantee**, and any
 wording implying otherwise is a defect by our own spec. With n=8 on a held-out split, one failure
@@ -170,23 +252,29 @@ moves the rate 12.5 points; the interval is reported, never a bare point estimat
 
 ### 5.3 What the oracles actually check — and where there is none
 
-⟨FILL-M: per record, state what independently verifies correctness, and where nothing does.
+Written against the code, not against intent. The dev set's case notes described oracles —
+*"the harness fetches the table, applies the same sort key, compares"* — that were **never
+implemented**. What `eval/harness.py:check_evidence` actually does is: re-fetch each artifact over
+the API, re-hash it against the digest recorded at capture, and re-locate each claimed value inside
+it. That is a real independent check of *the evidence behind a claim*. It is **not** an independent
+derivation of the right answer.
 
-This is the most important paragraph in the report and it must be written against the code, not
-against intent. Until Amendment 25 the dev set declared oracles that were never implemented — the
-harness re-hashed the artifact and string-matched inside it, so on OP-4 and OP-5 the number of
-independently checked claims was zero and the "verified-but-wrong = 0" gate was unfalsifiable on our
-strongest evidence.
+| Record | What independently checks it | What that leaves unchecked |
+|---|---|---|
+| **OP-4** — sort a table, read the top row | The claimed value is a **structure** (a sort state, a row), so string re-location does not apply: `independently_checked` was **0** in `r1` | Whether the top row is the *right* row. An oracle that fetches the table, applies the sort key and compares is the fix, and it is not built |
+| **OP-5** — expand a collapsed box, read a value | Same: derived values, `independently_checked` **0** | **Everything.** Correctness here rests entirely on the product's own verifier, with no independent ground truth of any kind |
+| **OP-6** — category listing, list-level facts | Enumerations are re-derived **member by member** against the stored artifact — the strongest check in the set, and the one absence rests on | Whether the enumeration is complete for a multi-page category (this is L-3, and it abstains rather than guessing) |
+| **OP-7** — labelled field on a product page | The value is a scalar and is re-located in the artifact through the label anchor | Whether the label anchor is the one a human would pick. And the record is fixed to one product (§6) |
+| Refusals (robots, policy) | The matched rule is quoted and re-checkable against the live `robots.txt` | Nothing material |
 
-Required:
-- OP-4: the implemented independent oracle — fetch the table, apply the sort key, compare the top
-  row. The numeric-versus-lexicographic trap is the case's whole point.
-- OP-5: state plainly that correctness rests on the product's own verifier with **no independent
-  ground truth**, and what that means for the claim.
-- every other record: what the harness actually does.
+**The consequence, stated where it costs us: "verified-but-wrong = 0" is currently unfalsifiable on
+OP-4 and OP-5 — the two records the design calls structurally shortcut-proof.** An instrument that
+cannot register the event it is looking for does not produce a zero; it produces no information, and
+reporting that as a zero would be the exact defect this system exists to prevent, committed by us
+about ourselves.
 
-Disclosing a gap costs a paragraph. Being found to have declared an oracle that never ran costs the
-argument.⟩
+Disclosing that costs a paragraph. Being found to have declared an oracle that never ran costs the
+argument.
 
 ### 5.4 Verifying the verifier
 
@@ -206,21 +294,71 @@ The first four made correct behaviour look broken; the fifth made unproven behav
 That asymmetry is why the fifth survived longest, and it is the reason an independent review that
 ran the deployed system found things that reading diffs did not.
 
-⟨FILL-N: mutation results — detection, repair, and write-back correctness on the two retained
-mutations, plus the one healing demonstration on an archived real-page DOM. State how many mutations
-were retained and that the sweep was cut (Amendment 25), with the reason.⟩
+**Mutation results, as shipped.** The fixture declares a mutation catalogue and **two** mutations are
+wired: `mu2-text` (control and label text changed under the locator) and `mu6-overlay` (a banner that
+covers the pager and swallows the click). Both are reachable from the frontend with a `seed`
+directive, and both are demonstrated on our own fixture — which is why they are published as
+*mechanism evidence* and appear in no success rate: a repair rate measured on a site we wrote is us
+marking our own exam.
+
+MU-4/5/7/9 and the full sweep were **cut** (Amendment 25): two working mutations plus one healing
+demonstration is evidence, nine is a research programme, and the marginal mutation shows nothing the
+first two have not.
+
+**What is not demonstrated, and it is the more important half.** Detection and within-run recovery
+are exercised. **Write-back is not built**: there is no locator memory in the shipped build, so the
+mutation demonstrations show a run repairing itself *within* an attempt and nothing carrying that
+repair to the next one. §8 of the spec — self-maintenance — is the largest gap in this submission,
+and the frontend derives its claims from the code precisely so that it cannot paper over it. More
+than that: **no run in any committed result file has yet been recorded producing a genuine
+cross-family strategy transition** (A-11). The mechanism is built, it is exercised by the suite, and
+the field evidence for it is one demonstration rather than a rate. A mechanism we are confident in
+and cannot point at a production instance of is exactly the kind of claim this report is supposed to
+make uncomfortable.
 
 ### 5.5 Silent failure — the metric we actually care about
 
 Loud failures are cheap: the run says what it could not do and a reader believes it. A silent failure
 is a plausible wrong answer, and it is the only outcome that damages the user.
 
-⟨FILL-O: report the silent-failure count across every split and every suite, with the definition
-used, and how each one that occurred was found. If the number is zero, say by what method it would
-have been detected had it been non-zero — a zero produced by an instrument that cannot register the
-event is not a result. `app/suspicion.py` audits quiet results against the reduction log for exactly
-this reason: an abstention caused by our own page reduction is indistinguishable from an honest one
-unless someone checks, and that audit only covers what we thought to look for.⟩
+**Definition used**: a run that returns a plausible answer, labelled as a success, which is not the
+answer to the question asked — including a correct-looking value read off the wrong page, an absence
+concluded without proof, and a partial answer presented as a whole one.
+
+**Count across every committed split: zero runs were released as a silent failure.** That number
+means very little on its own, so here is what stands behind it and where it is weakest.
+
+*How one would be detected if it happened.* Four independent mechanisms, each of which has actually
+fired on real runs during development:
+
+1. **Artifact origin against the task's own words.** A run that answered about our fixture while the
+   task named Wikipedia was caught by comparing the artifact's origin to the site the task named,
+   read by the verifier and not by the router.
+2. **Frozen-parameter comparison.** A task asking to sort by *CIK ascending* was handed the canned
+   *GICS Sector descending* plan, executed it perfectly and returned `succeeded_verified`. Every
+   structural check passed, because every structural check compares the run to the plan and nobody
+   compared the plan to the task. Four dev cases were being answered that way. The plan's frozen
+   inputs are now checked against the task's own words.
+3. **Absence requires positive proof.** `no_result_verified` needs a located empty-state element or a
+   coverage anchor covering the whole result set. Without one the run abstains — this is L-3, and it
+   costs us measured points.
+4. **`app/suspicion.py` audits quiet outcomes against the reduction log.** An abstention caused by
+   *our own* page reduction dropping the element looks exactly like an honest abstention, so every
+   quiet outcome is checked against what the reducer removed and badged when the two line up.
+
+*Where the zero is weakest, stated plainly.* §5.3 is the limit: on OP-4 and OP-5 no independent
+oracle derives the right answer, so a silent failure on those two records would have to be caught by
+the product's own verifier — which is the thing being checked. And mechanism 4 only covers what we
+thought to look for; an abstention caused by something we have no counter for is indistinguishable
+from a correct one. **A zero produced by an instrument that cannot register the event is not a
+result**, and on our two strongest records the instrument is partly blind.
+
+*What was found by running the deployed system as an adversary rather than reading the code:* a live
+`succeeded_verified` on a request for *"UPC and availability"* that froze one unnamed claim, verified
+the UPC and silently dropped availability. That is a silent failure by the definition above, found
+after the splits were scored and not by them. It is fixed by requiring a task with *n* asked-for
+parts to produce *n* claims or return `partial` — and it is the clearest evidence in this document
+that a split you wrote yourself does not measure the surface a stranger's task lands on.
 
 ---
 
@@ -234,9 +372,9 @@ honest about a two-day calendar.
 | **Task 2 entirely** | The assignment requires one task. `docs/task2-seam.md` is frozen as a designed-not-built contract. A fully specified interface for a product that will not exist is a straight subtraction from the one that will |
 | **The validation split** | Its purpose was to keep the engineering session honest during development. Development ended. Test is run once against the deployment; validation is reported as unrun, with this reason |
 | **The mutation sweep (9 → 2 mutations)** | Two working mutations plus one healing demonstration is evidence. Nine is a research programme |
-| **Most of the safety suite** | Reduced to ⟨FILL-P: what actually exists⟩. The rest is declared not built rather than implied |
+| **Most of the safety suite** | **Not built, and declared as not built.** What exists is the egress guard, robots enforcement and the refusal taxonomy, all of which are load-bearing and tested. What does not exist is a safety split (`eval/safety-set.md`) or an injection detector — so `injection_detected` is a declared status **no code path currently reaches**, and `/coverage` says exactly that. The build-state flags are derived from whether the module and file exist, so the support page cannot advertise a suite that is not there |
 | **Further spend-ceiling and ledger work** | Total spend USD 0.0477. It was done, and it was over-done |
-| **Locator memory's full scope** | Reduced to ⟨FILL-Q: shipped scope⟩. Self-maintenance is a named requirement of the assignment; present, small and honestly bounded beats absent |
+| **Locator memory's full scope** | **Not built at the time of writing**, and the frontend does not claim it: `buildstate.locator_memory` is read off whether the executor has the attribute, so the support page says the trade-off is intended rather than made. The reduced scope planned is a store on the volume keyed by `(origin, operation, role)`, written back **only** from `succeeded_verified` runs, with a TTL, quarantine after three consecutive failures, a health counter, and the run page saying whether a locator came *from memory*, was *freshly derived* or was *healed* — not cross-site generalisation, ranking or a learned selector model. Self-maintenance is one of the two mechanisms the assignment names, so this is the largest single gap in the submission and it is stated as one |
 
 **Process finding, stated against ourselves.** Six of the last eight spec amendments concerned the
 measuring apparatus — ledgers, budget ceilings, evaluation provenance, the spec's own change
@@ -250,14 +388,7 @@ of reading the code.
 ---
 
 <!--
-FILL LIST — engineering session. Fill from committed measurement files only; if a number
-is not committed, either commit the measurement or write "not measured" with the reason.
-Never fill a slot with an estimate presented as a measurement.
-  FILL-A host/region     FILL-B model ID        FILL-C git SHA
-  FILL-D latency         FILL-E cold arrival    FILL-F throughput/429
-  FILL-G memory headroom FILL-H final spend     FILL-I cost conditions
-  FILL-J what doesn't scale                     FILL-K 100x
-  FILL-L gate results    FILL-M oracles (most important)
-  FILL-N mutation results FILL-O silent failures
-  FILL-P safety suite as shipped                FILL-Q locator memory as shipped
+Every FILL slot has been filled from a committed measurement file, or marked "not measured" with
+the reason. No slot carries an estimate presented as a measurement. If a figure here stops being
+true of the built system, the figure is the defect — re-measure, or say what changed.
 -->
