@@ -9,6 +9,7 @@ one worth reading.
 |---|---|
 | `dev-local-427cd96.json` | Dev split, 15 cases, local deployment at `427cd96`. The last clean local measurement. |
 | `dev-local-e802094-quota-blocked.json` | Dev split at `e802094`, **not a capability measurement**: the free-tier provider quota refused nearly every model call, so twelve cases end `blocked / provider_quota`. Kept because a quota-blocked run is a real observation about the free tier, and deleting the inconvenient run is how a result set becomes a highlight reel. |
+| `coldstart-deploy-f4a9229.json` | Deploy to usable, measured end to end from a laptop across a real redeploy of the live deployment, rebased onto the operator's press timestamp. |
 | `coldstart-deploy-0900b95-partial.json` | The 2026-07-28 05:18Z redeploy, **not** the A18.8(1) measurement: the watcher could not verify TLS on the measuring machine and recorded a healthy deployment as a continuous outage. What it holds is what was derivable afterwards from the deployment's own uptime clock. |
 | `load-local-427cd96.json` | Saturation, sustained throughput and local cold start at `427cd96`. Every figure in it is fixture work on the deterministic path with no model call in the loop. |
 

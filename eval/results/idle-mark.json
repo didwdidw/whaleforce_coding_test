@@ -1,0 +1,8 @@
+{
+ "tool": "idleprobe/1.0",
+ "base_url": "https://wf-agent.zeabur.app",
+ "at_epoch": 1785216610.899037,
+ "at": "2026-07-28T05:30:10Z",
+ "git_sha": "f4a9229aa636",
+ "uptime_seconds": 37.3
+}
