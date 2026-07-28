@@ -347,3 +347,18 @@ def test_the_held_reason_is_repeated_so_a_log_window_shows_it(monkeypatch, capsy
     err = capsys.readouterr().err
     assert err.count("no billing credential") == 2  # once at the refusal, once per interval
     assert "would be restarted" in err
+
+
+def test_a_missing_volume_says_which_of_the_two_ways_it_is_missing(tmp_path):
+    """"The volume is not mounted" was true and not actionable: an empty /data and a /data
+    holding somebody else's data need different fixes, and the image creates an empty one."""
+    empty = tmp_path / "data"
+    empty.mkdir()
+    assert "Either no volume is attached" in scored_workload._what_is_at_data(empty)
+
+    (empty / "some-other-service").mkdir()
+    wrong = scored_workload._what_is_at_data(empty)
+    assert "not the app's" in wrong
+    assert "some-other-service" in wrong
+
+    assert "wrong with the image" in scored_workload._what_is_at_data(tmp_path / "absent")

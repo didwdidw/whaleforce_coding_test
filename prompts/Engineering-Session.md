@@ -1223,3 +1223,10 @@ runtime log 有 error:
 （同一則重複四次）
 
 ==========
+
+api key 我已經有放進去了
+有 runtime log:
+
+REFUSING TO RUN THE SCORED WORKLOAD: /data/task1 does not exist: the shared volume is not mounted, so the evidence from scored runs would not reach the public run views.
+
+==========

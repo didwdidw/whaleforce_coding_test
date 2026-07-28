@@ -81,6 +81,27 @@ def hold(reason: str, *, interval: float = 900.0) -> int:
         print(f"[{WORKLOAD_VERSION}] still refusing: {reason}", file=sys.stderr, flush=True)
 
 
+def _what_is_at_data(mount: pathlib.Path = pathlib.Path("/data")) -> str:
+    """Say which of the two ways the volume is wrong, since the fix differs.
+
+    The image creates an empty `/data`, so "no volume" and "a fresh volume of this
+    service's own" look identical from in here. What can be told apart is *that* case from
+    "a volume with somebody else's data on it", and the listing is what tells them apart.
+    """
+    if not mount.is_dir():
+        return (f"{mount} is not a directory at all, which the image itself creates — "
+                f"something is wrong with the image, not with the volume settings.")
+    names = sorted(p.name for p in mount.iterdir())[:10]
+    if not names:
+        return (f"{mount} is empty. Either no volume is attached to this service — the "
+                f"image creates an empty {mount} — or one is attached that is not the "
+                f"app's. Attach the *same* volume as the app service, mounted at {mount}: "
+                f"a volume of this service's own would keep scored evidence where the "
+                f"public run views cannot reach it.")
+    return (f"{mount} contains {names}, but no task1/. A volume is mounted and it is not "
+            f"the app's. Scored runs must share the app's volume, not have one of their own.")
+
+
 def preflight() -> None:
     """Every condition that makes this workload the right place to score, checked loudly.
 
@@ -97,8 +118,8 @@ def preflight() -> None:
         _refuse(f"no billing credential at {key_path}. It is placed by the operator in the "
                 f"platform's config editor, outside the artifact store's tree.")
     if settings.data_dir == pathlib.Path("/data/task1") and not settings.data_dir.is_dir():
-        _refuse(f"{settings.data_dir} does not exist: the shared volume is not mounted, so "
-                f"the evidence from scored runs would not reach the public run views.")
+        _refuse(f"{settings.data_dir} does not exist, so the evidence from scored runs "
+                f"would not reach the public run views.\n{_what_is_at_data()}")
 
 
 def budget_ceiling_usd_per_run() -> float:
