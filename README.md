@@ -292,16 +292,23 @@ Both statements are narrower than they look, and the narrowing is the important 
 **What the oracles actually check (A25.4).** The dev set's case notes described independent oracles —
 *"the harness fetches the table, applies the same sort key, compares"* — that were never implemented.
 What `check_evidence` does is re-fetch the artifact, re-hash it against the recorded digest, and
-re-locate each claimed value inside it. That is a real independent check of *the evidence supporting
-the claim*, and it is **not** an independent derivation of the right answer.
+re-locate each claimed value inside it: a real independent check of *the evidence supporting the
+claim*, and **not** a derivation of the right answer. On `r1` that left `independently_checked` at
+**0** for OP-4 and OP-5 — the two records §4 calls structurally shortcut-proof — because their values
+are structures rather than strings to search for, so "verified-but-wrong = 0" was unfalsifiable
+exactly where it mattered most.
 
-The consequence, stated plainly: for OP-4 and OP-5 — the two records §4 calls structurally
-shortcut-proof — `independently_checked` was **0** in `r1`, because their values are structures (a
-sort state, a table row) rather than strings to search for. So "verified-but-wrong = 0" is currently
-**unfalsifiable on our two strongest records**. An OP-4 oracle that fetches the table, applies the
-sort key and compares the top row is the fix, and the numeric-versus-lexicographic distinction is
-exactly what DEV-02's case was written around. OP-5 has no independent ground truth and the analysis
-report says so rather than implying one.
+**OP-4 now has the derivation.** The harness fetches the article itself, finds the table carrying the
+named column, decides numerically-versus-lexicographically from that column's own values, sorts, and
+compares the top row; a disagreement is a finding on the case. That decision is the trap DEV-02 was
+written around — sorted as text, CIK `0000001800` and `0000320193` order differently from their
+numbers, and both orderings look completely reasonable on the page.
+
+**OP-5 still has none**, and the report says so rather than implying one: expanding a collapsed box
+is state that exists only after an interaction, so a plain fetch would disagree with a correct run.
+Every case's `oracle` field in `eval/dev-set.md` now names which of three things checks it —
+*derived independently*, *evidence re-check*, or *trace inspection* — instead of all fifteen claiming
+the first.
 
 **Held-out cases will be run against this system by the graders.** What we expect: declared records
 behave as the matrix says; unseen tasks on unseen sites land on T-EXPERIMENTAL, browse, and abstain
