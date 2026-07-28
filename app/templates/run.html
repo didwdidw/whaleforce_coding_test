@@ -9,7 +9,7 @@
     {% if run.terminal_status %}
       <span class="badge {% if run.counts_as_success %}b-ok{% elif run.terminal_status.value in ('failed','blocked') %}b-bad{% else %}b-warn{% endif %}">{{ run.terminal_status.value }}</span>
     {% else %}
-      <span class="badge b-dim" id="live-state">{{ run.state.value }}</span>
+      <span class="badge b-dim" id="live-state">{{ run.effective_state.value }}</span>
     {% endif %}
     {% if run.failure_class %}<code>{{ run.failure_class.value }}</code>{% endif %}
     {% if not run.counts_as_success and run.terminal_status %}
@@ -47,7 +47,7 @@
 
   {% if run.explanation %}<p>{{ run.explanation }}</p>{% endif %}
 
-  {% if run.state.value != 'done' %}
+  {% if run.effective_state.value != 'done' %}
   <p class="sub" id="progress">Waiting…
     {% if position is not none %}Queued at position {{ position }}.{% endif %}</p>
   {% endif %}
@@ -287,7 +287,7 @@
 
 <p><a href="/api/runs/{{ run.id }}">JSON</a> · <a href="/">all runs</a></p>
 
-{% if run.state.value != 'done' %}
+{% if run.effective_state.value != 'done' %}
 <script>
 var es = new EventSource('/api/runs/{{ run.id }}/events');
 es.onmessage = function (e) {

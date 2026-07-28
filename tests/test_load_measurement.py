@@ -70,6 +70,56 @@ def test_a_run_refused_at_the_door_is_finished_not_queued(refusal):
     assert run["finished_at"] is not None
 
 
+def test_the_refused_run_reads_terminal_on_every_surface(refusal):
+    """A-52. The API, the run page and the health endpoint report the same lifecycle
+    position at the same instant, because all three read the recorded state rather than
+    deciding for themselves (A17.7)."""
+    from app import server
+    from app.models import RunState
+
+    run = server.state.store.load_run(refusal["body"]["run_id"])
+
+    # The API.
+    assert run.to_dict()["state"] == "done"
+    # The page: the run template asks the same property, and the polling block it guards is
+    # not rendered — so nothing is left waiting for a state that will never arrive.
+    assert run.effective_state is RunState.DONE
+    # The health endpoint: the queue never took it, so it is in no in-flight count.
+    snapshot = server.state.queue.snapshot().to_dict()
+    assert server.state.queue.position_of(run.id) is None
+    assert snapshot["running"] == 0
+
+
+def test_a_lifecycle_field_left_behind_cannot_make_a_finished_run_look_queued():
+    """The derivation, asserted directly. A run carrying a terminal status is terminal on
+    every surface whatever the lifecycle field says — the two got out of step once, and
+    each surface deciding for itself is what let it stay that way."""
+    from app.models import Run, RunState, TerminalStatus, Tier
+
+    run = Run(id="run_x", task="t", tier=Tier.DECLARED, state=RunState.QUEUED)
+    assert run.effective_state is RunState.QUEUED
+
+    run.terminal_status = TerminalStatus.BLOCKED
+    assert run.effective_state is RunState.DONE
+    assert run.to_dict()["state"] == "done"
+
+
+def test_the_elapsed_time_stops_when_the_run_does():
+    """A number that keeps growing after the run ended is recomputed at render time, and a
+    recomputed number is a fabricated one (A17.7)."""
+    import time
+
+    from app.models import BudgetUse
+
+    budget = BudgetUse(started_at=time.time() - 10)
+    running = budget.to_dict()["elapsed_seconds"]
+    budget.ended_at = budget.started_at + 2.0
+    assert budget.to_dict()["elapsed_seconds"] == 2.0
+    assert running > 2.0
+    time.sleep(0.05)
+    assert budget.to_dict()["elapsed_seconds"] == 2.0
+
+
 def test_a_refusal_still_carries_a_run_id_which_is_why_counting_them_was_wrong(refusal):
     """Kept as a test because the tool's bug depended on this being true, and it should stay
     true: the refusal is a real, inspectable run."""

@@ -96,7 +96,7 @@
             <span class="badge {% if r.counts_as_success %}b-ok{% elif r.terminal_status.value in ('failed','blocked') %}b-bad{% else %}b-warn{% endif %}">{{ r.terminal_status.value }}</span>
             {% if r.failure_class %}<br><code>{{ r.failure_class.value }}</code>{% endif %}
           {% else %}
-            <span class="badge b-dim">{{ r.state.value }}</span>
+            <span class="badge b-dim">{{ r.effective_state.value }}</span>
           {% endif %}
         </td>
         <td>{% if r.counts_as_success %}<span class="badge b-ok">yes</span>

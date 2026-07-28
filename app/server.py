@@ -90,7 +90,7 @@ class App:
     async def _execute(self, run: Run) -> None:
         await self.executor.execute(run)
         self.store.save_run(run)
-        self._publish(run.id, {"state": run.state.value,
+        self._publish(run.id, {"state": run.effective_state.value,
                                "terminal_status": run.terminal_status.value
                                if run.terminal_status else None})
 
@@ -316,7 +316,7 @@ async def run_events(run_id: str) -> StreamingResponse:
                     yield 'data: {"error":"not_found"}\n\n'
                     return
                 payload = {
-                    "state": run.state.value,
+                    "state": run.effective_state.value,
                     "steps": len(run.trace),
                     "last": run.trace[-1].summary if run.trace else None,
                     "queue_position": state.queue.position_of(run_id),
@@ -324,7 +324,7 @@ async def run_events(run_id: str) -> StreamingResponse:
                     "counts_as_success": run.counts_as_success,
                 }
                 yield f"data: {json.dumps(payload)}\n\n"
-                if run.state.value == "done":
+                if run.effective_state is RunState.DONE:
                     return
                 await asyncio.sleep(1.0)
         finally:

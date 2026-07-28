@@ -250,6 +250,18 @@ class Run:
     def counts_as_success(self) -> bool:
         return self.terminal_status is not None and counts_as_success(self.terminal_status)
 
+    @property
+    def effective_state(self) -> RunState:
+        """The lifecycle position every surface reports (A17.7).
+
+        A run carrying a terminal status is over, and is over on the API, in the HTML and
+        in the health endpoint at the same instant. Derived rather than trusted because the
+        two got out of step once already: a run refused at the door had a terminal status
+        and a finish time and stayed `queued` forever, so the run page polled for a state it
+        would never reach and the load test measured our queue instead of our throughput.
+        """
+        return RunState.DONE if self.terminal_status is not None else self.state
+
     def add(self, entry: TraceEntry) -> TraceEntry:
         self.trace.append(entry)
         self.budget.steps += 1
@@ -265,7 +277,7 @@ class Run:
             "id": self.id,
             "task": self.task,
             "tier": self.tier.value,
-            "state": self.state.value,
+            "state": self.effective_state.value,
             "created_at": self.created_at,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
