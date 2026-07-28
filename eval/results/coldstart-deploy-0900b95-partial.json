@@ -1,0 +1,33 @@
+{
+ "provenance": {
+  "tool": "coldstart/1.0 (the run that failed)",
+  "base_url": "https://wf-agent.zeabur.app",
+  "t0_epoch": 1785215881.0,
+  "t0_origin": "the operator's deploy timestamp, reported at the moment of the press",
+  "deployed_git_sha": "0900b95c0d65",
+  "previous_git_sha": "8e3553d6c1a2",
+  "written_at": "2026-07-28T05:25:57Z"
+ },
+ "degraded": {
+  "not_a_capability_measurement": true,
+  "reasons": [
+   "the watcher could not verify TLS on the measuring machine, so every request raised and was recorded as the deployment not answering: it reported a continuous outage through a deployment that was healthy throughout, and never saw the new build"
+  ],
+  "consequence": "This is not the A18.8(1) measurement. The two figures below are what could be derived afterwards from the deployment's own clock, and the report must say deploy-to-usable was measured on the following deploy."
+ },
+ "derived_after_the_fact": {
+  "method": "Three (wall clock, uptime_seconds) pairs read from /healthz, which gives the moment the new application process began running from the container's own clock. The readings agree to within 0.7 s.",
+  "seconds_to_application_process_running": 99.6,
+  "process_start_epoch": 1785215980.6,
+  "seconds_to_first_successful_task": {
+   "value": 213.2,
+   "measured_under": "an upper bound, and a loose one: this is the first task anybody submitted, not the first the deployment could have served. The service was healthy well before it.",
+   "probe_run_id": "run_47c4e13b8100"
+  },
+  "not_derivable": [
+   "outage seconds",
+   "deploy to first response",
+   "deploy to healthy"
+  ]
+ }
+}

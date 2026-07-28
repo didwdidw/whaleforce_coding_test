@@ -37,12 +37,11 @@ import argparse
 import json
 import pathlib
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from typing import Any
 
-COLDSTART_VERSION = "coldstart/1.0"
+from eval.http_client import get_json, post_form
+
+COLDSTART_VERSION = "coldstart/2.0"
 REPO = pathlib.Path(__file__).parent.parent
 #: Deterministic, needs no provider quota, and exercises the browser — so "the service
 #: answered" and "the service works" are not the same observation.
@@ -50,41 +49,41 @@ PROBE_TASK = "Search the fixture catalogue for lantern"
 
 
 def _get(base: str, path: str, timeout: float = 5.0) -> tuple[int | None, dict[str, Any]]:
-    request = urllib.request.Request(f"{base}{path}",
-                                     headers={"User-Agent": COLDSTART_VERSION})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.status, json.loads(response.read() or b"{}")
-    except urllib.error.HTTPError as exc:
-        try:
-            return exc.code, json.loads(exc.read() or b"{}")
-        except ValueError:
-            return exc.code, {}
-    except Exception:  # noqa: BLE001 - an unreachable host is the measurement, not an error
-        return None, {}
+    """`None` status means the deployment did not answer. A failure on *this* machine is
+    not that, and `get_json` stops the run rather than recording one as the other."""
+    return get_json(base, path, timeout=timeout, user_agent=COLDSTART_VERSION)
 
 
 def _post(base: str, task: str, timeout: float = 30.0) -> tuple[int | None, dict[str, Any]]:
-    data = urllib.parse.urlencode({"task": task}).encode()
-    request = urllib.request.Request(f"{base}/api/runs", data=data,
-                                     headers={"User-Agent": COLDSTART_VERSION})
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.status, json.loads(response.read() or b"{}")
-    except urllib.error.HTTPError as exc:
-        try:
-            return exc.code, json.loads(exc.read() or b"{}")
-        except ValueError:
-            return exc.code, {}
-    except Exception:  # noqa: BLE001
-        return None, {}
+    return post_form(base, "/api/runs", {"task": task}, timeout=timeout,
+                     user_agent=COLDSTART_VERSION)
+
+
+def baseline(base: str, seconds: float = 20.0) -> str:
+    """The commit that is live *before* the deploy, established before anything is timed.
+
+    Without it the watcher cannot tell a new build from the first build it happens to see:
+    the first commit it reads becomes the baseline, so a deploy that lands during the blind
+    window looks like no deploy at all, and the watcher reports an outage that never ended.
+    """
+    deadline = time.time() + seconds
+    while time.time() < deadline:
+        status, body = _get(base, "/healthz")
+        sha = (body or {}).get("git_sha")
+        if status is not None and sha:
+            return sha
+        time.sleep(1.0)
+    raise SystemExit(
+        f"MEASUREMENT ABORTED: {base}/healthz did not report a git_sha within "
+        f"{seconds:.0f}s.\nThe build that is live now is what a new build is recognised "
+        f"against; without it this measurement cannot distinguish 'deployed' from 'never "
+        f"answered', and would report a number for the wrong thing.")
 
 
 def watch(base: str, *, t0: float | None, deadline_seconds: float,
-          poll_seconds: float = 0.5) -> dict[str, Any]:
+          poll_seconds: float = 0.5, baseline_sha: str | None = None) -> dict[str, Any]:
     """Poll until a new build answers, then until it can finish a task."""
     started = time.time()
-    baseline_sha: str | None = None
     last_old_response: float | None = None
     outage_started: float | None = None
     first_response: float | None = None
@@ -224,9 +223,12 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--base-url is required")
 
     base = args.base_url.rstrip("/")
+    # Before the clock starts: what is live now. A watcher that cannot read the current
+    # build has nothing to recognise the new one against.
+    live = baseline(base)
     t0 = args.t0 if args.t0 else (time.time() if args.t0_now else None)
-    print(f"watching {base} for a new build; press deploy now" if args.t0_now
-          else f"watching {base} for a new build")
+    print(f"watching {base}, currently on {live}"
+          + ("; press deploy now" if args.t0_now else ""), flush=True)
 
     report = {
         "provenance": {
@@ -236,7 +238,7 @@ def main(argv: list[str] | None = None) -> int:
             "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         },
         "cold_start": watch(base, t0=t0, deadline_seconds=args.deadline,
-                            poll_seconds=args.poll),
+                            poll_seconds=args.poll, baseline_sha=live),
     }
     report["provenance"]["finished_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 

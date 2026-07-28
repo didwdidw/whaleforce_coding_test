@@ -46,7 +46,9 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
-HARNESS_VERSION = "harness/1.1"
+from eval.http_client import classify, ssl_context
+
+HARNESS_VERSION = "harness/1.2"
 REPO = pathlib.Path(__file__).parent.parent
 DEFAULT_CASES = {"dev": REPO / "eval" / "dev-set.md",
                  "experimental": REPO / "eval" / "experimental-set.md"}
@@ -257,11 +259,16 @@ class Deployment:
             request = urllib.request.Request(f"{self.base}{path}",
                                              headers={"User-Agent": HARNESS_VERSION})
             try:
-                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                with urllib.request.urlopen(request, timeout=self.timeout,
+                                            context=ssl_context()) as response:
                     return response.status, response.read()
             except urllib.error.HTTPError as exc:
                 return exc.code, exc.read()
             except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                # A failure on this machine is not a fact about the deployment: an
+                # unverifiable certificate here would otherwise retry three times and
+                # report the site as unreachable, for every case in the split.
+                classify(exc)
                 last = exc
                 time.sleep(1.0 + attempt)
         raise RuntimeError(f"GET {path} failed after {attempts} attempts: {last}")
@@ -289,7 +296,8 @@ class Deployment:
             request = urllib.request.Request(f"{self.base}/api/runs", data=data,
                                              headers={"User-Agent": HARNESS_VERSION})
             try:
-                with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                with urllib.request.urlopen(request, timeout=self.timeout,
+                                            context=ssl_context()) as response:
                     return json.loads(response.read())
             except urllib.error.HTTPError as exc:
                 # A deployment that answers an error with HTML is telling us something

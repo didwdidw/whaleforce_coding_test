@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import urllib.error
 
 import pytest
 
@@ -260,6 +261,43 @@ def test_the_operators_press_time_can_be_applied_after_the_fact(monkeypatch):
     assert "rebased" in rebased["t0_origin"]
     # The moments themselves are untouched: rebasing changes the origin, not the readings.
     assert rebased["moments_epoch"] == watched["moments_epoch"]
+
+
+def test_a_certificate_failure_here_is_not_an_outage_there(monkeypatch):
+    """This one was live. The measuring machine could not verify TLS, every request raised,
+    and the watcher recorded a continuous outage through a deployment that was healthy the
+    whole time — a fabricated number about the server produced by a broken client. The same
+    exception in the harness would have made every case in a split a suite error naming the
+    site. A client-side failure now stops the measurement instead of becoming data."""
+    import ssl
+
+    import eval.http_client as http_client
+
+    def _explode(*args, **kwargs):
+        raise urllib.error.URLError(
+            ssl.SSLCertVerificationError("unable to get local issuer certificate"))
+
+    monkeypatch.setattr(http_client.urllib.request, "urlopen", _explode)
+    with pytest.raises(http_client.MeasurementBlocked) as blocked:
+        http_client.get_json("https://example.test", "/healthz", user_agent="t")
+    assert "not on the deployment" in str(blocked.value)
+
+    # A refused connection is still an observation about the target, not about us.
+    monkeypatch.setattr(http_client.urllib.request, "urlopen",
+                        lambda *a, **k: (_ for _ in ()).throw(
+                            urllib.error.URLError(ConnectionRefusedError())))
+    assert http_client.get_json("https://example.test", "/healthz",
+                                user_agent="t") == (None, {})
+
+
+def test_the_watcher_refuses_to_start_without_the_build_it_will_compare_against(monkeypatch):
+    """The first commit it manages to read becomes the baseline. If the first read lands
+    after the deploy, the new build *is* the baseline and the watcher waits forever for a
+    change that already happened."""
+    coldstart = _sequence(monkeypatch, [(None, {})] * 5)
+    with pytest.raises(SystemExit) as exit_info:
+        coldstart.baseline("http://test", seconds=0.01)
+    assert "git_sha" in str(exit_info.value)
 
 
 def test_no_new_build_is_reported_as_no_measurement(monkeypatch):
