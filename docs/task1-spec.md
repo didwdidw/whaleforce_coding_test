@@ -2169,3 +2169,71 @@ added to this system is to be read against it.
   ceiling and the system total, and the total is USD 1.00 (A22.1–A22.4).
 - [ ] **A-67** A scored round's committed output includes every non-success run's evidence bundle and
   the pre-named success sample, with anything omitted listed explicitly (A22.7).
+
+### Amendment 23 — A spend ceiling measures spend, and the owner's budget is not a forecast (2026-07-28)
+
+Extends **A12.5**, **A20.5**, **A22.1–A22.5**, **A11.2**, **A15.2**.
+
+#### The ledger counts money that does not exist
+
+**A23.1** The engineering session found that `Store.spend()` sums the notional USD of **every** tier
+and the ceiling is checked against that sum. The public container holds no billing credential
+(A12.2), so its `today_usd` is a price for calls that were never charged — and at the A22.2 share it
+would begin returning `blocked / provider_quota` after roughly 125 runs having spent nothing. That is
+a terminal status which looks entirely normal and states something that did not happen, which is the
+failure this project ranks above all others. **Approved: the ceiling is enforced against billed spend
+only.**
+
+**A23.2** Conditions:
+
+- Both figures are kept and both are reported — `today_billed_usd` / `cumulative_billed_usd` against
+  the ceiling, and the notional total beside it, each labelled as **money** or as **notional cost**.
+  The notional number is not noise: it is what the free tier would have cost, which is the honest way
+  to price the public path before the A15 switchover.
+- **Every cost figure in the analysis report is the billed one.** A report that quotes notional cost
+  as cost overstates what this system costs to run.
+- **The free path does not thereby become unbounded.** The USD gate was accidentally acting as a
+  request limiter for the public demo; removing it leaves the free tier's own RPD/RPM as the real
+  bound, and **A15.2's rule stands**: `RESOURCE_EXHAUSTED` / 429 on the free tier is a genuine
+  `provider_quota` and MUST still terminate honestly. Together with S-11.8's session cap and queue
+  depth, that is what bounds the public path. This MUST be verified, not assumed — removing one gate
+  without confirming the remaining ones is A21.5's defect in the other direction.
+
+#### The budget changed; the discipline did not
+
+**A23.3** The product owner has raised the total budget for building this system to **USD 10**,
+covering every experiment up to delivery and **excluding** grader traffic after submission. This is
+**not** the case A20.5 forbids. A20.5 forbids raising a ceiling so that a forecast fits under it — the
+ceiling bending to the work. Here the authorisation itself changed, and the ceiling follows it. The
+distinction is worth stating because the two look identical from inside a diff.
+
+**A23.4** New limits, replacing A22.2's figures and keeping its shares:
+
+| Control | Value | What it is for |
+|---|---|---|
+| System daily ceiling | **USD 2.00** | The backstop against a runaway loop. At the measured USD 0.051/round it allows ~29 rounds in a day, which is more iteration than any day needs — so it stays a backstop rather than becoming an allowance. |
+| — scored workload | **USD 1.50** | share 0.75, unchanged |
+| — public-serving app | **USD 0.50** | share 0.25, unchanged; still USD 0.00 in practice until A15 |
+| **Cumulative development ceiling** | **USD 8.00**, hard stop, on the **scored** workload | The owner's real limit is USD 10. A ceiling exists to catch our own accounting being wrong, so it sits **below** the limit it protects, not on it. |
+| Public cumulative ceiling | set at the **A15 switchover** | Grader traffic is outside this budget by the owner's decision, so it must not be able to consume the development ceiling. Deciding it now, with no traffic data, would be guessing. |
+
+**A23.5** The cumulative ceiling is the primary control and the daily one is secondary. When they
+disagree the smaller binds, which is already how the forecast gate reads them.
+
+#### Deploy cost is two numbers, and the one that matters is smaller than we assumed
+
+**A23.6** Measured over n=5: **trigger to usable 112–176 s (median 149.7 s)**, of which the
+**service interruption is 12–23 s**. A11.2 recorded that mounting a volume forces `Recreate` and
+therefore "full cold-start downtime per deploy"; the measurement says the downtime a user experiences
+is 12–23 s, not 150 s, because the old container serves for most of the window. **The interruption is
+the headline number and the trigger-to-usable figure is reported beside it**, with the dispersion
+attributed where the measurement puts it — the platform's build queue, not our startup (A17.13).
+A11.2's phrasing overstated the cost; this supersedes it.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-68** A free-tier run does not consume the billed ceiling, a free-tier
+  `RESOURCE_EXHAUSTED` still terminates as `provider_quota`, and both the billed and notional
+  totals appear on the health endpoint distinctly labelled (A23.1, A23.2).
+- [ ] **A-69** The cumulative development ceiling refuses a round that would exceed USD 8.00 before
+  its first case, and the analysis report's cost figures are the billed ones (A23.4, A23.2).
