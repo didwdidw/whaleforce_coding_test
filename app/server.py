@@ -537,8 +537,13 @@ async def eval_bundles() -> dict[str, Any]:
                 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
                 entry.update({k: manifest.get(k) for k in
                               ("split", "git_sha", "cap_mib", "measured_mib_carried",
-                               "non_success_carried", "non_success_total",
-                               "sample_carried", "sample_short_by")})
+                               "sample_carried", "sample_short_by", "disagreements")})
+                # Rounds scored before A24.8 name the same two counts after the narrower
+                # rule they were carried under. They are committed and still readable, so
+                # they are read rather than shown with the fields blank.
+                for new, old in (("must_carry_carried", "non_success_carried"),
+                                 ("must_carry_total", "non_success_total")):
+                    entry[new] = manifest.get(new, manifest.get(old))
                 entry["omitted"] = len(manifest.get("omitted") or [])
             except (OSError, ValueError) as exc:
                 entry["error"] = f"no readable manifest: {exc}"

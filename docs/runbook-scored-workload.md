@@ -187,8 +187,10 @@ where it is served. Held-out case files are never in the image — they are moun
 After each split the workload writes `bundles/<split>-<sha>-r<round>/` next to the result
 file, containing:
 
-- the **complete bundle for every non-success run** — the ones a reader has reason to doubt,
-  and the fewest;
+- the **complete bundle for every run the round did not settle** — one that failed on its
+  own terms, and one the product called a success while the independent check disagreed
+  (A24.8). These are the ones a reader has reason to doubt, and the fewest. Carrying on the
+  run's own verdict alone is what withheld r1's four most interesting bundles;
 - the bundle for the **success sample named in `eval/bundle-sample.json`**, which is
   committed before the round so the sample cannot be chosen to flatter it;
 - `manifest.json`: what was carried, what was omitted and why, with the per-case

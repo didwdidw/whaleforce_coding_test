@@ -35,8 +35,20 @@
   <p class="sub">
     Breadth is handled by the experimental tier rather than by counting declared sites: any
     public, policy-clean, read-only site may be attempted, and where a result cannot be
-    verified the system abstains and says where it stopped. That is a chosen trade-off —
-    depth on locator memory and the safety suite over breadth of declared sites.
+    verified the system abstains and says where it stopped.
+    {% if build.locator_memory and build.safety_suite %}
+    That is a chosen trade-off — depth on locator memory and the safety suite over breadth
+    of declared sites.
+    {% else %}
+    That is <em>intended</em> as a trade-off — depth on locator memory and the safety suite
+    over breadth of declared sites — but
+    <strong>the depth side of it is not in this build</strong>:
+    {% if not build.locator_memory %}nothing is remembered between runs{% endif %}
+    {% if not build.locator_memory and not build.safety_suite %}and{% endif %}
+    {% if not build.safety_suite %}there is no safety split{% endif %}.
+    Until it is, this is one side of a trade-off, and calling it the trade-off would be
+    selling something that does not exist yet.
+    {% endif %}
   </p>
   {% else %}
   <p class="sub">

@@ -419,8 +419,10 @@ def run(splits: list[str], *, port: int, round_id: str, force: bool,
             written.append(out.name)
             if manifest:
                 print(f"[{WORKLOAD_VERSION}] {split}: evidence carried — "
-                      f"{manifest['non_success_carried']}/{manifest['non_success_total']} "
-                      f"non-success bundles, sample {manifest['sample_carried']}, "
+                      f"{manifest['must_carry_carried']}/{manifest['must_carry_total']} "
+                      f"bundles that had to travel "
+                      f"(disagreements: {manifest['disagreements'] or 'none'}), "
+                      f"sample {manifest['sample_carried']}, "
                       f"{manifest['measured_mib_carried']} MiB of a "
                       f"{manifest['cap_mib']} MiB cap, {len(manifest['omitted'])} omitted "
                       f"and listed.")

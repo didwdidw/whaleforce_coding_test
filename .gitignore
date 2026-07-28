@@ -17,3 +17,6 @@ __pycache__/
 # Runtime data
 /tmp/
 *.sqlite3
+
+# Hand-off notes written for one conversation, superseded by the next one
+current_reporty_for_pm.md

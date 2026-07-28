@@ -63,4 +63,13 @@ def state() -> dict[str, Any]:
         "planner_is_default": settings.planner_default_on_real_sites,
         "model_id": settings.provider.model_id,
         "locator_memory": hasattr(Executor, "_locator_memory"),
+        # The two things breadth is traded away for. A page may only sell that trade-off
+        # once the depth side of it exists (A13.3).
+        "safety_suite": _safety_split().exists(),
     }
+
+
+def _safety_split():
+    import pathlib
+
+    return pathlib.Path(__file__).resolve().parent.parent / "eval" / "safety-set.md"

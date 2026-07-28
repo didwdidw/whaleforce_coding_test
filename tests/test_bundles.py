@@ -67,13 +67,47 @@ def test_every_failure_is_carried_and_the_named_success_with_it(tmp_path, sample
 
     carried = {c["case"] for c in manifest["carried"]}
     assert carried == {"DEV-01", "DEV-02"}
-    assert manifest["non_success_carried"] == manifest["non_success_total"] == 1
+    assert manifest["must_carry_carried"] == manifest["must_carry_total"] == 1
     # DEV-03 succeeded and was not named, so it is listed rather than silently absent.
     omitted = {o["case"]: o for o in manifest["omitted"]}
     assert set(omitted) == {"DEV-03"}
     assert "not required" in omitted["DEV-03"]["why_omitted"]
     assert omitted["DEV-03"]["artifacts"][0]["sha256"]
     assert omitted["DEV-03"]["verification"] == {"claims": 2, "independently_checked": 2}
+
+
+def test_a_success_the_independent_check_disagrees_with_is_carried(tmp_path, sample):
+    """A24.8, and r1 is why. Classifying on the run's own verdict withheld the bundles for
+    the four cases where the run said success and the scorer found otherwise — the four a
+    reader most needs, and the four it took an SSH session into the scored volume to see."""
+    disputed = _case("DEV-06", "run_6", True)
+    disputed["evidence"] = {"claims": 1, "findings": ["items: 18 members not present"]}
+    disputed["passed"] = False
+    report = {"provenance": {}, "cases": [disputed, _case("DEV-03", "run_3", True)]}
+    store = FakeStore({"run_6": {"art_6": b"x" * 50}, "run_3": {"art_3": b"c" * 50}})
+
+    manifest = bundles.export(report, "dev", store, tmp_path / "out")
+
+    carried = {c["case"]: c for c in manifest["carried"]}
+    assert "DEV-06" in carried
+    assert "disagrees" in carried["DEV-06"]["reason"]
+    assert manifest["disagreements"] == ["DEV-06"]
+    # The undisputed success is still left out — the rule is disagreement, not volume.
+    assert [o["case"] for o in manifest["omitted"]] == ["DEV-03"]
+
+
+def test_a_case_that_did_not_pass_is_carried_even_with_no_findings(tmp_path, sample):
+    """The other direction: the run reports a success the case did not accept. Nothing is
+    wrong with the evidence, and the case is still one where two verdicts differ."""
+    off_status = _case("DEV-09", "run_9", True)
+    off_status["passed"] = False
+    report = {"provenance": {}, "cases": [off_status]}
+    store = FakeStore({"run_9": {"art_9": b"y" * 20}})
+
+    manifest = bundles.export(report, "dev", store, tmp_path / "out")
+
+    assert [c["case"] for c in manifest["carried"]] == ["DEV-09"]
+    assert "did not pass" in manifest["carried"][0]["reason"]
 
 
 def test_the_cap_is_applied_against_measured_sizes(tmp_path, sample):
@@ -157,7 +191,8 @@ def test_the_public_service_lists_and_serves_a_committed_bundle(tmp_path, monkey
 
     listing = client.get("/api/eval-bundles").json()
     entry = next(r for r in listing["rounds"] if r["round"] == "dev-abc123-r1")
-    assert entry["non_success_carried"] == 1 and entry["omitted"] == 1
+    # Planted with the pre-A24.8 key names, which is what r1's committed manifests carry.
+    assert entry["must_carry_carried"] == 1 and entry["omitted"] == 1
 
     assert client.get("/api/eval-bundles/dev-abc123-r1/manifest.json").status_code == 200
     blob = client.get("/api/eval-bundles/dev-abc123-r1/DEV-02/art_2.bin")

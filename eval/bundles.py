@@ -8,8 +8,10 @@ in the repository. This extends the same mechanism to the evidence.
 
 What is carried, in priority order:
 
-  1. **every non-success run**, complete. There are fewer of them than of the successes, and
-     they are the ones the assignment means by *inspectable failures*;
+  1. **every run the round did not settle**, complete — one that failed on its own terms, and
+     one the product called a success while the independent check disagreed (A24.8). There
+     are fewer of them than of the successes, and they are the ones the assignment means by
+     *inspectable failures*;
   2. **a sample of successes named before the round** (`eval/bundle-sample.json`), so a
      reader can check that a pass looks like a pass rather than taking the label;
   3. for everything left out — the per-case verification record, the artifact hashes, and an
@@ -50,11 +52,33 @@ def named_sample(split: str) -> list[str]:
     return list((declared.get("splits") or {}).get(split) or [])
 
 
+def must_carry(case: dict[str, Any]) -> str | None:
+    """Why this case's evidence has to travel, or None if it does not have to (A24.8).
+
+    Classifying on `counts_as_success` alone withheld r1's four most interesting bundles:
+    runs the product called successes and the independent check disagreed with. Those are
+    exactly the ones a reader has to open, and reaching them took an SSH session into a
+    volume nothing else can read.
+
+    So the rule is disagreement, not dissatisfaction. Any case where the run's self-report
+    and the independent check do not say the same thing is carried in full, whichever of
+    them says it passed — and a case that failed on its own terms is still carried, as
+    before.
+    """
+    if not case.get("counts_as_success"):
+        return "non-success run (A22.7)"
+    if (case.get("evidence") or {}).get("findings"):
+        return "the independent check disagrees with the run's own verdict (A24.8)"
+    if case.get("passed") is False:
+        return "the case did not pass despite the run reporting success (A24.8)"
+    return None
+
+
 def classify(cases: list[dict[str, Any]], sample: list[str]) -> dict[str, list[dict]]:
     """Which bundles are required, which are wanted, and which are neither."""
     required, wanted, rest = [], [], []
     for case in cases:
-        if not case.get("counts_as_success"):
+        if must_carry(case):
             required.append(case)
         elif case.get("case") in sample:
             wanted.append(case)
@@ -122,7 +146,7 @@ def export(report: dict[str, Any], split: str, store: Any, out_dir: pathlib.Path
             used += size
             carried.append({"case": case.get("case"), "run_id": run_id,
                             "counts_as_success": bool(case.get("counts_as_success")),
-                            "reason": ("non-success run (A22.7)" if group == "required"
+                            "reason": (must_carry(case) if group == "required"
                                        else "pre-named success sample (A22.7)"),
                             "bytes": size, "files": written})
 
@@ -136,8 +160,11 @@ def export(report: dict[str, Any], split: str, store: Any, out_dir: pathlib.Path
         "measured_bytes_carried": used,
         "measured_mib_carried": round(used / 1024 / 1024, 3),
         "cases_total": len(cases),
-        "non_success_total": len(groups["required"]),
-        "non_success_carried": sum(1 for c in carried if not c["counts_as_success"]),
+        "must_carry_total": len(groups["required"]),
+        "must_carry_carried": sum(1 for c in carried
+                                  if c["reason"] != "pre-named success sample (A22.7)"),
+        "disagreements": [c.get("case") for c in groups["required"]
+                          if c.get("counts_as_success")],
         "sample_declared": sample,
         "sample_carried": sample_carried,
         "sample_short_by": [name for name in sample if name not in sample_carried],

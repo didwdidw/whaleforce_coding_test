@@ -15,8 +15,10 @@ any special phrasing.
 from __future__ import annotations
 
 #: Fixture demonstrations. One of each outcome — a verified answer, a proven absence, a
-#: right answer scored as a failure for skipping a declared action, a mutation-healed
-#: partial — none of which need a provider.
+#: right answer scored as a failure for skipping a declared action, and a run whose control
+#: is relabelled under it by a mutation seed, so it has to recover within the attempt. None
+#: of them need a provider, and none of them is healed across runs: nothing is remembered
+#: between runs in this build, and describing one of these as healed said otherwise.
 PRE_EXECUTED_ACCEPTED: tuple[str, ...] = (
     "Search the fixture catalogue for lantern",
     "Is any product priced over £100?",
