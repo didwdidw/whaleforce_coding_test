@@ -2461,6 +2461,55 @@ class Executor:
             seen.setdefault(word.strip("'.-"), None)
         return tuple(seen)[:12]
 
+    #: Where the asking starts. The parts a task wants are what follows the last of these,
+    #: because "open X and tell me A and B" asks for two things and does not ask for X.
+    ASK_VERB = re.compile(
+        r"\b(?:tell me|tell us|what (?:is|are|was|were)|read|give me|report|show me|"
+        r"extract|find out)\b", re.I)
+    #: Splitting on these over-counts before it under-counts, deliberately. A part too many
+    #: makes a correct run `partial`, which is loud; a part too few is a value dropped in
+    #: silence, which is the failure this project is built against.
+    ASK_SPLIT = re.compile(r",\s*|\s+and\s+|\s+plus\s+|\s+as well as\s+", re.I)
+    #: More than this and the sentence is prose, not a list of values.
+    MAX_ASKED_PARTS = 4
+
+    @classmethod
+    def asked_for_parts(cls, task: str) -> tuple[str, ...]:
+        """The distinct values a task asks for, in the order it asks for them.
+
+        Deliberately a small parser and not a model call: how many things were asked for
+        decides whether a run may be called a success, and that decision must not be made
+        by the component whose answer it is grading.
+        """
+        tail = task.strip()
+        last = None
+        for last in cls.ASK_VERB.finditer(tail):
+            pass
+        if last:
+            tail = tail[last.end():]
+        parts: list[str] = []
+        for chunk in cls.ASK_SPLIT.split(tail):
+            chunk = chunk.strip(" .?!'\"\n\t")
+            # A fragment carrying its own verb is another instruction, not another value.
+            if len(chunk) < 3 or cls.ASK_VERB.search(chunk):
+                continue
+            if chunk.lower() not in {p.lower() for p in parts}:
+                parts.append(chunk)
+        if not parts or len(parts) > cls.MAX_ASKED_PARTS:
+            # Nothing recognisable, or a sentence long enough that splitting it is guessing.
+            # One claim is the old behaviour and it is the conservative end here: the run
+            # still has to bind its single answer to a label or it does not succeed.
+            return (task.strip(),)
+        return tuple(parts)
+
+    @staticmethod
+    def claim_names(parts: tuple[str, ...]) -> tuple[str, ...]:
+        """`answer` when there is one, `answer_1…n` when there are several — so a
+        single-part task's evidence keeps the shape every earlier run recorded."""
+        if len(parts) == 1:
+            return ("answer",)
+        return tuple(f"answer_{i}" for i in range(1, len(parts) + 1))
+
     def _plan_generic(self, task: str) -> Plan | None:
         """A postcondition for a task on a site we have never seen (A13.2).
 
@@ -2477,22 +2526,35 @@ class Executor:
         entry = self.resolve_entry(task)
         if not entry:
             return None
-        # What completion requires, stated in the frozen goal rather than left implicit.
-        # Without it the loop finishes the moment the value is visible in the view, no
-        # `extract` is ever proposed, and there is no label to verify against — a correct
-        # fail-closed outcome reached for a reason that was ours, not the page's.
+        # One claim per part the task asked for (A25.3). A single unnamed claim let a live
+        # request for "UPC and availability" verify the UPC, drop availability without a
+        # word, and return `succeeded_verified` — S-5.2 forbids presenting a partial result
+        # as a success, and an empty postcondition is how that prohibition gets bypassed
+        # without anyone writing the word `partial`. A13.2.3 permits a weaker postcondition
+        # on this tier; it does not permit an absent one.
+        parts = self.asked_for_parts(task)
+        claims = tuple(ClaimSpec(name=name, label="", relation=Relation.LOCATED_LABEL,
+                                 value_type="string")
+                       for name in self.claim_names(parts))
+        asked = ("\n".join(f"  {name}: {part}"
+                           for name, part in zip(self.claim_names(parts), parts))
+                 if len(parts) > 1 else "")
         pc = Postcondition(
             goal=(f"{task.strip()}\n\nTo complete this task you MUST emit `extract` "
                   f"pointing at the element that holds the value, with `label_anchor` set "
                   f"to the exact visible text of the label it is bound to, before you "
                   f"finish. Code re-reads the value from that label; a run that finishes "
-                  f"without one cannot be verified and is scored as a failure."),
+                  f"without one cannot be verified and is scored as a failure."
+                  + (f"\n\nThis task asks for {len(parts)} separate values. Emit one "
+                     f"`extract` for each, in this order, each with its own "
+                     f"`label_anchor`:\n{asked}\nAnswering some of them and stopping is "
+                     f"a partial result, not a success." if len(parts) > 1 else "")),
             operation="generic",
             target_url=entry,
             inputs={"entry_url": entry, "url_scope": "site",
+                    "asked_for": list(parts),
                     "binding": "value re-read by code from a label located in the artifact"},
-            claims=(ClaimSpec(name="answer", label="", relation=Relation.LOCATED_LABEL,
-                              value_type="string"),),
+            claims=claims,
         )
         return Plan("generic", f"undeclared task on {urlsplit(entry).netloc}", pc, (),
                     entry_url=entry, terms=self.goal_terms(task),
@@ -2518,7 +2580,14 @@ class Executor:
         from app.verifier import AnchorAmbiguous, AnchorNotFound, _located_label
 
         ctx.candidate = {}
-        for entry in reversed(ctx.run.trace):
+        names = [c["name"] for c in (ctx.run.postcondition or {}).get("claims", [])]
+        names = names or ["answer"]
+        # One reading per asked-for part, in the order the task asked (A25.3). The extracts
+        # are walked forwards for the same reason: the model was told to emit them in that
+        # order, and pairing the last extract with the first claim would bind a value to
+        # the wrong question while every structural check still passed.
+        readings: list[tuple[str, str]] = []
+        for entry in ctx.run.trace:
             if entry.kind is not StepKind.EXTRACT or not entry.ok:
                 continue
             anchor = str((entry.detail.get("args") or {}).get("label_anchor", "")).strip()
@@ -2532,8 +2601,18 @@ class Executor:
                     lxml_html.fromstring(fragment), spec, {"answer_anchor": anchor})
             except (AnchorNotFound, AnchorAmbiguous, ValueError):
                 continue
+            readings.append((anchor, value))
+        if len(names) == 1 and readings:
+            # The single-claim case keeps taking the last usable extract: a run that
+            # re-reads after a correction meant the later reading, and nothing about a
+            # one-value task says the first attempt is the answer.
+            anchor, value = readings[-1]
             ctx.candidate = {"answer": value, "answer_anchor": anchor}
             return
+        for name, (anchor, value) in zip(names, readings):
+            ctx.candidate[name] = value
+            ctx.candidate[f"{name}_anchor"] = anchor
+        return
 
     def _plan_wiki_special(self, low: str) -> Plan:
         """A task a person would reasonably ask, on a path a real site forbids.
