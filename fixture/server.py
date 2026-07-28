@@ -19,7 +19,7 @@ import json
 from typing import Any
 
 from fastapi import FastAPI, Form, Query, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from fixture import catalogue as cat
 from fixture import mutations as mut
@@ -263,6 +263,15 @@ def product(sku: str, seed: str = Query("none")) -> HTMLResponse:
 <tr><th>Material</th><td>{html.escape(item.material)}</td></tr>
 </table>"""
     return page(item.title, body, seed)
+
+
+@app.get("/moved")
+def moved() -> RedirectResponse:
+    """A permanent redirect, so a run can be checked against where it *ended up* rather
+    than where it asked to go. A plan freezes the URL it navigated to; the site answers on
+    another one; and the check that the evidence came from the planned page has to survive
+    that without being weakened. It was decided by a race until this existed."""
+    return RedirectResponse("/product/WF-1013", status_code=301)
 
 
 @app.get("/robots.txt", response_class=Response)

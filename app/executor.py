@@ -1104,8 +1104,14 @@ class Executor:
             await ctx.page.wait_for_load_state("load", timeout=5_000)
         except Exception:  # noqa: BLE001 - a page that never settles is still a page
             pass
+        # The response says where the request ended up; `page.url` says where the page is
+        # at the instant it is read. They agree except when they do not, and a run that
+        # sampled the pre-redirect URL fails `artifact_source_matches_plan` against its own
+        # artifact — a hard gate decided by a race. `/wiki/Apple_Inc` → `/wiki/Apple_Inc.`
+        # passed one scored round and failed the next on identical inputs.
         self._finish_step(run, nav, status=response.status if response else None,
-                          final_url=ctx.page.url)
+                          final_url=(response.url if response else "") or ctx.page.url,
+                          page_url_at_navigate=ctx.page.url)
         return await self._landed_somewhere_real(ctx, run, nav)
 
     #: Pages that answer 200 and are not the page anybody asked for. A title assembled from

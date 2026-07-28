@@ -562,3 +562,29 @@ def test_every_status_due_by_m3_is_reached_by_running_the_product(executor):
     # Only the injection defence is still ahead of us; everything else has been produced.
     assert {r["value"] for r in report["failure_class"]
             if not r["due_now"]} == {"injection_detected"}
+
+
+def test_a_redirect_is_recorded_from_the_response_not_from_a_sampled_url(executor):
+    """Where a run *ended up* comes from the response, not from `page.url` read at one
+    instant. On identical inputs — `/wiki/Apple_Inc` redirecting to `/wiki/Apple_Inc.` —
+    one scored round recorded the post-redirect URL and the next recorded the pre-redirect
+    one, so `artifact_source_matches_plan` failed a correct run against its own artifact.
+    A hard gate decided by a race is not a gate."""
+    ex, store, loop = executor
+    run = Run(id=new_id("run"), task="probe", tier=Tier.EXPERIMENTAL)
+    store.save_run(run)
+
+    async def navigate():
+        from app.executor import ExecutionContext
+
+        async with ex._supervisor.context() as (context, _generation):
+            page = await context.new_page()
+            await ex._guard_page(run, page)
+            ctx = ExecutionContext(run=run, page=page, context=context, store=store)
+            await ex._navigate(ctx, f"{BASE}/moved")
+
+    loop.run_until_complete(navigate())
+
+    nav = next(t for t in run.trace if t.kind is StepKind.NAVIGATE)
+    assert nav.detail["final_url"].endswith("/product/WF-1013"), nav.detail
+    assert nav.detail["url"].endswith("/moved")
