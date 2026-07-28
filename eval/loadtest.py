@@ -118,6 +118,16 @@ def _burst(base: str, size: int) -> list[dict[str, Any]]:
         return [f.result() for f in futures]
 
 
+def qualified(value: Any, measured_under: str) -> dict[str, Any]:
+    """A number and the conditions it was measured under, in one object (A17.13).
+
+    Not a stylistic choice. "430 runs/min" measured on fixture pages with no model call in
+    the loop is not this system's throughput, and a qualifier that lives in a footnote is a
+    qualifier that gets dropped the first time the number is quoted.
+    """
+    return {"value": value, "measured_under": measured_under}
+
+
 # ---- the three measurements ------------------------------------------------------
 
 def measure_saturation(base: str, sizes: list[int],
@@ -141,7 +151,10 @@ def measure_saturation(base: str, sizes: list[int],
         _drain(base, [r["run_id"] for r in admitted if r.get("run_id")], deadline_seconds)
     return {
         "sweep": steps,
-        "saturation_point": saturated_at,
+        "saturation_point": qualified(
+            saturated_at,
+            f"fixture tasks on the deterministic path, submitted as simultaneous bursts of "
+            f"{sizes}; no model call in the loop"),
         "reading": ("no burst in this sweep was refused; the saturation point is above "
                     f"{max(sizes)} concurrent submissions"
                     if saturated_at is None else
@@ -206,7 +219,11 @@ def measure_throughput(base: str, clients: int, duration_seconds: float) -> dict
         "window_seconds": round(elapsed, 2),
         "completed": len(completed),
         "refused_at_admission": refusals,
-        "runs_per_minute": (round(len(completed) / elapsed * 60, 2) if elapsed else None),
+        "runs_per_minute": qualified(
+            round(len(completed) / elapsed * 60, 2) if elapsed else None,
+            f"{clients} closed-loop clients over {round(elapsed)}s on fixture tasks, "
+            f"deterministic path, no model call in the loop — not system throughput for "
+            f"model-driven work"),
         "queue_wait_seconds": _spread(latency_field("queue_wait_seconds")),
         "run_seconds": _spread(latency_field("run_seconds")),
         "load_profile": "fixture tasks on the deterministic path — no model call",
@@ -251,12 +268,14 @@ def measure_cold_start(port: int, deadline_seconds: float = 120.0) -> dict[str, 
             process.kill()
         shutil.rmtree(data_dir, ignore_errors=True)
 
+    local = ("a local process with an empty data directory: no image pull, no container "
+             "scheduling, no platform routing")
     return {
-        "seconds_to_first_response": first_response,
-        "seconds_to_healthy": first_healthy,
-        "measured_on": "a local process with an empty data directory",
-        "note": ("Container cold start adds image pull and container scheduling, which are "
-                 "the platform's and are not measured here."),
+        "seconds_to_first_response": qualified(first_response, local),
+        "seconds_to_healthy": qualified(first_healthy, local),
+        "note": ("This is process start, not deployment. The number a grader experiences "
+                 "includes image pull and container scheduling and is measured end to end "
+                 "from outside by `eval.coldstart` at a real redeploy (A17.14)."),
     }
 
 
@@ -272,7 +291,10 @@ def project_model_driven(concurrency: int, median_run_seconds: float) -> dict[st
     return {
         "concurrency": concurrency,
         "median_model_driven_run_seconds": median_run_seconds,
-        "projected_runs_per_minute": round(concurrency / median_run_seconds * 60, 2),
+        "projected_runs_per_minute": qualified(
+            round(concurrency / median_run_seconds * 60, 2),
+            "a projection, not an observation: arithmetic from the concurrency limit and "
+            "the median model-driven run duration measured by the eval harness"),
         "basis": ("arithmetic from the concurrency limit and the median model-driven run "
                   "duration measured by the eval harness; not observed under load"),
     }

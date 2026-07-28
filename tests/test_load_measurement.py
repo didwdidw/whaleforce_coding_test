@@ -143,7 +143,8 @@ def test_saturation_counts_admissions_by_status_code_not_by_body(monkeypatch):
     report = measure_saturation("http://test", [6], deadline_seconds=1.0)
     assert report["sweep"] == [{"burst": 6, "admitted": 2, "refused": 4,
                                 "refused_as": ["queue_full"]}]
-    assert report["saturation_point"] == 6
+    assert report["saturation_point"]["value"] == 6
+    assert "no model call" in report["saturation_point"]["measured_under"]
 
 
 def test_a_sweep_that_is_never_refused_says_so_rather_than_reporting_a_number(monkeypatch):
@@ -156,7 +157,7 @@ def test_a_sweep_that_is_never_refused_says_so_rather_than_reporting_a_number(mo
     monkeypatch.setattr(loadtest, "_drain", lambda *a, **kw: [])
 
     report = measure_saturation("http://test", [2, 4], deadline_seconds=1.0)
-    assert report["saturation_point"] is None
+    assert report["saturation_point"]["value"] is None
     assert "above 4" in report["reading"]
 
 
@@ -166,5 +167,86 @@ def test_the_projection_is_labelled_as_arithmetic_not_as_an_observation():
     from eval.loadtest import project_model_driven
 
     projection = project_model_driven(2, 30.0)
-    assert projection["projected_runs_per_minute"] == 4.0
+    assert projection["projected_runs_per_minute"]["value"] == 4.0
+    # The qualifier travels with the number, not in a footnote beside it (A17.13).
+    assert "a projection, not an observation" in (
+        projection["projected_runs_per_minute"]["measured_under"])
     assert "not observed" in projection["basis"]
+
+
+# ---- deploy to first successful request (A17.14) ---------------------------------
+
+def _sequence(monkeypatch, health, runs=None):
+    """Drive `watch` off a scripted sequence of /healthz answers."""
+    import eval.coldstart as coldstart
+
+    answers = iter(health)
+    last = health[-1]
+    monkeypatch.setattr(coldstart.time, "sleep", lambda s: None)
+    monkeypatch.setattr(coldstart, "_get", lambda base, path, timeout=5.0: (
+        next(answers, last) if path == "/healthz"
+        else (200, (runs or {"state": "done"}))))
+    monkeypatch.setattr(coldstart, "_post",
+                        lambda base, task, timeout=30.0: (202, {"run_id": "run_1"}))
+    return coldstart
+
+
+def test_a_stale_reply_from_the_old_container_does_not_end_the_measurement(monkeypatch):
+    """The build is identified by its commit, not by the service answering. A deployment
+    that is still routing to the previous container answers instantly and would report a
+    cold start of zero."""
+    coldstart = _sequence(monkeypatch, [
+        (200, {"git_sha": "old", "ok": True}),
+        (200, {"git_sha": "old", "ok": True}),
+        (None, {}),
+        (200, {"git_sha": "new", "ok": True}),
+    ])
+
+    report = coldstart.watch("http://test", t0=None, deadline_seconds=30, poll_seconds=0)
+
+    assert report["baseline_git_sha"] == "old"
+    assert report["new_git_sha"] == "new"
+    assert report["seconds_to_first_response"] is not None
+    assert report["seconds_to_first_successful_task"] is not None
+
+
+def test_answering_is_not_the_same_as_working(monkeypatch):
+    """A service that serves /healthz and cannot yet finish a task is not up in the sense
+    anybody cares about, so the measurement carries on to a real run."""
+    coldstart = _sequence(monkeypatch,
+                          [(200, {"git_sha": "old", "ok": True}),
+                           (200, {"git_sha": "new", "ok": True})],
+                          runs={"state": "done"})
+
+    report = coldstart.watch("http://test", t0=None, deadline_seconds=30, poll_seconds=0)
+
+    assert report["probe_run_id"] == "run_1"
+    assert (report["seconds_to_first_successful_task"]
+            >= report["seconds_to_first_response"])
+
+
+def test_the_fallback_t0_is_labelled_as_a_lower_bound(monkeypatch):
+    """Without a deploy timestamp the clock starts at the last response from the old
+    build, which is at or after the button press. Reporting that as *the* cold start
+    without saying so would be a number quietly rounded in our favour."""
+    coldstart = _sequence(monkeypatch, [(200, {"git_sha": "old", "ok": True}),
+                                        (200, {"git_sha": "new", "ok": True})])
+
+    report = coldstart.watch("http://test", t0=None, deadline_seconds=30, poll_seconds=0)
+    assert "lower bound" in report["t0_origin"]
+
+    coldstart = _sequence(monkeypatch, [(200, {"git_sha": "old", "ok": True}),
+                                        (200, {"git_sha": "new", "ok": True})])
+    stamped = coldstart.watch("http://test", t0=1_700_000_000.0, deadline_seconds=30,
+                              poll_seconds=0)
+    assert stamped["t0_origin"] == "the operator's deploy timestamp"
+
+
+def test_no_new_build_is_reported_as_no_measurement(monkeypatch):
+    """A deadline that expires without a new commit answering has produced nothing, and
+    saying so is the only honest output."""
+    coldstart = _sequence(monkeypatch, [(200, {"git_sha": "old", "ok": True})] * 50)
+
+    report = coldstart.watch("http://test", t0=None, deadline_seconds=0.01, poll_seconds=0)
+    assert "error" in report
+    assert "seconds_to_first_response" not in report
