@@ -137,6 +137,27 @@ CREATE TABLE IF NOT EXISTS status_coverage (
     n               INTEGER NOT NULL DEFAULT 1,
     PRIMARY KEY (terminal_status, failure_class)
 );
+
+-- Locator memory (§8). One row per (origin, operation, role): the durable identity that
+-- last worked there, when it was last confirmed by a `succeeded_verified` run, and its
+-- recent failure history. A row is never written from an unverified run, so nothing enters
+-- memory on the strength of a value nobody could re-resolve.
+CREATE TABLE IF NOT EXISTS locator_memory (
+    origin      TEXT NOT NULL,
+    operation   TEXT NOT NULL,
+    role        TEXT NOT NULL,
+    identity    TEXT NOT NULL,
+    written_by  TEXT NOT NULL,
+    written_at  REAL NOT NULL,
+    confirmed_at REAL NOT NULL,
+    uses        INTEGER NOT NULL DEFAULT 0,
+    hits        INTEGER NOT NULL DEFAULT 0,
+    heals       INTEGER NOT NULL DEFAULT 0,
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    quarantined_at REAL,
+    quarantine_reason TEXT,
+    PRIMARY KEY (origin, operation, role)
+);
 """
 
 
@@ -419,6 +440,69 @@ class Store:
             "SELECT * FROM status_coverage ORDER BY first_seen_at")]
 
     # ---- provider spend ---------------------------------------------------------
+
+    # ---- locator memory (§8) -----------------------------------------------------
+
+    def locator_row(self, origin: str, operation: str, role: str):
+        cur = self._conn.execute(
+            "SELECT * FROM locator_memory WHERE origin=? AND operation=? AND role=?",
+            (origin, operation, role))
+        return cur.fetchone()
+
+    def locator_write(self, *, origin: str, operation: str, role: str,
+                      identity: dict[str, Any], run_id: str, healed: bool) -> None:
+        """Insert or re-confirm. A write always clears quarantine and the failure count:
+        the run that produced it verified its answer, which is stronger evidence than the
+        history that quarantined the row."""
+        now = time.time()
+        self._conn.execute(
+            """INSERT INTO locator_memory
+                 (origin, operation, role, identity, written_by, written_at, confirmed_at,
+                  uses, hits, heals, consecutive_failures, quarantined_at, quarantine_reason)
+               VALUES (?,?,?,?,?,?,?,0,0,?,0,NULL,NULL)
+               ON CONFLICT(origin, operation, role) DO UPDATE SET
+                 identity = excluded.identity,
+                 written_by = excluded.written_by,
+                 confirmed_at = excluded.confirmed_at,
+                 heals = heals + excluded.heals,
+                 consecutive_failures = 0,
+                 quarantined_at = NULL,
+                 quarantine_reason = NULL""",
+            (origin, operation, role, json.dumps(identity, sort_keys=True), run_id, now,
+             now, 1 if healed else 0))
+        self._conn.commit()
+
+    def locator_outcome(self, origin: str, operation: str, role: str, *, worked: bool,
+                        quarantine_after: int) -> None:
+        if worked:
+            self._conn.execute(
+                """UPDATE locator_memory SET uses = uses + 1, hits = hits + 1,
+                     consecutive_failures = 0
+                   WHERE origin=? AND operation=? AND role=?""", (origin, operation, role))
+        else:
+            self._conn.execute(
+                """UPDATE locator_memory SET uses = uses + 1,
+                     consecutive_failures = consecutive_failures + 1
+                   WHERE origin=? AND operation=? AND role=?""", (origin, operation, role))
+            self._conn.execute(
+                """UPDATE locator_memory
+                     SET quarantined_at = ?,
+                         quarantine_reason = consecutive_failures || ' consecutive failures'
+                   WHERE origin=? AND operation=? AND role=?
+                     AND consecutive_failures >= ? AND quarantined_at IS NULL""",
+                (time.time(), origin, operation, role, quarantine_after))
+        self._conn.commit()
+
+    def locator_stats(self) -> dict[str, Any]:
+        row = self._conn.execute(
+            """SELECT COUNT(*) AS rows_stored,
+                      COALESCE(SUM(hits), 0) AS hits,
+                      COALESCE(SUM(uses), 0) AS uses,
+                      COALESCE(SUM(heals), 0) AS heals,
+                      COALESCE(SUM(quarantined_at IS NOT NULL), 0) AS quarantined
+               FROM locator_memory""").fetchone()
+        return {k: int(row[k]) for k in
+                ("rows_stored", "hits", "uses", "heals", "quarantined")}
 
     def record_spend(self, tier: str, usd: float, input_tokens: int,
                      output_tokens: int) -> None:

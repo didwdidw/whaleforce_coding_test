@@ -35,6 +35,7 @@ from app.identity import COLLECT_JS, ElementIdentity, identify, normalise
 from app.models import (
     DiagnosedCause, FailureClass, Run, RunState, StepKind, TerminalStatus, Tier, TraceEntry,
 )
+from app.memory import LocatorMemory
 from app.models import StrategyFamily
 from app.planner import Planner, Proposal, ProposalRejected, ResponseTruncated
 from app.postcondition import (
@@ -58,6 +59,43 @@ log = logging.getLogger(__name__)
 
 def norm_ws(text: str) -> str:
     return re.sub(r'\s+', ' ', text or '').strip()
+
+#: Steps whose element is worth remembering. A snapshot has no element and a note is not an
+#: interaction; remembering either fills the table with rows nothing can ever match.
+_MEMORABLE_STEPS = (StepKind.CLICK, StepKind.FILL, StepKind.SELECT, StepKind.EXTRACT)
+
+
+def _selectors_for(identity: dict[str, Any]) -> tuple[str, ...]:
+    """A remembered identity, as things the page can be asked for — semantic first.
+
+    Ordered by how much of it belongs to the page rather than to us: an accessible name and
+    a role are the page's own vocabulary, a `data-testid` is the site author's, an `id` is
+    structural, and a CSS selector we once wrote down is the weakest thing here and is tried
+    last."""
+    out: list[str] = []
+    name = (identity.get("name") or identity.get("label") or identity.get("text") or "").strip()
+    role = (identity.get("role") or "").strip()
+    if name and role:
+        out.append(f'[role="{role}"]:text-is("{name}")')
+    if name:
+        out.append(f':text-is("{name}")')
+    if identity.get("testid"):
+        out.append(f'[data-testid="{identity["testid"]}"]')
+    if identity.get("id"):
+        out.append(f'#{identity["id"]}')
+    if identity.get("title"):
+        out.append(f'[title="{identity["title"]}"]')
+    out.extend(str(x) for x in (identity.get("recorded_as") or ()) if str(x).strip())
+    return tuple(dict.fromkeys(out))
+
+
+def _origin(url: str) -> str:
+    """Scheme and host. The key is the origin rather than the URL because a listing and its
+    page two are the same site and the same control, and keying on the URL would remember
+    each page separately and match none of them twice."""
+    parts = urlsplit(url or "")
+    return f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else ""
+
 
 #: Which trace step kind each proposed action is recorded as.
 _STEP_KINDS = {
@@ -234,6 +272,7 @@ class Executor:
         self._coverage = CoverageLedger(store)
         self._provider = provider or Provider(ledger=store)
         self._planner = Planner(self._provider)
+        self._locator_memory = LocatorMemory(store)
 
     # ---- admission-time classification -----------------------------------------
 
@@ -286,8 +325,33 @@ class Executor:
         # Every run ends here, so this is where a quiet outcome is made to answer for what
         # the trace says we may have removed before anyone could act on it.
         annotate(run)
+        self._write_back_locators(run)
         self._store.save_run(run)
         self._coverage.record(status=status, failure=failure, run_id=run.id, task=run.task)
+
+    def _write_back_locators(self, run: Run) -> None:
+        """Remember what a verified run proved, and nothing else (§8).
+
+        The gate is the run's terminal status, not the step's. A click that worked on a run
+        whose answer nobody could re-resolve is precisely the locator not to reuse — and
+        writing on step success is how a memory fills up with elements that were reachable
+        and wrong.
+        """
+        if run.terminal_status is not TerminalStatus.SUCCEEDED_VERIFIED:
+            return
+        operation = (run.postcondition or {}).get("operation") or "generic"
+        for entry in run.trace:
+            if not entry.ok or entry.kind not in _MEMORABLE_STEPS:
+                continue
+            element = entry.detail.get("element") or {}
+            role = str(element.get("role") or entry.kind.value)
+            origin = _origin(str(entry.detail.get("url") or entry.detail.get("final_url")
+                                 or (run.postcondition or {}).get("target_url") or ""))
+            if not origin or not element.get("resolved", True):
+                continue
+            self._locator_memory.remember(
+                origin=origin, operation=operation, role=role, identity=element,
+                run_id=run.id, healed=bool(entry.detail.get("healed_from_memory")))
 
     # ---- entry point -----------------------------------------------------------
 
@@ -827,19 +891,65 @@ class Executor:
         """
         identity = ElementIdentity(recorded_as=(selector,))
         handle = await ctx.page.query_selector(selector)
+        origin, provenance, healed = _origin(ctx.page.url), "freshly derived", None
+        if handle is None:
+            # The scripted selector no longer matches. Before diagnosing anything, ask
+            # memory what worked here last time and try to resolve *that* (§8). This is the
+            # self-maintenance path: the locator changed under us and a previous verified
+            # run is what makes a second attempt something other than a guess.
+            handle, selector, healed = await self._recall_handle(ctx, origin, summary)
+            provenance = "healed from memory" if handle is not None else "freshly derived"
         if handle is not None:
             try:
                 identity = ElementIdentity.from_browser(await handle.evaluate(COLLECT_JS))
             except Exception:  # noqa: BLE001 - identification is diagnostic, not load-bearing
                 pass
         entry = self._step(ctx.run, StepKind.CLICK, summary, selector=selector,
-                           element=identity.to_dict())
+                           element=identity.to_dict(), locator_provenance=provenance,
+                           healed_from_memory=bool(healed),
+                           memory=healed or self._memory_note(ctx, origin, summary))
+        if healed:
+            # A remembered semantic identity replacing a CSS selector is a move between
+            # strategy families, which is what makes it a recovery rather than a retry.
+            entry.family_from = StrategyFamily.F3_STRUCTURAL
+            entry.family_to = StrategyFamily.F1_SEMANTIC
+            entry.diagnosed_cause = DiagnosedCause.ELEMENT_ABSENT
         if navigates:
             async with ctx.page.expect_navigation(wait_until="domcontentloaded"):
                 await ctx.page.click(selector)
         else:
             await ctx.page.click(selector)
         self._finish_step(ctx.run, entry, final_url=ctx.page.url)
+
+    def _memory_note(self, ctx: ExecutionContext, origin: str, role: str) -> str:
+        """Why memory contributed nothing, for the trace. An absence that says nothing looks
+        the same whether the table is empty, stale or quarantined (A11.8)."""
+        operation = (ctx.run.postcondition or {}).get("operation") or "generic"
+        return self._locator_memory.why_not(origin, operation, role)
+
+    async def _recall_handle(self, ctx: ExecutionContext, origin: str, role: str):
+        """Try what memory remembers for this (origin, operation, role).
+
+        Returns `(handle, selector, note)`. A remembered identity is re-resolved on the live
+        page like any other locator and whatever it finds is verified the same way — memory
+        can save an attempt, it can never make a claim.
+        """
+        operation = (ctx.run.postcondition or {}).get("operation") or "generic"
+        remembered = self._locator_memory.recall(origin, operation, role)
+        if remembered is None:
+            return None, "", None
+        for candidate in _selectors_for(remembered.identity):
+            try:
+                handle = await ctx.page.query_selector(candidate)
+            except Exception:  # noqa: BLE001 - an unusable selector is not a finding
+                continue
+            if handle is not None:
+                self._locator_memory.used(origin, operation, role, worked=True)
+                return handle, candidate, (
+                    f"resolved from memory as {candidate!r}, last confirmed "
+                    f"{round(remembered.age_seconds / 3600, 1)}h ago")
+        self._locator_memory.used(origin, operation, role, worked=False)
+        return None, "", None
 
     async def _apply(self, ctx: ExecutionContext, proposal: Proposal) -> str:
         """The only place a proposed action touches the browser. The allow-list is closed:

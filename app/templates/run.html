@@ -172,6 +172,16 @@
         {% if t.family_from %} · {{ t.family_from.value }} → {{ t.family_to.value }}
           ({% if t.is_recovery %}recovery{% else %}retry{% endif %}){% endif %}
         {% if t.artifact_id %} · <a href="/api/artifacts/{{ t.artifact_id }}">artifact</a>{% endif %}
+        {% if t.detail.get('locator_provenance') %} ·
+          {% if t.detail.get('healed_from_memory') %}
+            <span class="badge b-ok">healed</span>
+          {% elif t.detail.get('locator_provenance') == 'from memory' %}
+            <span class="badge b-ok">from memory</span>
+          {% else %}
+            <span class="badge b-dim">freshly derived</span>
+          {% endif %}
+          {% if t.detail.get('memory') %}<span class="sub">{{ t.detail['memory'] }}</span>{% endif %}
+        {% endif %}
       </div>
       {% if t.detail %}
       <details><summary>detail</summary><pre>{{ t.detail | tojson(indent=1) }}</pre></details>
@@ -279,10 +289,22 @@
 
 <div class="panel">
   <h2>Locator memory</h2>
-  <p class="sub">Not yet active. Memory arrives at M5; it will show per run whether each
-    locator came from memory or was freshly derived, whether a healing write-back occurred,
-    and which entries are quarantined. A memory hit will still require full deterministic
-    verification — memory saves search effort, never proof.</p>
+  {% if build.locator_memory %}
+  <p class="sub">Each interaction step in the trace above is badged <strong>from memory</strong>,
+    <strong>healed</strong>, or <strong>freshly derived</strong>, and where memory contributed
+    nothing it says which kind of nothing — empty, past its confirmation window, or
+    quarantined after three consecutive failures.</p>
+  <p class="sub">The boundaries are the design. A locator enters memory only from a run that
+    ended <code>succeeded_verified</code>, never merely because a click worked. What is
+    remembered is an element's identity and never a value, so nothing here can become an
+    answer. And a remembered locator is re-resolved on the live page and re-verified like any
+    other: <strong>memory saves search effort, never proof</strong>. Counters are on
+    <a href="/healthz">/healthz</a>.</p>
+  {% else %}
+  <p class="sub">Not in this build. When it is, each locator will be badged with whether it
+    came from memory, was healed, or was freshly derived. This paragraph is rendered from
+    whether the code exists, so it cannot claim a mechanism that is not there.</p>
+  {% endif %}
 </div>
 
 <p><a href="/api/runs/{{ run.id }}">JSON</a> · <a href="/">all runs</a></p>

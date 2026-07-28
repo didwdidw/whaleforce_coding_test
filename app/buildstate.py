@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-MILESTONE = "M4"
+MILESTONE = "M5"
 
 
 def gate_operations() -> list[dict[str, Any]]:
@@ -62,7 +62,10 @@ def state() -> dict[str, Any]:
         # Whether a plain-language task on a real site is planned by the model (A13.4).
         "planner_is_default": settings.planner_default_on_real_sites,
         "model_id": settings.provider.model_id,
-        "locator_memory": hasattr(Executor, "_locator_memory"),
+        # The write-back is the load-bearing half: a memory nothing writes to is a table.
+        # Checked on the class, because the instance attribute exists only after __init__
+        # and this flag was reading False for a shipped mechanism.
+        "locator_memory": hasattr(Executor, "_write_back_locators"),
         # The two things breadth is traded away for. A page may only sell that trade-off
         # once the depth side of it exists (A13.3).
         "safety_suite": _safety_split().exists(),

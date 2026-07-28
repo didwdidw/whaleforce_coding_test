@@ -125,6 +125,12 @@
     with what this build does with it and why. Every outcome below was observed on a live
     run, not predicted. If one of them no longer behaves this way, this table is wrong —
     which is the point of writing them as tasks rather than as cautions.</p>
+  <p class="sub"><strong>The list is executable.</strong>
+    <code>python -m eval.limitations_check --base-url &lt;this host&gt;</code> runs every
+    entry, and every claimed remedy, against this deployment and writes a report to
+    <code>eval/results/</code>. The first time it ran, four of seven entries did not
+    reproduce as written — a limitation a reader can falsify is worse than no limitation,
+    so the rule is now that the list is checked rather than believed.</p>
   <div class="scroll">
   <table>
     <thead><tr><th>Task</th><th>Outcome</th><th>Why</th></tr></thead>
@@ -134,7 +140,11 @@
         <td style="min-width:240px">{{ l.task }}</td>
         <td style="white-space:nowrap"><code>{{ l.outcome }}</code>
           {% if l.failure_class %}<br><code>{{ l.failure_class }}</code>{% endif %}</td>
-        <td style="min-width:280px">{{ l.what_happens }} {{ l.why }}</td>
+        <td style="min-width:280px">{{ l.what_happens }} {{ l.why }}
+          {% if l.remedy_task %}<br><span class="sub"><strong>Also run with this
+          entry:</strong> “{{ l.remedy_task }}” → <code>{{ l.remedy_outcome }}</code>.
+          A phrasing an entry claims fixes the task is part of what the entry says, so it
+          is part of what has to reproduce.</span>{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -148,8 +158,10 @@
     <li><strong>This build is {{ build.milestone }}.</strong> A model plans; it does not
       judge. Every status still comes from deterministic re-extraction against the stored
       artifact, and the executor cannot set a success status itself.
-      {% if not build.locator_memory %}Locator memory and the mutation gate (M5) are not in
-      this build.{% endif %}</li>
+      {% if not build.locator_memory %}Locator memory is not in this build.
+      {% else %}Locator memory is present and deliberately small: written back only from
+      verified runs, re-resolved and re-verified on use, quarantined after three
+      consecutive failures. It is a hint that saves search effort, never a proof.{% endif %}</li>
     <li><strong>Each promised record is reachable two ways</strong> — planned by the model,
       which is {% if build.planner_is_default %}what a plain-language task gets by
       default{% else %}not currently the default{% endif %}, and by a scripted plan that

@@ -618,6 +618,7 @@ async def healthz(response: Response) -> dict[str, Any]:
         "queue": state.queue.snapshot().to_dict(),
         "browser": state.supervisor.status(),
         "storage": storage,
+        "locator_memory": state.executor._locator_memory.stats(),
         "unhealthy_because": ([] if healthy else
                               ([] if store_ok else
                                [f"artifact store at {storage['data_dir']} is not usable: "
