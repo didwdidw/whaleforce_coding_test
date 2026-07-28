@@ -261,9 +261,16 @@ provenance — git SHA, pinned model, credential tier, and the SHA-256 of the sp
 because a score without them describes a system nobody can identify. Full numbers, per-case tables
 and the evidence bundles are in `eval/results/` and `docs/analysis-report.md`.
 
-**The headline round is `r3`**, scored against the frozen submission build. Three rounds were run;
-all three are committed, because a number that only survives because the rounds that disagreed with
-it were deleted is not a measurement.
+**The headline round is `r3`**, scored against the frozen submission build `e82cacb9e809`. Three
+rounds were run; all three are committed, because a number that only survives because the rounds
+that disagreed with it were deleted is not a measurement.
+
+**The live deployment is not necessarily the commit these rounds scored, and this file does not
+claim it is.** Every push to `master` redeploys, and the commits after `e82cacb9e809` are results,
+evidence and prose — no code. The authority on what was scored is each result file's own provenance
+block, not the running container: check `git_sha` in `eval/results/*-r3.json` and `*-r4.json`
+against `/healthz` if you want to see the distance. Scoring more rounds to close it would mean
+scoring a held-out split twice, which is the one thing that cannot be done.
 
 | | `r1` | `r2` | **`r3`** |
 |---|---|---|---|
