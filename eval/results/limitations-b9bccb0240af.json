@@ -1,0 +1,149 @@
+{
+ "tool": "limitations-check/1.0",
+ "base_url": "https://wf-agent.zeabur.app",
+ "git_sha": "b9bccb0240af",
+ "checked_at": "2026-07-28T15:54:13Z",
+ "entries": 7,
+ "reproduce": 3,
+ "do_not_reproduce": [
+  "L-1",
+  "L-4",
+  "L-5",
+  "L-7"
+ ],
+ "results": [
+  {
+   "id": "L-1",
+   "task": "In the S&P 500 constituents table on Wikipedia, sort by CIK ascending and tell me which company is first.",
+   "published": {
+    "terminal_status": "unsupported",
+    "failure_class": "policy_refused"
+   },
+   "observed": {
+    "terminal_status": "unsupported",
+    "failure_class": "policy_refused",
+    "explanation": "This task names no page or site to start from, and no promised operation recognises it, so there is nowhere to begin. Picking a starting page the task never named would answer a question nobody asked. Name a URL or a site — for example \"on example.org, …\" — and it will be attempted best-effort as an experimental run.",
+    "run_id": "run_67f0853bc194",
+    "timed_out": false
+   },
+   "reproduces": false,
+   "discrepancy": "",
+   "remedy": {
+    "task": "In the List of S&P 500 companies article on Wikipedia, sort by CIK ascending and tell me which company is first.",
+    "published": "succeeded_verified",
+    "observed": {
+     "terminal_status": "failed",
+     "failure_class": "budget_exhausted",
+     "explanation": "The run reached its 25-step budget without reaching the frozen postcondition. Budgets are fail-closed: no partial answer is emitted in their place.",
+     "run_id": "run_5c3c5e98cede",
+     "timed_out": false
+    },
+    "reproduces": false,
+    "discrepancy": "published 'succeeded_verified', observed 'failed'"
+   }
+  },
+  {
+   "id": "L-2",
+   "task": "How many books are listed on the last page of the Nonfiction category on books.toscrape.com?",
+   "published": {
+    "terminal_status": "failed",
+    "failure_class": "budget_exhausted"
+   },
+   "observed": {
+    "terminal_status": "failed",
+    "failure_class": "budget_exhausted",
+    "explanation": "The run reached its 25-step budget without reaching the frozen postcondition. Budgets are fail-closed: no partial answer is emitted in their place.",
+    "run_id": "run_9d2af02944cf",
+    "timed_out": false
+   },
+   "reproduces": true,
+   "discrepancy": ""
+  },
+  {
+   "id": "L-3",
+   "task": "Is there any book in the Fiction category on books.toscrape.com priced over £50?",
+   "published": {
+    "terminal_status": "unverified",
+    "failure_class": "postcondition_unmet"
+   },
+   "observed": {
+    "terminal_status": "unverified",
+    "failure_class": "postcondition_unmet",
+    "explanation": "The site's own count says 65 items; 20 were enumerated from the artifact. At least 7 of the 20 items read from the artifact satisfy the frozen predicate (Finders Keepers (Bill Hodges Trilogy #2), Shtum, Soumission, The Murder That Never Was (Forensic Instincts #5), The Regional Office Is Under Attack!, The Testament of Mary, We Love You, Charlie Freeman). That is an existence claim and it is repor",
+    "run_id": "run_8712f79812d0",
+    "timed_out": false
+   },
+   "reproduces": true,
+   "discrepancy": ""
+  },
+  {
+   "id": "L-4",
+   "task": "Use Wikipedia's search page to find articles mentioning 'convertible arbitrage'.",
+   "published": {
+    "terminal_status": "blocked",
+    "failure_class": "policy_refused"
+   },
+   "observed": {
+    "terminal_status": "blocked",
+    "failure_class": "robots_disallowed",
+    "explanation": "en.wikipedia.org/robots.txt disallows this path. Matched rule: `Disallow: /wiki/Special:` (group `User-agent: *`). robots.txt is treated as binding, not advisory.",
+    "run_id": "run_5b2717d72719",
+    "timed_out": false
+   },
+   "reproduces": false,
+   "discrepancy": "published failure_class 'policy_refused', observed 'robots_disallowed'"
+  },
+  {
+   "id": "L-5",
+   "task": "On www.gutenberg.org, find the 'Science Fiction' bookshelf and tell me how many ebooks it lists.",
+   "published": {
+    "terminal_status": "unsupported",
+    "failure_class": "postcondition_unmet"
+   },
+   "observed": {
+    "terminal_status": "succeeded_verified",
+    "failure_class": null,
+    "explanation": "All 1 required claims were re-extracted from the stored artifact through their declared label anchors and matched the run's values. Verified means consistent with the artifact preserved at capture time — not true in the world.",
+    "run_id": "run_07fbad18e6b0",
+    "timed_out": false
+   },
+   "reproduces": false,
+   "discrepancy": "published 'unsupported', observed 'succeeded_verified'"
+  },
+  {
+   "id": "L-6",
+   "task": "Go to the nonfiction category listing on books.toscrape.com and read the second page of results, without the planner.",
+   "published": {
+    "terminal_status": "succeeded_verified",
+    "failure_class": null
+   },
+   "observed": {
+    "terminal_status": "succeeded_verified",
+    "failure_class": null,
+    "explanation": "All 3 required claims were re-extracted from the stored artifact through their declared label anchors and matched the run's values. Verified means consistent with the artifact preserved at capture time — not true in the world.",
+    "run_id": "run_7d20a651c77c",
+    "timed_out": false
+   },
+   "reproduces": true,
+   "discrepancy": ""
+  },
+  {
+   "id": "L-7",
+   "task": "Search the fixture catalogue for a term that appears on no page",
+   "published": {
+    "terminal_status": "unsupported",
+    "failure_class": "postcondition_unmet"
+   },
+   "observed": {
+    "terminal_status": "no_result_verified",
+    "failure_class": null,
+    "explanation": "Nothing matched, and that is proven rather than assumed: the page states it in a located empty-state element, and the counter echoes the term 'a term that appears on no page' that was frozen at plan time.",
+    "run_id": "run_d00b0070cc25",
+    "timed_out": false
+   },
+   "reproduces": false,
+   "discrepancy": "published 'unsupported', observed 'no_result_verified'"
+  }
+ ],
+ "note": "A-73. Every published limitation is executed against the deployed system before it is published and again before submission. An entry listed in `do_not_reproduce` is a defect in the list, not a caveat about it."
+}

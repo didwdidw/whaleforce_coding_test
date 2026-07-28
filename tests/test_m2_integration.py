@@ -28,7 +28,7 @@ from app.coverage import CoverageLedger
 from app.executor import Executor, _compare as _real_compare
 from app.planner import Planner
 from app.provider import CredentialPolicy, Provider, ProviderError
-from app.models import FailureClass, Run, TerminalStatus, Tier, new_id
+from app.models import FailureClass, Run, StepKind, TerminalStatus, Tier, new_id
 from app.store import Store
 
 pytestmark = pytest.mark.integration
@@ -132,6 +132,13 @@ def test_every_capture_stores_the_accessibility_tree_beside_the_dom(executor):
     tree = store.read_artifact(aria[0].id).decode("utf-8")
     assert "- " in tree, "an accessibility snapshot with no node in it is not one"
     assert any(role in tree for role in ("textbox", "button", "heading", "link")), tree[:200]
+
+    # And it costs no step. Every trace entry charges the step budget, so giving the tree
+    # its own entry halved the browsing headroom of a capture-heavy run — a live OP-4 task
+    # that had been reaching its answer started ending `budget_exhausted` instead.
+    snapshots = [t for t in run.trace if t.kind is StepKind.SNAPSHOT]
+    assert len(snapshots) == len(dom), "one capture is one step, whatever it stores"
+    assert snapshots[0].detail.get("accessibility_artifact"), snapshots[0].detail
 
 
 def test_absence_mode_a_needs_the_empty_state_element(executor):

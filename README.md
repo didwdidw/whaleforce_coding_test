@@ -6,7 +6,7 @@ non-success status that says what it could not do**.
 
 It is built for one user: someone who would rather have no number than a wrong one.
 
-**Live system:** ⟨FILL-1: public URL⟩
+**Live system:** <https://wf-agent.zeabur.app>
 **Frontend surfaces:** `/` submit + recent runs · `/runs/{id}` full trace · `/support` support matrix
 and known limitations · `/coverage` evidence coverage · `/healthz` operational state
 
@@ -50,18 +50,18 @@ Two consequences worth stating plainly, because they cost us headline numbers:
 
 ### Use the deployed system
 
-Open ⟨FILL-1⟩, type a task, watch it run. The homepage carries pre-executed runs — including
+Open <https://wf-agent.zeabur.app>, type a task, watch it run. The homepage carries pre-executed runs — including
 failures — that are inspectable immediately, so nothing depends on a cold container starting.
 
 The API, if you prefer:
 
 ```bash
-curl -X POST ⟨FILL-1⟩/api/runs \
+curl -X POST https://wf-agent.zeabur.app/api/runs \
   -H 'Content-Type: application/json' \
   -d '{"task": "On books.toscrape.com, open A Light in the Attic and tell me its UPC."}'
 
-curl ⟨FILL-1⟩/api/runs/{run_id}          # status + result + evidence bundle
-curl ⟨FILL-1⟩/api/runs/{run_id}/events   # SSE progress stream
+curl https://wf-agent.zeabur.app/api/runs/{run_id}          # status + result + evidence bundle
+curl https://wf-agent.zeabur.app/api/runs/{run_id}/events   # SSE progress stream
 ```
 
 ### Run it locally
@@ -71,20 +71,30 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python -m playwright install --with-deps chromium
 
-⟨FILL-2: the exact env vars needed for a local run — provider key file path, fixture URL,
-storage dir — as a copy-pasteable block⟩
+export APP_ENV=development             # relaxes the egress guard for a loopback fixture only
+export DATA_DIR=./.data/task1          # runs database + artifact store; created if absent
+export FIXTURE_BASE_URL=http://127.0.0.1:8801
+export PROVIDER_KEY_DIR=./api_keys     # a *directory*; the key is read from a file in it
+export PROVIDER_FREE_KEY_NAME=gemini_free_tier   # ./api_keys/gemini_free_tier
+export CREDENTIAL_POLICY=development   # free tier, falling back to paid if present
+export PORT=8080
 
-./entrypoint.sh                    # app on :8000
-ROLE=fixture ./entrypoint.sh       # fixture site, separate process
+# The fixture is a separate process on its own port, because the app treats it as a remote
+# site like any other. Start it first.
+APP_ROLE=fixture PORT=8801 ./entrypoint.sh &
+./entrypoint.sh                        # app on :8080
 ```
 
-No LLM credential is required to see the system work: the fixture records (OP-1…OP-3) and the pinned
-demonstrations run on the deterministic path.
+**No LLM credential is required to see the system work.** The fixture demonstrations and the pinned
+homepage runs take the deterministic path, which makes no model call at all — so a reviewer with no
+key still gets a browser really driving a real page, with the evidence and the verifier's verdict.
+What needs a key is the model-driven path, which is everything on a site we did not write.
 
 ### Tests and evaluation
 
 ```bash
-pytest                                    # ⟨FILL-3: test count⟩ tests
+pytest                                    # 528 tests, ~20 s (a real browser runs
+                                          # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
 ```
@@ -106,15 +116,22 @@ visible on the form, in the result, and in the API response.
 
 ### Support matrix
 
-| ID | Site | Operation | Why it is hard | Status |
+**The promised set is four records, not seven.** OP-1…OP-3 were on our own fixture, and a record
+measured on a site we wrote is us setting our own exam — so they were **withdrawn from the promise**
+and kept as *mechanism evidence* (GS-1…GS-3 at `/support`), which appears in no success rate. The
+promise is what is left, on sites we do not control.
+
+| ID | Site | Operation | Why it is hard | Status, from `dev-deploy-e1d13cae4926-r1` |
 |---|---|---|---|---|
-| OP-1 | fixture | Search the catalogue via a POST-only form | No URL shortcut exists — the form must actually be submitted | ⟨FILL-4⟩ |
-| OP-2 | fixture | Reach result page *N* via the JS pagination control | Pagination changes state without changing the URL | ⟨FILL-4⟩ |
-| OP-3 | fixture | Dismiss a blocking overlay, then act on what it covered | The underlying control is unactionable until the overlay is gone | ⟨FILL-4⟩ |
-| OP-4 | en.wikipedia.org | Sort a sortable wikitable by a named column, read a cell from the new top row | Client-side sort: the DOM order changes, the URL does not, so the answer cannot be obtained by fetching a URL | ⟨FILL-4⟩ |
-| OP-5 | en.wikipedia.org | Expand a collapsed section/navbox and read a value not visible beforehand | The value is not in the DOM-visible state until a real interaction happens | ⟨FILL-4⟩ |
-| OP-6 | books.toscrape.com | Navigate a category, page through it, extract list-level facts | Multi-page state, and the honest answer often requires proving coverage | ⟨FILL-4⟩ |
-| OP-7 | books.toscrape.com | Open a product detail page and extract a **labelled** field (UPC, Availability, Price excl. tax) | The answer is a label→value binding, not a string that happens to appear | ⟨FILL-4: and see §7 — this record's parameter generalisation is the open item⟩ |
+| OP-4 | en.wikipedia.org | Sort a sortable wikitable by a named column, read a cell from the new top row | Client-side sort: the DOM order changes, the URL does not, so the answer cannot be obtained by fetching a URL | **2 of 3 dev cases as expected.** The third (DEV-02) names the article by description rather than by title and correctly stops before browsing — see L-1 |
+| OP-5 | en.wikipedia.org | Expand a collapsed section/navbox and read a value not visible beforehand | The value is not in the DOM-visible state until a real interaction happens | **2 of 2.** No independent oracle: correctness here rests on our own verifier (A25.4) |
+| OP-6 | books.toscrape.com | Navigate a category, page through it, extract list-level facts | Multi-page state, and the honest answer often requires proving coverage | **2 of 3.** The third exhausts the step budget on a long category and returns no answer — L-2 |
+| OP-7 | books.toscrape.com | Open a product detail page and extract a **labelled** field (UPC, Availability, Price excl. tax) | The answer is a label→value binding, not a string that happens to appear | **2 of 2 — for one product.** The plan is fixed to *A Light in the Attic*; any other product falls to T-EXPERIMENTAL. This is the open item in §7, and it makes this row narrower than the operation column reads |
+
+Two of the six *evidence findings* in that round were the harness disagreeing with itself, not the
+product: it re-checked values against rendered text only, and `books.toscrape` carries long titles in
+the `title` attribute. The product read the attribute, which is the better behaviour. The fix is
+committed and `r2` re-measures with it as the only change; `r1` stays as the record.
 
 **These records are the promise. Everything else is best-effort and is labelled as such in the UI.**
 A grader submitting a task we have never seen gets a T-EXPERIMENTAL run that browses honestly and
@@ -228,19 +245,63 @@ requirement class was needed, and the calls that spent money or changed what we 
 
 ## 6. Evaluation
 
-⟨FILL-5: this section is written by the engineering session from committed results — see
-docs/analysis-report.md, and keep the two documents consistent. Required content:
+Four splits, all authored by us against public pages. Every result file carries its own
+provenance — git SHA, pinned model, credential tier, and the SHA-256 of the split file it scored —
+because a score without them describes a system nobody can identify. Full numbers, per-case tables
+and the evidence bundles are in `eval/results/` and `docs/analysis-report.md`.
 
-- dev split (15 cases, committed at eval/dev-set.md): result table by record and status
-- experimental split (10 cases, committed at eval/experimental-set.md): result table, and the
-  abstention rate stated as a correct outcome rather than a failure
-- test split (8 cases, held out until submission): first-run score with git SHA, model ID and
-  eval-set hash, plus the interval — with n=8 one case is 12.5 points and the report must say so
-- validation split: reported as NOT RUN, with the Amendment 25 reason
-- the two hard gates: verified-but-wrong = 0, evidence coverage = 100%, stated as "on these sets,
-  first-run" and never as a system-level guarantee
-- what the oracles actually check per record (A25.4), including where there is no independent
-  ground truth⟩
+The round below is `r1`, the first scored against the deployment: commit `e1d13cae4926`, model
+`gemini-3.1-flash-lite`, paid tier, dev split `8f584218…`, experimental split `790d9440…`.
+
+**Dev split — 15 cases, 14 declared.** Twelve of the fourteen ended in a status the case declared
+acceptable. The two that did not are both the product refusing rather than guessing: DEV-02 stops
+before browsing because the article is described and not named (L-1), and DEV-08 exhausts its step
+budget paging a long category and returns no answer (L-2).
+
+The **headline pass rate is lower than that — 6 of 11** — because a case passes only when the status
+is as expected *and* the harness can re-locate every verified value in the stored artifact. Four
+cases were demoted by the harness's own defect: it searched rendered text only, and the site carries
+long titles in the `title` attribute the product correctly read. The fix is committed and re-measured
+as `r2`, with the scorer as the only change, so the difference between the two rounds is attributable.
+`r1` stays as the record rather than being re-run away.
+
+**Experimental split — 10 cases, all on sites we had never touched.** Attempted 10/10; **verified
+3/10** (95% Wilson interval **0.11–0.60**); **abstained after looking 5/10**; failed or blocked 2/10;
+refused by policy 0.
+
+The abstentions are the product working, not the product failing. On a site nobody has declared, the
+label a value must bind to cannot be frozen in advance; when the run cannot point at a value bound to
+a label it can name, there is nothing for code to re-read and it says where it stopped. Ten cases is
+a small number and the interval is the file saying so.
+
+**Test split — 8 cases, held out.** Run once against the deployment at submission; the score, its
+interval and the provenance block go in `docs/analysis-report.md`. With n=8 a single case moves the
+rate by 12.5 points, which is why it is reported with an interval and not as a percentage.
+
+**Validation split — NOT RUN, deliberately.** Its purpose was to keep the engineering session honest
+*during* development by holding cases back from it. Development is over, so running it now buys a
+number instead of the discipline it existed for (Amendment 25). Reported as unrun with this reason
+rather than quietly omitted.
+
+**The two hard gates, on these sets, first-run.** Verified-but-wrong = **0**: no run in `r1` returned
+a value the independent re-check found to be different from what the artifact contains. Evidence
+coverage: every claim marked verified carries the artifact id and SHA-256 it was re-extracted from.
+
+Both statements are narrower than they look, and the narrowing is the important part:
+
+**What the oracles actually check (A25.4).** The dev set's case notes described independent oracles —
+*"the harness fetches the table, applies the same sort key, compares"* — that were never implemented.
+What `check_evidence` does is re-fetch the artifact, re-hash it against the recorded digest, and
+re-locate each claimed value inside it. That is a real independent check of *the evidence supporting
+the claim*, and it is **not** an independent derivation of the right answer.
+
+The consequence, stated plainly: for OP-4 and OP-5 — the two records §4 calls structurally
+shortcut-proof — `independently_checked` was **0** in `r1`, because their values are structures (a
+sort state, a table row) rather than strings to search for. So "verified-but-wrong = 0" is currently
+**unfalsifiable on our two strongest records**. An OP-4 oracle that fetches the table, applies the
+sort key and compares the top row is the fix, and the numeric-versus-lexicographic distinction is
+exactly what DEV-02's case was written around. OP-5 has no independent ground truth and the analysis
+report says so rather than implying one.
 
 **Held-out cases will be run against this system by the graders.** What we expect: declared records
 behave as the matrix says; unseen tasks on unseen sites land on T-EXPERIMENTAL, browse, and abstain
@@ -250,7 +311,7 @@ more often than they answer. The abstentions are the product working.
 
 ## 7. Known limitations
 
-The live list is at **⟨FILL-1⟩/support**, and it is not prose. Each entry is **a task you can type
+The live list is at **<https://wf-agent.zeabur.app/support>**, and it is not prose. Each entry is **a task you can type
 into the box**, plus what the system actually does with it and why. Every entry has been executed
 against the deployed system and reproduces as written — this was not true two days ago, which is
 itself the point of the rule.
@@ -268,10 +329,35 @@ itself the point of the rule.
 ⟨FILL-7: add any limitation found while executing A25.1 — including, if it survives, the honest entry
 for whatever OP-7's parameter generalisation does not cover⟩
 
-**What is not built, and is not claimed:** ⟨FILL-8: the Amendment 25 cut list as shipped state —
-locator memory's actual scope, whether the injection detector exists, Task 2 as a designed-not-built
-seam, the mutation suite's reduced size. State each as a decision with its reason, not as an
-omission.⟩
+### What is not built, and is not claimed
+
+Each of these is a decision taken with two days left and a fixed budget, recorded as a decision
+rather than discovered as a gap. Amendment 25 is where each one was made.
+
+- **Task 2 (SEC 10-K extraction) is not built.** `docs/task2-seam.md` is a complete, frozen contract
+  for it — the resolution rules, the amendment ordering, the cap behaviour, the hashing — and nothing
+  behind that contract exists. The assignment requires one task, and a fully specified interface to a
+  product that will not exist is a straight subtraction from the one that will. It is published as a
+  *designed, not built* seam because the design is real work and pretending otherwise would be the
+  opposite of the point.
+- **Self-maintenance (§8, locator memory) is the reduced version.** A keyed store on the volume,
+  written back only from `succeeded_verified` runs, with a TTL, quarantine after three consecutive
+  failures, and the run page saying whether a locator came *from memory*, was *freshly derived*, or
+  was *healed*. Not: cross-site generalisation, ranking, or a learned selector model. Present, small
+  and honestly bounded beats absent, and absent is where it was until the last day.
+- **The mutation suite is two mutations, not nine.** MU-4/5/7/9 and the sweep are cut. Two working
+  mutations plus one healing demonstration is evidence; nine is a research programme, and the
+  marginal mutation buys nothing the first two have not already shown.
+- **The safety suite is one item.** A minimal injection detector so `injection_detected` is reachable
+  on our own injection page — not a suite. If the detector is not in the shipped build, `/coverage`
+  says the status has never been produced, which is the honest form of the same statement.
+- **Spend controls stopped where they were.** Total provider spend across every scored round is
+  **USD 0.0477**. The ceiling, the ledger and the credential topology are done and were over-done
+  relative to a bill that size.
+- **Runtime `blocked` detection (login walls, 401/403/429 mid-run) is not built.** Pre-browse refusal
+  of authentication and payment tasks *is* — those end `unsupported / policy_refused` before any
+  navigation. What is missing is recognising an obstacle met *during* a run, which currently lands in
+  `locator_not_found` or `postcondition_unmet` and therefore misclassifies rather than mismeasures.
 
 ---
 

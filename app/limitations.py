@@ -51,12 +51,17 @@ LIMITATIONS: tuple[Limitation, ...] = (
         why=("The article is described rather than named. 'The S&P 500 constituents "
              "table on Wikipedia' does not resolve to one page title, and the alternative "
              "— searching for it and picking a result — is choosing a starting page the "
-             "task never named. Naming the article makes the same task succeed; the exact "
-             "phrasing that does is below, and it is run against the deployment with the "
-             "entry itself."),
+             "task never named. Naming the article gets the run to the right table, and "
+             "this particular task then meets a second limitation rather than an answer: "
+             "sorting by CIK, the run does not recognise that the sort landed and spends "
+             "the rest of its 25 steps trying to re-find the article, ending "
+             "`failed / budget_exhausted`. Both halves are run against the deployment "
+             "with the entry. An earlier version of this entry claimed the second phrasing "
+             "succeeded; it never did, and the check below is why it stopped being able to "
+             "say so."),
         remedy_task=("In the List of S&P 500 companies article on Wikipedia, sort by CIK "
                      "ascending and tell me which company is first."),
-        remedy_outcome="succeeded_verified",
+        remedy_outcome="failed",
     ),
     Limitation(
         id="L-2",
@@ -90,7 +95,7 @@ LIMITATIONS: tuple[Limitation, ...] = (
         id="L-4",
         task="Use Wikipedia's search page to find articles mentioning 'convertible arbitrage'.",
         outcome="blocked",
-        failure_class="policy_refused",
+        failure_class="robots_disallowed",
         what_happens=("The run refuses before navigating and quotes the robots rule that "
                       "caused it."),
         why=("Wikipedia's robots.txt disallows `/wiki/Special:Search`. The refusal is "
@@ -99,18 +104,24 @@ LIMITATIONS: tuple[Limitation, ...] = (
     ),
     Limitation(
         id="L-5",
-        task="On www.gutenberg.org, find the 'Science Fiction' bookshelf and tell me how many ebooks it lists.",
+        task=("On developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/"
+              "Array/flat, tell me the Chrome version listed in the browser compatibility "
+              "table."),
         outcome="unsupported",
         failure_class="postcondition_unmet",
-        what_happens=("The run browses the site, then abstains naming the step it stopped "
-                      "at, the page it was on and which part of the postcondition it could "
-                      "not satisfy."),
+        what_happens=("The run reaches the page, browses it, and abstains — naming the step "
+                      "it stopped at, the page it was on and the part of the postcondition "
+                      "it could not satisfy. It does not guess a version number."),
         why=("An experimental-tier run freezes the site and the binding rule but cannot "
-             "freeze the label — nobody knows it in advance on a site never seen. When the "
-             "model cannot point at a value bound to a label it can name, there is nothing "
-             "for code to re-read, and the run abstains. Sometimes it succeeds instead; "
-             "which of the two happens is a property of the page, and the experimental "
-             "split is where that rate is measured rather than asserted."),
+             "freeze the label: nobody knows in advance what a page never seen calls the "
+             "thing being asked for. Here the value sits in a compatibility grid whose "
+             "label is an icon and a column position rather than text, so there is nothing "
+             "for code to re-read and the run says so. Whether an unseen page yields a "
+             "bindable label is a property of the page — 3 of 10 experimental cases "
+             "verified and 5 abstained after looking, and that measured rate is the claim "
+             "rather than a promise. This entry replaced a Project Gutenberg task that "
+             "the executable check found now succeeds; publishing an abstention that no "
+             "longer happens is the same defect as publishing a remedy that never worked."),
     ),
     Limitation(
         id="L-6",
@@ -129,11 +140,14 @@ LIMITATIONS: tuple[Limitation, ...] = (
     Limitation(
         id="L-7",
         task="Search the fixture catalogue for a term that appears on no page",
-        outcome="unsupported",
-        failure_class="postcondition_unmet",
-        what_happens=("An abstention that may be caused by our own page reduction rather "
-                      "than by the site — in which case the run carries a badge saying it "
-                      "is not a clean abstention."),
+        outcome="no_result_verified",
+        failure_class=None,
+        what_happens=("On the fixture this now ends in a *proven* absence: the empty-state "
+                      "element is located and the counter echoes the frozen term. The "
+                      "limitation is what stands behind that on pages with no empty-state "
+                      "element — an abstention that may have been caused by our own page "
+                      "reduction rather than by the site, in which case the run carries a "
+                      "badge saying it is not a clean abstention."),
         why=("The reduced view sent to the model has an element cap. When the goal names "
              "elements that the cap dropped, an honest 'I could not see it' is produced by "
              "a page that had it. Runs are audited for that condition and marked, but the "
