@@ -143,6 +143,16 @@ def watch(base: str, *, t0: float | None, deadline_seconds: float,
 
     return {
         "t0_origin": origin,
+        "t0_epoch": zero,
+        # Absolute, so the operator's real press time can be applied afterwards without
+        # re-running a deploy: `--rebase <file> --t0 <epoch>` recomputes every interval
+        # from these. A measurement that can only be corrected by repeating it is one we
+        # would keep the caveat on instead of fixing.
+        "moments_epoch": {"last_response_from_previous_build": last_old_response,
+                          "outage_started": outage_started,
+                          "first_response": first_response,
+                          "healthy": first_healthy,
+                          "first_successful_task": first_success},
         "baseline_git_sha": baseline_sha,
         "new_git_sha": new_sha,
         "poll_seconds": poll_seconds,
@@ -160,9 +170,41 @@ def watch(base: str, *, t0: float | None, deadline_seconds: float,
     }
 
 
+def rebase(report: dict[str, Any], t0: float) -> dict[str, Any]:
+    """Recompute every interval against the operator's real deploy timestamp.
+
+    The watcher has to be running before the button is pressed, so its own clock starts
+    early by whatever the coordination took. The moments themselves are absolute, so the
+    honest fix is arithmetic rather than another redeploy.
+    """
+    cold = dict(report.get("cold_start") or {})
+    moments = cold.get("moments_epoch") or {}
+    if not moments:
+        raise SystemExit("this report has no absolute moments to rebase (older tool run)")
+
+    def since(key: str) -> float | None:
+        moment = moments.get(key)
+        return None if moment is None else round(moment - t0, 2)
+
+    previous = cold.get("t0_epoch")
+    cold.update({
+        "t0_origin": "the operator's deploy timestamp, applied after the fact (rebased)",
+        "t0_epoch": t0,
+        "rebased_from": {"t0_epoch": previous,
+                         "shift_seconds": (None if previous is None
+                                           else round(t0 - previous, 2))},
+        "seconds_to_first_response": since("first_response"),
+        "seconds_to_healthy": since("healthy"),
+        "seconds_to_first_successful_task": since("first_successful_task"),
+    })
+    return {**report, "cold_start": cold}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", required=True)
+    parser.add_argument("--base-url")
+    parser.add_argument("--rebase", type=pathlib.Path,
+                        help="recompute an existing report against --t0")
     parser.add_argument("--t0-now", action="store_true",
                         help="start the clock now — run this, then press deploy")
     parser.add_argument("--t0", type=float, help="epoch seconds when deploy was pressed")
@@ -170,6 +212,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--poll", type=float, default=0.5)
     parser.add_argument("--out", type=pathlib.Path)
     args = parser.parse_args(argv)
+
+    if args.rebase:
+        if args.t0 is None:
+            raise SystemExit("--rebase needs --t0 <epoch>, the moment deploy was pressed")
+        rebased = rebase(json.loads(args.rebase.read_text(encoding="utf-8")), args.t0)
+        args.rebase.write_text(json.dumps(rebased, indent=1), encoding="utf-8")
+        print(json.dumps(rebased["cold_start"], indent=1))
+        return 0
+    if not args.base_url:
+        raise SystemExit("--base-url is required")
 
     base = args.base_url.rstrip("/")
     t0 = args.t0 if args.t0 else (time.time() if args.t0_now else None)

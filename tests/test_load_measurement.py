@@ -242,6 +242,26 @@ def test_the_fallback_t0_is_labelled_as_a_lower_bound(monkeypatch):
     assert stamped["t0_origin"] == "the operator's deploy timestamp"
 
 
+def test_the_operators_press_time_can_be_applied_after_the_fact(monkeypatch):
+    """The watcher must already be running when the button is pressed, so its clock starts
+    early by however long the coordination took. Every moment is recorded absolutely, so
+    the correction is arithmetic — a measurement that could only be corrected by repeating
+    the deploy is one we would keep a caveat on instead of fixing."""
+    coldstart = _sequence(monkeypatch, [(200, {"git_sha": "old", "ok": True}),
+                                        (200, {"git_sha": "new", "ok": True})])
+    watched = coldstart.watch("http://test", t0=1_700_000_000.0, deadline_seconds=30,
+                              poll_seconds=0)
+    first_response = watched["moments_epoch"]["first_response"]
+    assert first_response is not None
+
+    rebased = coldstart.rebase({"cold_start": watched}, 1_700_000_010.0)["cold_start"]
+    assert rebased["seconds_to_first_response"] == round(first_response - 1_700_000_010.0, 2)
+    assert rebased["rebased_from"]["shift_seconds"] == 10.0
+    assert "rebased" in rebased["t0_origin"]
+    # The moments themselves are untouched: rebasing changes the origin, not the readings.
+    assert rebased["moments_epoch"] == watched["moments_epoch"]
+
+
 def test_no_new_build_is_reported_as_no_measurement(monkeypatch):
     """A deadline that expires without a new commit answering has produced nothing, and
     saying so is the only honest output."""
