@@ -188,9 +188,10 @@ def check_affordable(plan: dict[str, Any]) -> None:
             f"x {plan['safety_factor']:g} safety) and only ${plan['remaining_today_usd']:.4f} "
             f"remains of today's ceiling (${plan['remaining_cumulative_usd']:.4f} of the "
             f"cumulative one).\nStopping at case one costs nothing; stopping at case "
-            f"fourteen costs the round and leaves a half-blocked file wearing its name. "
-            f"Raise PROVIDER_SPEND_CEILING_USD_PER_DAY on this service, or run the round "
-            f"tomorrow.")
+            f"fourteen costs the round and leaves a half-blocked file wearing its name.\n"
+            f"Run the round tomorrow. Do not raise the ceiling to make it fit (A20.5): the "
+            f"forecast is the control and the ceiling is what catches the forecast being "
+            f"wrong, so raising it to accommodate a forecast removes the only check on it.")
     if not plan["worst_case_affordable"]:
         print(f"[{WORKLOAD_VERSION}] WARNING: the forecast fits but the tail does not. If "
               f"every run spent its whole token budget this round would cost "
@@ -307,6 +308,31 @@ def mark_round_done(split: str, round_id: str, git_sha: str, result: pathlib.Pat
                                  indent=1), encoding="utf-8")
 
 
+def export_bundles(report: dict[str, Any], split: str, git_sha: str,
+                   round_id: str) -> dict[str, Any] | None:
+    """A22.7: the evidence leaves the volume with the round, or it does not leave at all.
+
+    Opened read-only against the store the round just wrote to. A failure here must not
+    lose the round — the result file is already on disk — so it is reported and the round
+    stands, with the manifest missing rather than the numbers.
+    """
+    from app.store import Store
+
+    from eval.bundles import export
+
+    out_dir = settings.eval_results_dir / "bundles" / f"{split}-{git_sha}-r{round_id}"
+    try:
+        store = Store()
+        try:
+            return export(report, split, store, out_dir)
+        finally:
+            store.close()
+    except Exception:  # noqa: BLE001 - the round is already paid for and already recorded
+        print(f"[{WORKLOAD_VERSION}] {split}: could not export evidence bundles:\n"
+              f"{traceback.format_exc()}", file=sys.stderr, flush=True)
+        return None
+
+
 def run(splits: list[str], *, port: int, round_id: str, force: bool,
         deadline: float, startup_deadline: float, idle: bool,
         dry_run: bool = False) -> int:
@@ -376,9 +402,17 @@ def run(splits: list[str], *, port: int, round_id: str, force: bool,
             if (report.get("provenance") or {}).get("degraded"):
                 out = result_path(split, git_sha, round_id, degraded=True)
             out.write_text(json.dumps(report, indent=1), encoding="utf-8")
+            manifest = export_bundles(report, split, git_sha, round_id)
             inflight.unlink(missing_ok=True)
             mark_round_done(split, round_id, git_sha, out)
             written.append(out.name)
+            if manifest:
+                print(f"[{WORKLOAD_VERSION}] {split}: evidence carried — "
+                      f"{manifest['non_success_carried']}/{manifest['non_success_total']} "
+                      f"non-success bundles, sample {manifest['sample_carried']}, "
+                      f"{manifest['measured_mib_carried']} MiB of a "
+                      f"{manifest['cap_mib']} MiB cap, {len(manifest['omitted'])} omitted "
+                      f"and listed.")
             print(f"[{WORKLOAD_VERSION}] {split}: written {out}")
             print(json.dumps(report["aggregate"], indent=1))
     finally:

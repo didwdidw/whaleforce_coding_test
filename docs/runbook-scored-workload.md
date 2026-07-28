@@ -35,20 +35,27 @@ container reports its own RSS on `/healthz` (`browser.rss_mib`), **539.8 MiB** w
 browser connected and idle, against an M0 local peak of 794 MiB under load. The host has
 3,723 MB total, ~477 MB of native Ubuntu and cloud agents, and 300–500 MB of k3s.
 
-| Term | MB |
-|---|---|
-| Host total | 3,723 |
-| Native + cloud agents | −477 |
-| k3s + platform agent | −300 to −500 |
-| App container (measured idle / expected peak) | −540 / −800 |
-| Scored container (same image, same browser) | −540 / −800 |
-| Fixture container (no browser) | −80 to −120 |
-| **Remaining** | **~1,300 (idle) / ~800 (both peaking)** |
+| Term | MB | Measured or estimated |
+|---|---|---|
+| Host total | 3,723 | **measured** (`free -m`) |
+| Native + cloud agents | −477 | **measured** (M0, before k3s) |
+| k3s + platform agent | −300 to −500 | *estimated* — never isolated on this host |
+| App container (idle / peak) | −540 / −800 | **measured** (`/healthz` `browser.rss_mib`; M0 local peak) |
+| Scored container | −540 / −800 | *estimated* — same image and same browser as the row above, not yet observed |
+| Fixture container (no browser) | −80 to −120 | *estimated* |
+| **Remaining** | **~1,300 idle / ~800 both peaking** | **follows from the rows above, three of which are estimates** |
+
+A17.13: the qualifier travels with the number. The ~800 MB worst case is acceptable, and a
+reader can see that some of its inputs are estimates rather than readings.
 
 Both browsers recycle at 1,400 MiB RSS, which is the backstop rather than the plan. There
 is also 1,987 MB of swap; the M0 pass condition was zero swap growth, so swap being touched
 during a round is a finding, not a relief. Run one round at a time and do not score while a
 load test is running.
+
+**`free -m` three times per round — before, during, after.** The pass condition is *zero
+swap growth*, and growth does not exist in a single reading. One number before the round is
+a baseline and nothing else.
 
 **Config Editor, not an environment variable**: the billing key goes to `/etc/wf/gemini_paid_tier`,
 outside `/data` for the same reason the free-tier key is — `/data` is the root the evidence store
@@ -74,11 +81,20 @@ Clear `EVAL_DRY_RUN` and restart to score for real.
 
 ## The round is priced before the first case
 
-The daily ceiling (`PROVIDER_SPEND_CEILING_USD_PER_DAY`, default $1.00) is enforced before
-every provider call. **The ledger is in the store, the store is on the volume, and the
-volumes are separate — so this service and the public demo count independently** (A21.7).
-Two services at $1.00 each is a system ceiling of $2.00, which is not the number the project
-promises. The split is the product owner's to set, and no paid round runs until it is set.
+The daily ceiling is enforced before every provider call. **The ledger is in the store, the
+store is on the volume, and the volumes are separate — so this service and the public demo
+count independently** (A21.7). Two ceilings of $1.00 would be a system ceiling of $2.00, so
+they are not set per service: `SYSTEM_SPEND_CEILING_USD_PER_DAY` ($1.00) and
+`DEPLOYED_CEILING_SHARE` in `app/config.py` are one declaration, and each process derives
+its own share from it (A22.3) — **scored $0.75, public app $0.25**. Setting
+`PROVIDER_SPEND_CEILING_USD_PER_DAY` is refused at startup rather than ignored.
+`/healthz` reports this process's ceiling, this process's spend, and the system total.
+
+**Contention with the public demo is not a thing that can happen.** Under A12.2 the
+public-serving container holds no billing credential, so it is structurally incapable of
+writing a paid amount to any ledger; its $0.25 is a reservation for the A15 switchover, not
+an allowance it is spending today. Every paid dollar in the accounting comes from this
+workload. Nobody needs to "fix" a contention that the topology forbids.
 
 Left at that, a round that runs out of allowance also stops mid-way and leaves a
 half-blocked result file wearing the round's name — the ceiling would have destroyed a round
@@ -100,14 +116,21 @@ is forecast at about **$0.16** and could in principle reach **$0.98**.
 If a round does end early anyway, its result is written as `…-r<round>-degraded.json`, so
 the clean name stays free and the same round number can be re-run.
 
-Do not raise `PROVIDER_SPEND_CEILING_USD_PER_DAY` to make a round fit (A20.5). The forecast
-gate is the control; the ceiling is what catches the forecast being wrong, and raising it
-because a round approaches it removes the only check on the forecast.
+Do not raise the ceiling to make a round fit (A20.5). The forecast gate is the control; the
+ceiling is what catches the forecast being wrong, and raising it because a round approaches
+it removes the only check on the forecast.
 
 ## Running a round
 
 Starting the service runs the round. It then idles with the browser shut down, so it is not holding
 ~600 MiB of Chromium between rounds; stopping the service entirely is also fine.
+
+A round is **locked to the build it started on** (A20.3): the commit is re-read at each
+split boundary, and a round whose deployment changed underneath it is written under a
+`-degraded` name with the reason inside the file. A split that started and never finished
+leaves an `.inflight` marker under `eval-results/.rounds/`, and the next start refuses
+rather than paying for that split a second time — read the log, then either change
+`EVAL_ROUND` or set `EVAL_FORCE=1` having decided to pay again.
 
 A round is identified by `EVAL_ROUND`, **not** by the commit. This platform redeploys on
 every push to `master`, and the commit is part of the result's filename — so keying the
@@ -142,11 +165,26 @@ project. It is then served publicly from the image:
 Held-out splits carry no per-case detail; the harness withholds it where the file is written, not
 where it is served. Held-out case files are never in the image — they are mounted at score time.
 
-**What a reader does not get** (A21.4): the evidence bundles those runs produced — screenshots, DOM
-snapshots, the per-step trace — stay on the scored workload's volume and are not reachable from the
-public frontend. The result file carries the per-case verification records and the postcondition
-hash, which is what a claim is judged on; the bundle is corroboration. This is on the limitations
-list, not hidden in a runbook.
+### The evidence comes out too (A22.7)
+
+After each split the workload writes `bundles/<split>-<sha>-r<round>/` next to the result
+file, containing:
+
+- the **complete bundle for every non-success run** — the ones a reader has reason to doubt,
+  and the fewest;
+- the bundle for the **success sample named in `eval/bundle-sample.json`**, which is
+  committed before the round so the sample cannot be chosen to flatter it;
+- `manifest.json`: what was carried, what was omitted and why, with the per-case
+  verification record and artifact hashes for everything omitted (A11.8).
+
+Copy that directory into `eval/results/bundles/` and commit it with the result file. The app
+serves it at `GET /api/eval-bundles` and `GET /api/eval-bundles/<round>/<case>/<file>`, so
+the public frontend reaches the evidence and the scored service is never reachable.
+
+The cap is `EVAL_BUNDLE_CAP_MIB` (48 MiB per round). Every candidate is **weighed from the
+store** before the cap is applied, so anything listed as `over the size cap` is a measured
+omission rather than a guess — and that residue, not the whole category, is what A21.4's
+limitation is written against.
 
 ## Failure modes it refuses rather than works around
 

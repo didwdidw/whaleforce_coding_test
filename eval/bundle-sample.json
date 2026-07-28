@@ -1,0 +1,10 @@
+{
+ "why": "A22.7 requires a named sample of successful runs to be carried out of a scored round in full, so a reader can check that a pass looks like a pass. Naming it after the round would let us pick the run that looks best, so the sample is fixed here, in the repository, before any round runs — and the rule that chose it is stated rather than the choice being made case by case.",
+ "rule": "The first two cases of each split in declaration order. A fixed rule cannot be steered by the outcome. Any of these that did not succeed is carried anyway under A22.7's first clause, and the sample is then short by that many — which the manifest states rather than quietly backfilling from a case that passed.",
+ "splits": {
+  "dev": ["DEV-01", "DEV-02"],
+  "experimental": ["EXP-01", "EXP-02"],
+  "validation": ["V-01", "V-02"],
+  "test": ["T-01", "T-02"]
+ }
+}

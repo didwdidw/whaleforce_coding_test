@@ -493,6 +493,69 @@ async def eval_result(name: str) -> Response:
     return JSONResponse({"error": "not_found"}, status_code=404)
 
 
+#: One path segment of a bundle. Names come from case ids and artifact ids, so this is
+#: deliberately narrow; containment is then re-checked against the resolved root.
+BUNDLE_SEGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$")
+
+
+def _bundle_roots() -> list[tuple[str, Path]]:
+    return [(source, directory / "bundles") for source, directory in _result_sources()]
+
+
+def _resolve_bundle(parts: list[str]) -> Path | None:
+    """A path inside a bundle root, or nothing. Two checks, not one: the segments are
+    validated *and* the resolved path is confirmed to be under the root, because a name
+    filter and a containment check fail in different ways (A12.7)."""
+    if not parts or any(not BUNDLE_SEGMENT.match(part) for part in parts):
+        return None
+    for _, root in _bundle_roots():
+        if not root.is_dir():
+            continue
+        candidate = root.joinpath(*parts).resolve()
+        if candidate.is_file() and candidate.is_relative_to(root.resolve()):
+            return candidate
+    return None
+
+
+@app.get("/api/eval-bundles")
+async def eval_bundles() -> dict[str, Any]:
+    """The evidence carried out of scored rounds (A22.7).
+
+    The scored workload's volume is unreadable from here by design, so what a reader gets
+    is what the round committed: every non-success run in full, the pre-named success
+    sample, and a manifest naming what was left out and why.
+    """
+    rounds = []
+    for source, root in _bundle_roots():
+        if not root.is_dir():
+            continue
+        for directory in sorted(p for p in root.iterdir() if p.is_dir()):
+            manifest_path = directory / "manifest.json"
+            entry: dict[str, Any] = {"round": directory.name, "source": source,
+                                     "manifest": f"/api/eval-bundles/{directory.name}/manifest.json"}
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                entry.update({k: manifest.get(k) for k in
+                              ("split", "git_sha", "cap_mib", "measured_mib_carried",
+                               "non_success_carried", "non_success_total",
+                               "sample_carried", "sample_short_by")})
+                entry["omitted"] = len(manifest.get("omitted") or [])
+            except (OSError, ValueError) as exc:
+                entry["error"] = f"no readable manifest: {exc}"
+            rounds.append(entry)
+    return {"sources": {source: str(root) for source, root in _bundle_roots()},
+            "rounds": rounds}
+
+
+@app.get("/api/eval-bundles/{path:path}")
+async def eval_bundle_file(path: str) -> Response:
+    resolved = _resolve_bundle([part for part in path.split("/") if part])
+    if resolved is None:
+        return JSONResponse({"error": "not_found"}, status_code=404)
+    media = "application/json" if resolved.suffix == ".json" else "application/octet-stream"
+    return Response(resolved.read_bytes(), media_type=media)
+
+
 @app.get("/healthz")
 async def healthz(response: Response) -> dict[str, Any]:
     """Liveness plus the numbers A9.7 and A11.5 are judged on.
