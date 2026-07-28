@@ -1,0 +1,76 @@
+{
+ "id": "run_2492dd27986e",
+ "task": "On the Wikipedia list of S&P 500 companies, look at the table of recent constituent changes, sort it by date oldest first, and tell me the company named in the top row.",
+ "tier": "T-EXPERIMENTAL",
+ "state": "done",
+ "session_id": "sess_6252f4912567",
+ "created_at": 1785266485.1145465,
+ "started_at": 1785266485.1213865,
+ "finished_at": 1785266485.1591382,
+ "terminal_status": "unsupported",
+ "failure_class": "policy_refused",
+ "explanation": "This task names no page or site to start from, and no promised operation recognises it, so there is nowhere to begin. Picking a starting page the task never named would answer a question nobody asked. Name a URL or a site \u2014 for example \"on example.org, \u2026\" \u2014 and it will be attempted best-effort as an experimental run.",
+ "postcondition": null,
+ "postcondition_hash": null,
+ "credential_tier": "none (no model call in M2)",
+ "browser_generation": null,
+ "pre_executed": 0,
+ "budget": {
+  "steps": 2,
+  "llm_calls_exploration": 0,
+  "llm_calls_recovery": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "usd": 0.0,
+  "started_at": 1785266485.1213865,
+  "ended_at": 1785266485.1591382,
+  "elapsed_seconds": 0.04,
+  "output_cap_per_call": 2048,
+  "output_cap_per_run": 16000
+ },
+ "claims": [],
+ "suspicions": [],
+ "execution_path": null,
+ "trace": [
+  {
+   "run_id": "run_2492dd27986e",
+   "seq": 1,
+   "kind": "policy_check",
+   "summary": "SSRF guard enabled",
+   "started_at": 1785266485.1271856,
+   "finished_at": 1785266485.137671,
+   "ok": 1,
+   "detail": {
+    "egress_guard": {
+     "app_env": "production",
+     "ssrf_guard_enabled": true,
+     "private_egress_allowed": false,
+     "note": "Private, loopback, link-local and CGNAT destinations are refused."
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_2492dd27986e",
+   "seq": 2,
+   "kind": "note",
+   "summary": "No promised record matches and no entry point was named",
+   "started_at": 1785266485.1444378,
+   "finished_at": 1785266485.1507142,
+   "ok": 0,
+   "detail": {
+    "candidates": [],
+    "markers": {},
+    "entry_url": ""
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  }
+ ],
+ "artifacts": []
+}

@@ -1,25 +1,138 @@
 {
- "tool": "bundles/1.0",
+ "tool": "rescued-by-hand/1.0",
  "split": "test",
+ "round": "4",
  "git_sha": "e82cacb9e809",
- "written_at": "2026-07-28T19:22:43Z",
- "cap_mib": 48.0,
- "measured_bytes_carried": 0,
- "measured_mib_carried": 0.0,
- "cases_total": 0,
- "must_carry_total": 0,
- "must_carry_carried": 0,
- "disagreements": [],
- "sample_declared": [
-  "T-01",
-  "T-02"
+ "how_this_differs_from_every_other_bundle_here": "It was not produced by eval.bundles. Round r4 exported nothing: a held-out result withholds per-case detail at the point the file is written, and the bundle exporter reads that same withheld structure, so the round with seven non-successes carried zero bundles. The runs and artifacts were never lost - nothing carried them out. This directory was read directly out of the scored service's SQLite store and artifact tree over ssh, once, after the round was scored. It therefore carries `run.json` (the run record as the product stored it, with its full trace) rather than the harness's `case.json`, and it has no cap accounting because nothing was weighed against a cap - everything the round produced is here.",
+ "case_ids_resolved_by": "exact match of the stored task string against eval/holdout/test-set.md, not by submission order: two of these runs started within 100 ms of each other",
+ "unmatched_runs": [],
+ "cases_total": 8,
+ "carried": [
+  {
+   "case": "TST-01",
+   "run_id": "run_2492dd27986e",
+   "terminal_status": "unsupported",
+   "failure_class": "policy_refused",
+   "tier": "T-EXPERIMENTAL",
+   "counts_as_success": false,
+   "artifacts": 0,
+   "files": [
+    "run.json"
+   ]
+  },
+  {
+   "case": "TST-02",
+   "run_id": "run_34c114e526fd",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "tier": "T-DECLARED",
+   "counts_as_success": true,
+   "artifacts": 4,
+   "files": [
+    "run.json",
+    "art_068d3292cd59.bin",
+    "art_42f842aa6cbe.bin",
+    "art_969b91317b26.bin",
+    "art_ff1d4a919bf9.bin"
+   ]
+  },
+  {
+   "case": "TST-03",
+   "run_id": "run_a85fcae5db3f",
+   "terminal_status": "blocked",
+   "failure_class": "robots_disallowed",
+   "tier": "T-DECLARED",
+   "counts_as_success": false,
+   "artifacts": 0,
+   "files": [
+    "run.json"
+   ]
+  },
+  {
+   "case": "TST-04",
+   "run_id": "run_6475a77f8e9b",
+   "terminal_status": "blocked",
+   "failure_class": "robots_disallowed",
+   "tier": "T-DECLARED",
+   "counts_as_success": false,
+   "artifacts": 0,
+   "files": [
+    "run.json"
+   ]
+  },
+  {
+   "case": "TST-05",
+   "run_id": "run_7d7c8de71930",
+   "terminal_status": "blocked",
+   "failure_class": "robots_disallowed",
+   "tier": "T-EXPERIMENTAL",
+   "counts_as_success": false,
+   "artifacts": 0,
+   "files": [
+    "run.json"
+   ]
+  },
+  {
+   "case": "TST-06",
+   "run_id": "run_d43eb8b8de02",
+   "terminal_status": "unsupported",
+   "failure_class": "postcondition_unmet",
+   "tier": "T-DECLARED",
+   "counts_as_success": false,
+   "artifacts": 6,
+   "files": [
+    "run.json",
+    "art_9058d57f2181.bin",
+    "art_357aed2db7a2.bin",
+    "art_4f5ac5e426b6.bin",
+    "art_95c226153d74.bin",
+    "art_218d79c0a105.bin",
+    "art_a46476d892d3.bin"
+   ]
+  },
+  {
+   "case": "TST-07",
+   "run_id": "run_c6e4788b5ab7",
+   "terminal_status": "unsupported",
+   "failure_class": "policy_refused",
+   "tier": "T-EXPERIMENTAL",
+   "counts_as_success": false,
+   "artifacts": 0,
+   "files": [
+    "run.json"
+   ]
+  },
+  {
+   "case": "TST-08",
+   "run_id": "run_fe0a15507c51",
+   "terminal_status": "failed",
+   "failure_class": "budget_exhausted",
+   "tier": "T-EXPERIMENTAL",
+   "counts_as_success": false,
+   "artifacts": 14,
+   "files": [
+    "run.json",
+    "art_5a98bc664c74.bin",
+    "art_0ce80648db18.bin",
+    "art_7b35f0397cf0.bin",
+    "art_fde539121557.bin",
+    "art_65d206720d8b.bin",
+    "art_bf2b068ecc9b.bin",
+    "art_04c4078a8e4b.bin",
+    "art_a7571f3cb58b.bin",
+    "art_933c77439405.bin",
+    "art_98f3529e2e77.bin",
+    "art_382b18f79089.bin",
+    "art_a90a0555d4d8.bin",
+    "art_5589a8ec1d96.bin",
+    "art_11f0cceb3e77.bin"
+   ]
+  }
  ],
- "sample_carried": [],
- "sample_short_by": [
-  "T-01",
-  "T-02"
- ],
- "carried": [],
  "omitted": [],
- "note": "Sizes are measured, not estimated: every candidate bundle is weighed from the store before the cap is applied. Anything under `omitted` with `over the size cap` is the residue A21.4 is written against \u2014 it names what could not be carried rather than the whole category."
+ "measured_bytes_carried": 11195471,
+ "measured_mib_carried": 10.677,
+ "artifact_hashes_verified_on_export": true,
+ "why_five_cases_carry_no_artifacts": "They never browsed. Three ended blocked/robots_disallowed and two unsupported/policy_refused, all before any navigation, so there was no page to capture. For those runs the evidence *is* the trace in run.json: the rule that matched, the URL it was matched against, and the step the run stopped at. An empty artifact list here is the recorded outcome, not a failed rescue.",
+ "verification": "Every artifact's SHA-256 was recomputed from the bytes on export and again after transfer into this repository; all 24 match what the store recorded."
 }

@@ -1,0 +1,216 @@
+- status: RFC Editor
+- banner:
+  - link "Skip to content":
+    - /url: "#main"
+  - link "RFC Editor - Official home of RFCs":
+    - /url: /
+    - img "RFC Editor - Official home of RFCs"
+  - navigation "Primary":
+    - heading "Primary navigation" [level=2]
+    - navigation:
+      - list:
+        - listitem:
+          - button "The RFC Series"
+        - listitem:
+          - button "For Authors"
+        - listitem:
+          - button "About Us"
+        - listitem:
+          - link "Search":
+            - /url: /search/
+            - img
+        - listitem:
+          - button "Your preferences":
+            - img
+- main:
+  - heading "The official home of RFCs" [level=1]
+  - link "What is an RFC?":
+    - /url: /series/rfc/
+  - paragraph:
+    - text: RFCs outline computer networking and Internet foundations, including
+    - link "Internet Standards":
+      - /url: /search/?status=Internet+Standard
+    - text: and historical or informative content. They are published by the RFC Editor for the
+    - link "IETF (open in new window)":
+      - /url: https://www.ietf.org
+      - text: IETF
+      - img "(open in new window)"
+    - text: ","
+    - link "IRTF (open in new window)":
+      - /url: https://www.irtf.org
+      - text: IRTF
+      - img "(open in new window)"
+    - text: ","
+    - link "IAB (open in new window)":
+      - /url: https://www.iab.org
+      - text: IAB
+      - img "(open in new window)"
+    - text: ", and"
+    - link "ISE (open in new window)":
+      - /url: /authors/rfc-independent-submissions/
+      - text: ISE
+      - img "(open in new window)"
+    - text: ", which collectively form the authoritative source for RFCs."
+  - searchbox "Find an RFC (number, subseries, title, author, etc.)": "2616"
+  - button "Submit search":
+    - img
+  - heading "Latest RFCs" [level=2]
+  - paragraph:
+    - text: Looking for works in progress? Go to
+    - link "datatracker.ietf.org":
+      - /url: https://datatracker.ietf.org
+  - list:
+    - listitem:
+      - 'heading "RFC 10026: BCP 246: Operational Recommendations for DNSSEC Delegation Signer (DS) Automation" [level=3]':
+        - link "RFC 10026:":
+          - /url: /info/rfc10026/
+        - link "BCP 246:":
+          - /url: /info/bcp246/
+        - text: Operational Recommendations for DNSSEC Delegation Signer (DS) Automation
+      - text: Best Current Practice
+      - list:
+        - listitem: S. Sheng
+        - listitem: P. Thomassen
+      - list:
+        - listitem: July 2026
+        - listitem: IETF publication
+        - listitem: Operations and Management Area
+    - listitem:
+      - 'heading "RFC 9997: YANG-CBOR: Allocating SID Ranges for Private Enterprise Number (PEN) Holders" [level=3]':
+        - link "RFC 9997:":
+          - /url: /info/rfc9997/
+        - text: "YANG-CBOR: Allocating SID Ranges for Private Enterprise Number (PEN) Holders"
+      - text: Proposed Standard
+      - list:
+        - listitem: C. Bormann
+      - list:
+        - listitem: July 2026
+        - listitem: IETF publication
+        - listitem: Web and Internet Transport
+    - listitem:
+      - 'heading "RFC 10004: Certificate Management over CMS (CMC): Compliance Requirements" [level=3]':
+        - link "RFC 10004:":
+          - /url: /info/rfc10004/
+        - text: "Certificate Management over CMS (CMC): Compliance Requirements"
+      - text: Proposed Standard
+      - list:
+        - listitem: J. Mandel, Ed.
+        - listitem: S. Turner, Ed.
+      - list:
+        - listitem: July 2026
+        - listitem: IETF publication
+        - listitem: Security Area
+  - heading "Learn about RFCs" [level=2]
+  - list:
+    - listitem:
+      - heading "What Is an RFC?" [level=3]:
+        - link "What Is an RFC?":
+          - /url: /series/rfc/
+      - paragraph: An introduction to RFCs and the organizations that produce them
+    - listitem:
+      - heading "Tips for Reading RFCs" [level=3]:
+        - link "Tips for Reading RFCs":
+          - /url: /series/rfc-tips/
+      - paragraph: Helpful information about common conventions in RFCs
+    - listitem:
+      - heading "Errata in RFCs" [level=3]:
+        - link "Errata in RFCs":
+          - /url: /series/rfc-errata/
+      - paragraph: Understand errors and corrections in RFCs
+    - listitem:
+      - heading "About the RFC Editor" [level=3]:
+        - link "About the RFC Editor":
+          - /url: /about/rfc-editor/
+      - paragraph: RFC Editor publishes and archives official RFCs
+  - heading "Browse RFCs" [level=2]
+  - list:
+    - listitem:
+      - heading "Standards" [level=3]:
+        - link "Standards":
+          - /url: /search/?status=Internet+Standard
+      - paragraph: Stable or mature protocols and services
+    - listitem:
+      - heading "Best Current Practices" [level=3]:
+        - link "Best Current Practices":
+          - /url: /search/?status=Best+Current+Practice
+      - paragraph: Common guidelines for policies, operations, or procedures
+    - listitem:
+      - heading "Download RFCs" [level=3]:
+        - link "Download RFCs":
+          - /url: /series/rfc-download/
+      - paragraph: Download, mirror or get a feed of RFCs
+    - listitem:
+      - heading "Browse all RFCs" [level=3]:
+        - link "Browse all RFCs":
+          - /url: /rfc-index/
+  - heading "Start Participating" [level=2]
+  - list:
+    - listitem:
+      - heading "Internet Engineering Task Force" [level=3]:
+        - link "Internet Engineering Task Force":
+          - /url: https://www.ietf.org
+      - paragraph: Protocol standards, best current practices, experimental, and informational documents
+    - listitem:
+      - heading "Internet Research Task Force" [level=3]:
+        - link "Internet Research Task Force":
+          - /url: https://www.irtf.org
+      - paragraph: Research issues related to the Internet
+    - listitem:
+      - heading "Internet Architecture Board" [level=3]:
+        - link "Internet Architecture Board":
+          - /url: https://www.iab.org
+      - paragraph: Long-range technical direction for Internet development
+    - listitem:
+      - heading "Independent Submissions" [level=3]:
+        - link "Independent Submissions":
+          - /url: /authors/rfc-independent-submissions/
+      - paragraph: How the Independent Submission Stream works.
+- contentinfo:
+  - heading "Footer" [level=2]
+  - navigation "Footer":
+    - paragraph:
+      - text: rfc-editor.org is maintained by the
+      - link "Internet Engineering Task Force":
+        - /url: https://www.ietf.org
+    - link "IETF":
+      - /url: https://www.ietf.org
+      - img "IETF"
+    - list:
+      - listitem:
+        - link "System Status":
+          - /url: https://status.ietf.org
+      - listitem:
+        - text: ·
+        - link "Report a Bug":
+          - /url: https://github.com/ietf-tools/red/issues
+      - listitem: · Version 1.69.0
+    - heading "Useful links" [level=3]
+    - list:
+      - listitem:
+        - link "IETF.org":
+          - /url: https://www.ietf.org
+      - listitem:
+        - link "IRTF.org":
+          - /url: https://www.irtf.org
+      - listitem:
+        - link "IAB.org":
+          - /url: https://www.iab.org
+      - listitem:
+        - link "Datatracker":
+          - /url: https://datatracker.ietf.org
+      - listitem:
+        - link "Author Resources":
+          - /url: https://authors.ietf.org
+    - heading "Contact Us" [level=3]
+    - list:
+      - listitem:
+        - link "RFC Editor":
+          - /url: /about/contact/
+      - listitem:
+        - link "rfc-dist Info Page":
+          - /url: https://mailman.rfc-editor.org/mailman/listinfo/rfc-dist
+      - listitem:
+        - link "rfc-interest Info Page":
+          - /url: https://mailman.rfc-editor.org/mailman/listinfo/rfc-interest
+  - link "Go to top of page":
+    - /url: "#top"

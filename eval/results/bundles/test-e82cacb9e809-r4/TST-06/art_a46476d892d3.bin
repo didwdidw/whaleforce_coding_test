@@ -1,0 +1,1534 @@
+- link "Jump to content":
+  - /url: "#bodyContent"
+- banner:
+  - navigation "Site":
+    - button "Main menu"
+  - link "Wikipedia The Free Encyclopedia":
+    - /url: /wiki/Main_Page
+    - img "Wikipedia"
+    - img "The Free Encyclopedia"
+  - search:
+    - searchbox "Search Wikipedia"
+    - button "Search"
+  - navigation "Personal tools":
+    - list:
+      - listitem:
+        - link "Donate":
+          - /url: https://donate.wikimedia.org/?wmf_source=donate&wmf_medium=sidebar&wmf_campaign=en.wikipedia.org&uselang=en
+      - listitem:
+        - link "Create account":
+          - /url: https://en.wikipedia.org/w/index.php?title=Special%3ACreateAccount&returnto=Ticker+symbol&experiments%5B0%5D=we-1-8-account-creation-no-desktop-benefits%3Acontrol
+      - listitem:
+        - link "Log in":
+          - /url: https://en.wikipedia.org/w/index.php?title=Special%3AUserLogin&returnto=Ticker+symbol&experiments%5B0%5D=we-1-8-account-creation-no-desktop-benefits%3Acontrol
+- navigation "Contents":
+  - heading "Contents" [level=2]
+  - button "Hide Contents": hide
+  - list:
+    - listitem:
+      - link "(Top)":
+        - /url: "#"
+    - listitem:
+      - link "Interpreting the symbol":
+        - /url: "#Interpreting_the_symbol"
+      - button "Toggle Interpreting the symbol subsection" [expanded]
+      - list:
+        - listitem:
+          - link "Other identifiers":
+            - /url: "#Other_identifiers"
+          - list
+        - listitem:
+          - link "Symbol for stock market indices":
+            - /url: "#Symbol_for_stock_market_indices"
+          - list
+    - listitem:
+      - link "Symbols by country":
+        - /url: "#Symbols_by_country"
+      - button "Toggle Symbols by country subsection" [expanded]
+      - list:
+        - listitem:
+          - link "Australia":
+            - /url: "#Australia"
+          - list
+        - listitem:
+          - link "Canada":
+            - /url: "#Canada"
+          - list
+        - listitem:
+          - link "United Kingdom":
+            - /url: "#United_Kingdom"
+          - list
+        - listitem:
+          - link "United States":
+            - /url: "#United_States"
+          - list:
+            - listitem:
+              - link "Single-letter NYSE ticker symbols":
+                - /url: "#Single-letter_NYSE_ticker_symbols"
+              - list
+            - listitem:
+              - link "Single-letter NASDAQ ticker symbols":
+                - /url: "#Single-letter_NASDAQ_ticker_symbols"
+              - list
+        - listitem:
+          - link "Other countries":
+            - /url: "#Other_countries"
+          - list
+    - listitem:
+      - link "See also":
+        - /url: "#See_also"
+      - list
+    - listitem:
+      - link "References":
+        - /url: "#References"
+      - list
+- main:
+  - heading "Ticker symbol" [level=1]
+  - button "30 languages"
+  - navigation "Namespaces":
+    - list:
+      - listitem:
+        - link "Article":
+          - /url: /wiki/Ticker_symbol
+      - listitem:
+        - link "Talk":
+          - /url: /wiki/Talk:Ticker_symbol
+  - navigation "Views":
+    - list:
+      - listitem:
+        - link "Read":
+          - /url: /wiki/Ticker_symbol
+      - listitem:
+        - link "Edit":
+          - /url: /w/index.php?title=Ticker_symbol&action=edit
+      - listitem:
+        - link "View history":
+          - /url: /w/index.php?title=Ticker_symbol&action=history
+  - navigation "Page tools":
+    - button "Tools"
+  - navigation "Appearance":
+    - text: Appearance
+    - button "Hide Appearance": hide
+    - text: Text
+    - list:
+      - listitem:
+        - radio "Small"
+        - text: Small
+        - radio "Standard" [checked]
+        - text: Standard
+        - radio "Large"
+        - text: Large
+    - text: Width
+    - list:
+      - listitem:
+        - radio "Standard" [checked]
+        - text: Standard
+        - radio "Wide"
+        - text: Wide
+    - text: Color
+    - list:
+      - listitem:
+        - radio "Automatic"
+        - text: Automatic
+        - radio "Light" [checked]
+        - text: Light
+        - radio "Dark"
+        - text: Dark
+  - text: From Wikipedia, the free encyclopedia
+  - link "icon":
+    - /url: https://en.wikipedia.org/wiki/File:Question_book-new.svg
+    - img "icon"
+  - text: This article needs
+  - link "more citations":
+    - /url: https://en.wikipedia.org/wiki/Wikipedia:Verifiability
+  - text: . Please help
+  - link "improve this article":
+    - /url: https://en.wikipedia.org/wiki/Special:EditPage/Ticker_symbol
+  - text: by
+  - link "adding citations to reliable sources":
+    - /url: https://en.wikipedia.org/wiki/Help:Referencing_for_beginners
+  - text: . Unsourced material may be challenged and
+  - link "removed":
+    - /url: https://en.wikipedia.org/wiki/Wikipedia:Verifiability#Burden_of_evidence
+  - text: ". Find sources:"
+  - link "\"Ticker symbol\"":
+    - /url: https://www.google.com/search?as_eq=wikipedia&q=%22Ticker+symbol%22
+  - text: –
+  - link "news":
+    - /url: https://www.google.com/search?tbm=nws&q=%22Ticker+symbol%22+-wikipedia&tbs=ar:1
+  - text: ·
+  - link "newspapers":
+    - /url: https://www.google.com/search?&q=%22Ticker+symbol%22&tbs=bkt:s&tbm=bks
+  - text: ·
+  - link "books":
+    - /url: https://www.google.com/search?tbs=bks:1&q=%22Ticker+symbol%22+-wikipedia
+  - text: ·
+  - link "scholar":
+    - /url: https://scholar.google.com/scholar?q=%22Ticker+symbol%22
+  - text: ·
+  - link "JSTOR":
+    - /url: https://www.jstor.org/action/doBasicSearch?Query=%22Ticker+symbol%22&acc=on&wc=on
+  - text: (January 2013) (
+  - link "Learn how and when to remove this message":
+    - /url: https://en.wikipedia.org/wiki/Help:Maintenance_template_removal
+  - text: )
+  - figure "Stock telegraph ticker machine invented by Edward A. Calahan":
+    - link:
+      - /url: https://en.wikipedia.org/wiki/File:Edison_Stock_Telegraph_Ticker.jpg
+      - img
+    - text: Stock
+    - link "telegraph":
+      - /url: https://en.wikipedia.org/wiki/Telegraph
+    - text: ticker machine invented by
+    - link "Edward A. Calahan":
+      - /url: https://en.wikipedia.org/wiki/Edward_A._Calahan
+  - paragraph:
+    - text: A ticker symbol or stock symbol is an
+    - link "abbreviation":
+      - /url: https://en.wikipedia.org/wiki/Abbreviation
+    - text: used to uniquely identify publicly traded
+    - link "shares":
+      - /url: https://en.wikipedia.org/wiki/Share_(finance)
+    - text: of a particular publicly listed company or
+    - link "security":
+      - /url: https://en.wikipedia.org/wiki/Security_(finance)
+    - text: on a particular
+    - link "stock exchange":
+      - /url: https://en.wikipedia.org/wiki/Stock_exchange
+    - text: . Ticker symbols are arrangements of symbols or characters (generally Latin letters or digits) which provide a shorthand for investors to refer to, purchase, and research securities. Some exchanges include ticker extensions, which encode additional information such as share class, bankruptcy status, or voting rights into the ticker.
+    - superscript:
+      - link "[1]":
+        - /url: "#cite_note-1"
+  - paragraph:
+    - text: The first ticker symbol was used in 1867, following the invention of the ticker tape machine by
+    - link "Edward Calahan":
+      - /url: https://en.wikipedia.org/wiki/Edward_A._Calahan
+    - text: . It was used to identify shares of the
+    - link "Union Pacific Railroad Company":
+      - /url: https://en.wikipedia.org/wiki/Union_Pacific_Railroad_Company
+    - text: .
+    - superscript:
+      - link "[2]":
+        - /url: "#cite_note-2"
+    - superscript:
+      - link "[3]":
+        - /url: "#cite_note-3"
+    - superscript:
+      - link "[4]":
+        - /url: "#cite_note-4"
+  - region "Interpreting the symbol":
+    - heading "Interpreting the symbol" [level=2]
+    - link "edit":
+      - /url: /w/index.php?title=Ticker_symbol&action=edit&section=1
+    - paragraph:
+      - text: Stock symbols are unique identifiers assigned to each security traded on a particular market. A stock symbol can consist of letters, numbers, or a combination of both, and is a way to uniquely identify that stock. The symbols were kept as short as possible to reduce the number of characters that had to be printed on the
+      - link "ticker tape":
+        - /url: https://en.wikipedia.org/wiki/Ticker_tape
+      - text: ", and to make it easy to recognize by traders and investors."
+    - paragraph:
+      - text: The allocation of symbols and formatting conventions is specific to each stock exchange. In the US, for example, stock tickers are typically between 1 and 4 letters and represent the company name where possible. For example, US-based computer company stock
+      - link "Apple Inc.":
+        - /url: https://en.wikipedia.org/wiki/Apple_Inc.
+      - text: traded on the
+      - link "NASDAQ":
+        - /url: https://en.wikipedia.org/wiki/NASDAQ
+      - text: exchange has the symbol AAPL, while the motor company Ford's stock that is traded on the
+      - link "New York Stock Exchange":
+        - /url: https://en.wikipedia.org/wiki/New_York_Stock_Exchange
+      - text: has the single-letter ticker F. In Europe, most exchanges use three-letter codes; for example, British-Dutch consumer goods company
+      - link "Unilever":
+        - /url: https://en.wikipedia.org/wiki/Unilever
+      - text: traded on the
+      - link "Amsterdam Euronext":
+        - /url: https://en.wikipedia.org/wiki/Euronext
+      - text: exchange has the symbol UNA and
+      - link "London Stock Exchange":
+        - /url: https://en.wikipedia.org/wiki/London_Stock_Exchange
+      - text: has the symbol ULVR. In Asia, numbers are often used as stock tickers to avoid issues for international investors when using non-
+      - link "Latin scripts":
+        - /url: https://en.wikipedia.org/wiki/Latin_script
+      - text: . For example, the bank
+      - link "HSBC":
+        - /url: https://en.wikipedia.org/wiki/HSBC
+      - text: "'s stock traded on the"
+      - link "Hong Kong Stock Exchange":
+        - /url: https://en.wikipedia.org/wiki/Hong_Kong_Stock_Exchange
+      - text: has the ticker symbol 5,
+      - link "New York Stock Exchange":
+        - /url: https://en.wikipedia.org/wiki/New_York_Stock_Exchange
+      - text: has the ticker symbol HSBC (bank abbreviation) and
+      - link "London Stock Exchange":
+        - /url: https://en.wikipedia.org/wiki/London_Stock_Exchange
+      - text: has the ticker HSBA.
+    - paragraph:
+      - text: Symbols sometimes change to reflect mergers. Prior to the 1999 merger with
+      - link "Mobil Oil":
+        - /url: https://en.wikipedia.org/wiki/Mobil_Oil
+      - text: ","
+      - link "Exxon":
+        - /url: https://en.wikipedia.org/wiki/Exxon
+      - text: used a phonetic spelling of the company "XON" as its ticker symbol. The symbol of the firm after the merger was "XOM". Symbols are sometimes reused. In the US the single-letter symbols are particularly sought after as vanity symbols. For example, since March 2008
+      - link "Visa Inc.":
+        - /url: https://en.wikipedia.org/wiki/Visa_Inc.
+      - text: has used the symbol V that had previously been used by
+      - link "Vivendi":
+        - /url: https://en.wikipedia.org/wiki/Vivendi
+      - text: which had delisted and given up the symbol.
+      - superscript:
+        - link "[5]":
+          - /url: "#cite_note-Mantell-5"
+    - paragraph: To fully qualify a stock, both the ticker and the exchange or country of listing needs to be known. On many systems both must be specified to uniquely identify the security. This is often done by appending the location or exchange code to the ticker.
+    - table "Example Vodafone Group plc stock ticker symbol":
+      - caption:
+        - text: Example
+        - link "Vodafone Group plc":
+          - /url: https://en.wikipedia.org/wiki/Vodafone
+        - text: stock ticker symbol
+      - rowgroup:
+        - row "Location Reuters Instrument Code Bloomberg ticker Yahoo ticker":
+          - columnheader "Location"
+          - columnheader "Reuters Instrument Code":
+            - link "Reuters Instrument Code":
+              - /url: https://en.wikipedia.org/wiki/Reuters_Instrument_Code
+          - columnheader "Bloomberg ticker":
+            - link "Bloomberg":
+              - /url: https://en.wikipedia.org/wiki/Bloomberg_L.P.
+            - text: ticker
+          - columnheader "Yahoo ticker"
+        - row "London Stock Exchange VOD.L VOD:LN VOD.L":
+          - cell "London Stock Exchange"
+          - cell "VOD.L"
+          - cell "VOD:LN"
+          - cell "VOD.L"
+        - row "Nasdaq VOD.O or VOD.OQ VOD:US VOD":
+          - cell "Nasdaq"
+          - cell "VOD.O or VOD.OQ"
+          - cell "VOD:US"
+          - cell "VOD"
+        - row "Stock Exchange of Singapore VOD.SI VOD:SP VOD.SI":
+          - cell "Stock Exchange of Singapore"
+          - cell "VOD.SI"
+          - cell "VOD:SP"
+          - cell "VOD.SI"
+    - region "Other identifiers":
+      - heading "Other identifiers" [level=3]
+      - link "edit":
+        - /url: /w/index.php?title=Ticker_symbol&action=edit&section=2
+      - paragraph:
+        - text: Although stock tickers identify a security, they are exchange-dependent, generally limited to stocks, and can change. These limitations have led to the development of other codes in financial markets to identify securities for
+        - link "settlement":
+          - /url: https://en.wikipedia.org/wiki/Settlement_(finance)
+        - text: purposes. The most prevalent of these is the
+        - link "International Securities Identifying Number":
+          - /url: https://en.wikipedia.org/wiki/International_Securities_Identifying_Number
+        - text: (ISIN).
+        - superscript:
+          - link "[6]":
+            - /url: "#cite_note-6"
+        - text: An ISIN uniquely identifies a
+        - link "security":
+          - /url: https://en.wikipedia.org/wiki/Security_(finance)
+        - text: and its structure is defined in
+        - link "ISO 6166":
+          - /url: https://en.wikipedia.org/wiki/ISO_6166
+        - text: . Securities for which ISINs are issued include
+        - link "bonds":
+          - /url: https://en.wikipedia.org/wiki/Bond_(finance)
+        - text: ","
+        - link "commercial paper":
+          - /url: https://en.wikipedia.org/wiki/Commercial_paper
+        - text: ","
+        - link "stocks":
+          - /url: https://en.wikipedia.org/wiki/Stock
+        - text: ", and"
+        - link "warrants":
+          - /url: https://en.wikipedia.org/wiki/Warrant_(finance)
+        - text: . The ISIN code is a 12-character alpha-numerical code that does not contain information characterizing financial instruments, but serves for uniform identification of a security at trading and settlement.
+      - paragraph:
+        - text: The ISIN identifies the security, not the
+        - link "exchange":
+          - /url: https://en.wikipedia.org/wiki/Stock_exchange
+        - text: (if any) on which it trades; it is, therefore, not a replacement for the ticker symbol.
+        - superscript:
+          - link "[7]":
+            - /url: "#cite_note-7"
+        - text: For instance,
+        - link "Mercedes-Benz Group":
+          - /url: https://en.wikipedia.org/wiki/Mercedes-Benz_Group
+        - text: stock trades on twenty-two different stock exchanges worldwide and is priced in five foreign currencies; it has the same ISIN on each (DE0007100000), though not the same ticker symbol. ISIN cannot specify a particular trade in this case, and another identifier, typically the three- or four-letter exchange code (such as the
+        - link "Market Identifier Code":
+          - /url: https://en.wikipedia.org/wiki/Market_Identifier_Code
+        - text: ), will have to be specified in addition to the ISIN.
+    - region "Symbol for stock market indices":
+      - heading "Symbol for stock market indices" [level=3]
+      - link "edit":
+        - /url: /w/index.php?title=Ticker_symbol&action=edit&section=3
+      - paragraph:
+        - text: While usually a stock ticker identifies a security that can be traded,
+        - link "stock market indices":
+          - /url: https://en.wikipedia.org/wiki/Stock_market_index
+        - text: are also sometimes assigned a symbol, even though they can generally not be traded. Symbols for indices are usually distinguished by adding a symbol in front of the name, such as a
+        - link "circumflex":
+          - /url: https://en.wikipedia.org/wiki/Circumflex#Freestanding
+        - text: (or 'caret') ^ or a dot.
+        - superscript:
+          - link "[8]":
+            - /url: "#cite_note-analyzerxl-8"
+        - text: For example,
+        - link "Reuters":
+          - /url: https://en.wikipedia.org/wiki/Reuters
+        - text: lists the
+        - link "Nasdaq Composite":
+          - /url: https://en.wikipedia.org/wiki/Nasdaq_Composite
+        - text: index under the symbol .IXIC.
+        - superscript:
+          - link "[9]":
+            - /url: "#cite_note-reuters-9"
+  - region "Symbols by country":
+    - heading "Symbols by country" [level=2]
+    - link "edit":
+      - /url: /w/index.php?title=Ticker_symbol&action=edit&section=4
+    - region "Australia":
+      - heading "Australia" [level=3]:
+        - link "Australia":
+          - /url: https://en.wikipedia.org/wiki/United_States
+      - link "edit":
+        - /url: /w/index.php?title=Ticker_symbol&action=edit&section=5
+      - paragraph:
+        - text: In Australia the
+        - link "Australian Securities Exchange":
+          - /url: https://en.wikipedia.org/wiki/Australian_Securities_Exchange
+        - text: "uses the following conventions: Three character base symbol with the first and third character being alphanumeric and the second alphabetic. ETFs and ETMFs can be either 3 or 4 characters. Exchange-traded warrants and exchange-traded options are six characters. ETOs can have numbers in the sixth character."
+        - superscript:
+          - link "[10]":
+            - /url: "#cite_note-10"
+      - table "ASX fourth, fifth, and sixth-letter codes extensions":
+        - caption: ASX fourth, fifth, and sixth-letter codes extensions
+        - rowgroup:
+          - row "D[A–Z] Deferred settlement security, temporary code used typically during a consolidation/reverse split. Used for both Equities and Company Options.":
+            - cell "D[A–Z]"
+            - cell "Deferred settlement security, temporary code used typically during a consolidation/reverse split. Used for both Equities and Company Options."
+          - row "H[A–Z] Bonds/Debt":
+            - cell "H[A–Z]"
+            - cell "Bonds/Debt"
+          - row "F[A-Z][A–Z] Exchanged-traded Warrants":
+            - cell "F[A-Z][A–Z]"
+            - cell "Exchanged-traded Warrants"
+          - row "G or G[A–Z] Convertible Debt":
+            - cell "G or G[A–Z]"
+            - cell "Convertible Debt"
+          - row "H or H[A–Z] Unsecured Note":
+            - cell "H or H[A–Z]"
+            - cell "Unsecured Note"
+          - row "I[A–Z][A–Z] Instalment Warrant":
+            - cell "I[A–Z][A–Z]"
+            - cell "Instalment Warrant"
+          - row "LV Non-Voting or Limited Voting":
+            - cell "LV"
+            - cell "Non-Voting or Limited Voting"
+          - row "O or O[A–G] Company option":
+            - cell "O or O[A–G]"
+            - cell "Company option"
+          - row "P[A–Z] Preference/Interest Bearing security":
+            - cell "P[A–Z]"
+            - cell "Preference/Interest Bearing security"
+          - row "R or R[A–Z] Company rights":
+            - cell "R or R[A–Z]"
+            - cell "Company rights"
+          - row "W[A–Z][A–Z] Exchanged-traded Warrants":
+            - cell "W[A–Z][A–Z]"
+            - cell "Exchanged-traded Warrants"
+          - row "U[A–Z][A–Z] Exchanged-traded Warrants":
+            - cell "U[A–Z][A–Z]"
+            - cell "Exchanged-traded Warrants"
+          - row "V[A–Z][A–Z] Exchanged-traded Warrants":
+            - cell "V[A–Z][A–Z]"
+            - cell "Exchanged-traded Warrants"
+    - region "Canada":
+      - heading "Canada" [level=3]
+      - link "edit":
+        - /url: /w/index.php?title=Ticker_symbol&action=edit&section=6
+      - paragraph:
+        - text: In Canada the
+        - link "Toronto Stock Exchange":
+          - /url: https://en.wikipedia.org/wiki/Toronto_Stock_Exchange
+        - text: "TSX and the TSXV use the following special codes after the ticker symbol:"
+      - table "TSX \"behind the dot\" extensions and other special codes[11]":
+        - caption:
+          - text: TSX "behind the dot" extensions and other special codes
+          - superscript:
+            - link "[11]":
+              - /url: "#cite_note-11"
+        - rowgroup:
+          - row "A–B – class of shares NO, NS, NT – notes S – special U.S. terms":
+            - cell "A–B – class of shares"
+            - cell "NO, NS, NT – notes"
+            - cell "S – special U.S. terms"
+          - row "DB – debenture P – Capital Pool Company U, V – U.S. funds":
+            - cell "DB – debenture"
+            - cell "P – Capital Pool Company"
+            - cell "U, V – U.S. funds"
+          - row "E – equity dividend PR – preferred UN – units":
+            - cell "E – equity dividend"
+            - cell "PR – preferred"
+            - cell "UN – units"
+          - row "H – NEX market R – subscription receipts W – when issued":
+            - cell "H – NEX market"
+            - cell "R – subscription receipts"
+            - cell "W – when issued"
+          - row "IR – installment receipts RT – rights WT – warrants":
+            - cell "IR – installment receipts"
+            - cell "RT – rights"
+            - cell "WT – warrants"
+    - region "United Kingdom":
+      - heading "United Kingdom" [level=3]
+      - link "edit":
+        - /url: /w/index.php?title=Ticker_symbol&action=edit&section=7
+      - paragraph:
+        - text: In the
+        - link "United Kingdom":
+          - /url: https://en.wikipedia.org/wiki/United_Kingdom
+        - text: ", prior to 1996, stock codes were known as EPICs, named after the"
+        - link "London Stock Exchange":
+          - /url: https://en.wikipedia.org/wiki/London_Stock_Exchange
+        - text: "'s"
+        - link "Exchange Price Information Computer":
+          - /url: https://en.wikipedia.org/wiki/Exchange_Price_Information_Computer?action=edit&redlink=1
+        - text: "(e.g.: \"MKS\" for"
+        - link "Marks and Spencer":
+          - /url: https://en.wikipedia.org/wiki/Marks_and_Spencer
+        - text: ). Following the introduction of the
+        - link "Sequence trading platform":
+          - /url: https://en.wikipedia.org/wiki/Sequence_trading_platform?action=edit&redlink=1
+        - text: in 1996, EPICs were renamed Tradable Instrument Display Mnemonics (TIDM), but they are still widely referred to as EPICs. Stocks can also be identified using their
+        - link "SEDOL":
+          - /url: https://en.wikipedia.org/wiki/SEDOL
+        - text: (Stock Exchange Daily Official List) number or their ISIN (
+        - link "International Securities Identification Number":
+          - /url: https://en.wikipedia.org/wiki/International_Securities_Identification_Number
+        - text: ).
+    - region "United States":
+      - heading "United States" [level=3]
+      - link "edit":
+        - /url: /w/index.php?title=Ticker_symbol&action=edit&section=8
+      - paragraph:
+        - text: In the
+        - link "United States":
+          - /url: https://en.wikipedia.org/wiki/United_States
+        - text: ", modern letter-only ticker symbols were developed by"
+        - link "Standard & Poor's":
+          - /url: https://en.wikipedia.org/wiki/S&P_Global_Ratings
+        - text: (S&P) to bring a national standard to investing. Previously, a single company could have many ticker symbols as they varied between the dozens of individual stock markets. The term ticker refers to the noise made by the
+        - link "ticker tape":
+          - /url: https://en.wikipedia.org/wiki/Ticker_tape
+        - text: machines once widely used by stock exchanges.
+      - paragraph:
+        - text: The S&P system was later standardized by the securities industry and modified as the years passed. Stock symbols for
+        - link "preferred stock":
+          - /url: https://en.wikipedia.org/wiki/Preferred_stock
+        - text: have not been standardized.
+        - superscript:
+          - link "[12]":
+            - /url: "#cite_note-12"
+      - paragraph:
+        - text: Some companies use a well-known product as their ticker symbol. Belgian brewer
+        - link "AB InBev":
+          - /url: https://en.wikipedia.org/wiki/AB_InBev
+        - text: ", the brewer of"
+        - link "Budweiser":
+          - /url: https://en.wikipedia.org/wiki/Budweiser
+        - text: beer, uses "BUD" (symbolizing its premier product in the United States) as its three-letter ticker for American Depository Receipts. Its rival, the
+        - link "Molson Coors Brewing Company":
+          - /url: https://en.wikipedia.org/wiki/Molson_Coors_Brewing_Company
+        - text: ", uses a similarly beer-related symbol, \"TAP\". Likewise,"
+        - link "Southwest Airlines":
+          - /url: https://en.wikipedia.org/wiki/Southwest_Airlines
+        - text: pays tribute to its headquarters at
+        - link "Love Field":
+          - /url: https://en.wikipedia.org/wiki/Dallas_Love_Field
+        - text: in
+        - link "Dallas":
+          - /url: https://en.wikipedia.org/wiki/Dallas
+        - text: through its "LUV" symbol.
+        - link "Six Flags Entertainment Corporation":
+          - /url: https://en.wikipedia.org/wiki/Six_Flags
+        - text: ", which operates large amusement parks in the United States, uses \"FUN\" as its symbol."
+        - link "Acushnet Company":
+          - /url: https://en.wikipedia.org/wiki/Acushnet_Company
+        - text: uses "GOLF," as the company sells products related with golf.
+        - link "Harley-Davidson":
+          - /url: https://en.wikipedia.org/wiki/Harley-Davidson
+        - text: uses "HOG", an abbreviation for the corporate-sponsored
+        - link "Harley Owners Group":
+          - /url: https://en.wikipedia.org/wiki/Harley_Owners_Group
+        - text: .
+        - superscript:
+          - link "[13]":
+            - /url: "#cite_note-13"
+        - link "Yamana Gold":
+          - /url: https://en.wikipedia.org/wiki/Yamana_Gold
+        - text: uses "AUY", because on the
+        - link "periodic table of elements":
+          - /url: https://en.wikipedia.org/wiki/Periodic_table_of_elements
+        - text: ", \"Au\" is the symbol for"
+        - link "gold":
+          - /url: https://en.wikipedia.org/wiki/Gold
+        - text: .
+        - link "Sotheby's":
+          - /url: https://en.wikipedia.org/wiki/Sotheby's
+        - text: ", an auction house, previously used the symbol \"BID\"."
+        - superscript:
+          - link "[14]":
+            - /url: "#cite_note-14"
+        - link "Petco":
+          - /url: https://en.wikipedia.org/wiki/Petco
+        - text: uses the symbol "
+        - link "WOOF":
+          - /url: https://en.wikipedia.org/wiki/Bark_(sound)
+        - text: ",\" referencing a dog's bark (even though the corporate logo features both a dog and a cat)."
+      - paragraph:
+        - text: While most symbols come from the company's name, sometimes it happens the other way around.
+        - link "Tricon Global":
+          - /url: https://en.wikipedia.org/wiki/Yum!_Brands#Tricon_Global_Restaurants
+        - text: ", owner of"
+        - link "KFC":
+          - /url: https://en.wikipedia.org/wiki/KFC
+        - text: ","
+        - link "Pizza Hut":
+          - /url: https://en.wikipedia.org/wiki/Pizza_Hut
+        - text: and
+        - link "Taco Bell":
+          - /url: https://en.wikipedia.org/wiki/Taco_Bell
+        - text: ", adopted the symbol \"YUM\" to represent its corporate mission when the company was spun out of"
+        - link "PepsiCo":
+          - /url: https://en.wikipedia.org/wiki/PepsiCo
+        - text: in 1997. In 2002, the company changed its name to match its symbol, adopting the name
+        - link "Yum! Brands":
+          - /url: https://en.wikipedia.org/wiki/Yum!_Brands
+        - text: .
+        - superscript:
+          - link "[15]":
+            - /url: "#cite_note-15"
+      - paragraph:
+        - text: Symbols sometimes change to reflect mergers. Before the 1999 merger with
+        - link "Mobil":
+          - /url: https://en.wikipedia.org/wiki/Mobil
+        - text: ","
+        - link "Exxon":
+          - /url: https://en.wikipedia.org/wiki/Exxon
+        - text: used a phonetic spelling of the company "XON" as its ticker symbol.
+        - superscript:
+          - link "[16]":
+            - /url: "#cite_note-16"
+        - text: The symbol of the firm after the merger was "XOM". After
+        - link "Hewlett-Packard":
+          - /url: https://en.wikipedia.org/wiki/Hewlett-Packard
+        - text: merged with
+        - link "Compaq":
+          - /url: https://en.wikipedia.org/wiki/Compaq
+        - text: ", the new firm took on the ticker symbol \"HPQ\". (The former symbols were HWP and CPQ.)"
+        - link "AT&T":
+          - /url: https://en.wikipedia.org/wiki/AT&T
+        - text: "'s ticker symbol is \"T\"; accordingly, the company is referred to simply as \"Telephone\" on Wall Street (the T symbol is so well known that when SBC purchased the company, it took the AT&T name, capitalizing on its history and keeping the desired single letter symbol)."
+        - superscript:
+          - text: "["
+          - link "citation needed":
+            - /url: https://en.wikipedia.org/wiki/Wikipedia:Citation_needed
+          - text: "]"
+      - paragraph: "Some examples of US Stock symbols include:"
+      - list:
+        - listitem:
+          - text: A –
+          - link "Agilent Technologies":
+            - /url: https://en.wikipedia.org/wiki/Agilent_Technologies
+        - listitem:
+          - text: AAPL –
+          - link "Apple":
+            - /url: https://en.wikipedia.org/wiki/Apple_Inc
+        - listitem:
+          - text: BRK.(A/B) -
+          - link "Berkshire Hathaway":
+            - /url: https://en.wikipedia.org/wiki/Berkshire_Hathaway
+          - text: (Class A or B shares marked by a letter following period, BRK.A or BRK.B)
+        - listitem:
+          - text: C –
+          - link "Citigroup":
+            - /url: https://en.wikipedia.org/wiki/Citigroup
+        - listitem:
+          - text: GOLF -
+          - link "Acushnet Company":
+            - /url: https://en.wikipedia.org/wiki/Acushnet_Company
+        - listitem:
+          - text: GOOG –
+          - link "Alphabet":
+            - /url: https://en.wikipedia.org/wiki/Alphabet_Inc.
+          - text: (parent company of
+          - link "Google":
+            - /url: https://en.wikipedia.org/wiki/Google
+          - text: )
+        - listitem:
+          - text: HOG –
+          - link "Harley-Davidson":
+            - /url: https://en.wikipedia.org/wiki/Harley-Davidson
+        - listitem:
+          - text: HPQ -
+          - link "Hewlett-Packard":
+            - /url: https://en.wikipedia.org/wiki/Hewlett-Packard
+        - listitem:
+          - text: INTC –
+          - link "Intel":
+            - /url: https://en.wikipedia.org/wiki/Intel
+        - listitem:
+          - text: KO –
+          - link "The Coca-Cola Company":
+            - /url: https://en.wikipedia.org/wiki/The_Coca-Cola_Company
+        - listitem:
+          - text: LUV -
+          - link "Southwest Airlines":
+            - /url: https://en.wikipedia.org/wiki/Southwest_Airlines
+          - text: (after their main hub at
+          - link "Love Field":
+            - /url: https://en.wikipedia.org/wiki/Dallas_Love_Field
+          - text: )
+        - listitem:
+          - text: MMM –
+          - link "3M":
+            - /url: https://en.wikipedia.org/wiki/3M
+          - text: (originally known as Minnesota Mining and Manufacturing)
+        - listitem:
+          - text: MSFT –
+          - link "Microsoft":
+            - /url: https://en.wikipedia.org/wiki/Microsoft
+        - listitem:
+          - text: T -
+          - link "AT&T":
+            - /url: https://en.wikipedia.org/wiki/AT&T
+        - listitem:
+          - text: TGT –
+          - link "Target Corporation":
+            - /url: https://en.wikipedia.org/wiki/Target_Corporation
+        - listitem:
+          - text: TXN –
+          - link "Texas Instruments":
+            - /url: https://en.wikipedia.org/wiki/Texas_Instruments
+        - listitem:
+          - text: XOM -
+          - link "ExxonMobil":
+            - /url: https://en.wikipedia.org/wiki/ExxonMobil
+        - listitem:
+          - text: WOOF -
+          - link "Petco":
+            - /url: https://en.wikipedia.org/wiki/Petco
+        - listitem:
+          - text: WMT –
+          - link "Walmart":
+            - /url: https://en.wikipedia.org/wiki/Walmart
+        - listitem:
+          - text: ZEUS -
+          - link "Olympic Steel":
+            - /url: https://en.wikipedia.org/wiki/Olympic_Steel
+      - paragraph:
+        - text: Formerly, a glance at a U.S. stock symbol and its appended codes would allow an investor to determine where a stock trades; however, in July 2007, the SEC approved a rule change allowing companies moving from the New York Stock Exchange to the Nasdaq to retain their three-letter symbols;
+        - link "DirecTV":
+          - /url: https://en.wikipedia.org/wiki/DirecTV
+        - text: was one of the first companies to make this move. When first implemented, the rule change did not apply to companies with one or two-letter symbols,
+        - superscript:
+          - link "[17]":
+            - /url: "#cite_note-17"
+        - text: but subsequently any stock was able to move from the NYSE to the Nasdaq without changing its symbol.
+        - link "CA Technologies":
+          - /url: https://en.wikipedia.org/wiki/CA_Technologies
+        - text: ", which traded under the symbol CA before it was acquired by"
+        - link "Broadcom Inc.":
+          - /url: https://en.wikipedia.org/wiki/Broadcom_Inc.
+        - text: in 2018, moved from the NYSE to the Nasdaq in April 2008 and kept its two-letter symbol.
+        - superscript:
+          - link "[18]":
+            - /url: "#cite_note-18"
+      - table "NYSE \"behind the dot\" or Nasdaq fifth-letter codes and other special codes":
+        - caption: NYSE "behind the dot" or Nasdaq fifth-letter codes and other special codes
+        - rowgroup:
+          - row "A – Class \"A\" K – Nonvoting (common) U – Units":
+            - cell "A – Class \"A\""
+            - cell "K – Nonvoting (common)"
+            - cell "U – Units":
+              - text: U –
+              - link "Units":
+                - /url: https://en.wikipedia.org/wiki/Strategic_business_unit
+          - row "B – Class \"B\" L – Miscellaneous V – Pending issue and distribution":
+            - cell "B – Class \"B\""
+            - cell "L – Miscellaneous"
+            - cell "V – Pending issue and distribution"
+          - row "C – NextShares M – fourth class – preferred shares W – Warrants":
+            - cell "C – NextShares"
+            - cell "M – fourth class – preferred shares":
+              - text: M – fourth class –
+              - link "preferred shares":
+                - /url: https://en.wikipedia.org/wiki/Preferred_stock
+            - cell "W – Warrants":
+              - text: W –
+              - link "Warrants":
+                - /url: https://en.wikipedia.org/wiki/Warrant_(finance)
+          - row "D – New issue or reverse split N – third class – preferred shares X – Mutual fund":
+            - cell "D – New issue or reverse split"
+            - cell "N – third class – preferred shares"
+            - cell "X – Mutual fund":
+              - text: X –
+              - link "Mutual fund":
+                - /url: https://en.wikipedia.org/wiki/Mutual_fund
+          - row "E – Delinquent SEC filings O – second class – preferred shares Y – American depositary receipt (ADR) (used on the over-the-counter market)":
+            - cell "E – Delinquent SEC filings":
+              - text: E – Delinquent
+              - link "SEC filings":
+                - /url: https://en.wikipedia.org/wiki/SEC_filing
+            - cell "O – second class – preferred shares"
+            - cell "Y – American depositary receipt (ADR) (used on the over-the-counter market)":
+              - text: Y –
+              - link "American depositary receipt":
+                - /url: https://en.wikipedia.org/wiki/American_depositary_receipt
+              - text: (ADR) (used on the
+              - link "over-the-counter":
+                - /url: https://en.wikipedia.org/wiki/Over-the-counter_(finance)
+              - text: market)
+          - row "F – Foreign (used on the over-the-counter market) P – first class preferred shares Z – Miscellaneous situations":
+            - cell "F – Foreign (used on the over-the-counter market)":
+              - text: F – Foreign (used on the
+              - link "over-the-counter":
+                - /url: https://en.wikipedia.org/wiki/Over-the-counter_(finance)
+              - text: market)
+            - cell "P – first class preferred shares"
+            - cell "Z – Miscellaneous situations"
+          - row "G – first convertible bond Q – In bankruptcy Special codes":
+            - cell "G – first convertible bond":
+              - text: G – first
+              - link "convertible bond":
+                - /url: https://en.wikipedia.org/wiki/Convertible_bond
+            - cell "Q – In bankruptcy":
+              - text: Q – In
+              - link "bankruptcy":
+                - /url: https://en.wikipedia.org/wiki/Bankruptcy
+            - cell "Special codes"
+          - row "H – second convertible bond R – Rights PK – A Pink Sheet, indicating over-the-counter":
+            - cell "H – second convertible bond"
+            - cell "R – Rights":
+              - text: R –
+              - link "Rights":
+                - /url: https://en.wikipedia.org/wiki/Rights_issue
+            - cell "PK – A Pink Sheet, indicating over-the-counter":
+              - text: PK – A
+              - link "Pink Sheet":
+                - /url: https://en.wikipedia.org/wiki/Pink_Sheets_LLC
+              - text: ", indicating"
+              - link "over-the-counter":
+                - /url: https://en.wikipedia.org/wiki/Over-the-counter_(finance)
+          - row "I – third convertible bond S – Shares of beneficial interest SC – Nasdaq Small Cap":
+            - cell "I – third convertible bond"
+            - cell "S – Shares of beneficial interest":
+              - text: S – Shares of
+              - link "beneficial interest":
+                - /url: https://en.wikipedia.org/wiki/Beneficial_interest
+            - cell "SC – Nasdaq Small Cap"
+          - row "J – Voting share – special T – With warrants or rights NM – Nasdaq National Market":
+            - cell "J – Voting share – special"
+            - cell "T – With warrants or rights"
+            - cell "NM – Nasdaq National Market"
+      - region "Single-letter NYSE ticker symbols":
+        - heading "Single-letter NYSE ticker symbols" [level=4]
+        - link "edit":
+          - /url: /w/index.php?title=Ticker_symbol&action=edit&section=9
+        - list:
+          - listitem:
+            - text: "A:"
+            - link "Agilent Technologies":
+              - /url: https://en.wikipedia.org/wiki/Agilent_Technologies
+            - text: (previously used by
+            - link "Anaconda Copper":
+              - /url: https://en.wikipedia.org/wiki/Anaconda_Copper
+            - text: ", American Medical Buildings, Attwoods, and"
+            - link "Astra AB":
+              - /url: https://en.wikipedia.org/wiki/Astra_AB
+            - superscript:
+              - link "[19]":
+                - /url: "#cite_note-InvestFAQ-19"
+            - text: )
+          - listitem:
+            - text: "B:"
+            - link "Barrick Mining Corporation":
+              - /url: https://en.wikipedia.org/wiki/Barrick_Mining_Corporation
+            - text: (previously used by
+            - link "Barnes Group":
+              - /url: https://en.wikipedia.org/wiki/Barnes_Group
+            - text: ", Bankers Utilities Corporation, and"
+            - link "Baldwin Lima Hamilton":
+              - /url: https://en.wikipedia.org/wiki/Baldwin_Locomotive_Works
+            - text: )
+          - listitem:
+            - text: "C:"
+            - link "Citigroup":
+              - /url: https://en.wikipedia.org/wiki/Citigroup
+            - text: (previously used by
+            - link "Chrysler":
+              - /url: https://en.wikipedia.org/wiki/Chrysler
+            - superscript:
+              - link "[19]":
+                - /url: "#cite_note-InvestFAQ-19"
+            - text: )
+          - listitem:
+            - text: "D:"
+            - link "Dominion Energy":
+              - /url: https://en.wikipedia.org/wiki/Dominion_Energy
+            - text: (previously used by
+            - link "Douglas Aircraft Company":
+              - /url: https://en.wikipedia.org/wiki/Douglas_Aircraft_Company
+            - text: and
+            - link "Dart Industries":
+              - /url: https://en.wikipedia.org/wiki/Dart_Industries
+            - text: )
+          - listitem:
+            - text: "E:"
+            - link "Eni":
+              - /url: https://en.wikipedia.org/wiki/Eni
+            - text: (previously used by
+            - link "Erie Lackawanna Railway":
+              - /url: https://en.wikipedia.org/wiki/Erie_Lackawanna_Railway
+            - text: and Transco Energy Co.)
+          - listitem:
+            - text: "F:"
+            - link "Ford":
+              - /url: https://en.wikipedia.org/wiki/Ford_Motor_Company
+          - listitem:
+            - text: "G:"
+            - link "Genpact":
+              - /url: https://en.wikipedia.org/wiki/Genpact
+            - text: (previously used by Greyhound Dial Corporation and
+            - link "Gillette":
+              - /url: https://en.wikipedia.org/wiki/Gillette
+            - superscript:
+              - link "[19]":
+                - /url: "#cite_note-InvestFAQ-19"
+            - text: )
+          - listitem:
+            - text: "H:"
+            - link "Hyatt":
+              - /url: https://en.wikipedia.org/wiki/Hyatt
+            - text: (previously used by Hupp Corporation,
+            - link "Hardee's":
+              - /url: https://en.wikipedia.org/wiki/Hardee's
+            - text: ","
+            - link "Harcourt General":
+              - /url: https://en.wikipedia.org/wiki/Harcourt_(publisher)
+            - text: ", Helm Resources, and"
+            - link "Realogy":
+              - /url: https://en.wikipedia.org/wiki/Realogy
+            - superscript:
+              - link "[19]":
+                - /url: "#cite_note-InvestFAQ-19"
+            - text: )
+          - listitem:
+            - text: "J:"
+            - link "Jacobs Solutions":
+              - /url: https://en.wikipedia.org/wiki/Jacobs_Solutions
+            - text: (previously used by
+            - link "J Net Enterprises":
+              - /url: https://en.wikipedia.org/wiki/Jackpot_Enterprises
+            - superscript:
+              - link "[19]":
+                - /url: "#cite_note-InvestFAQ-19"
+            - text: and Standard Oil Co. of New Jersey)
+          - listitem:
+            - text: "L:"
+            - link "Loews Corporation":
+              - /url: https://en.wikipedia.org/wiki/Loews_Corporation
+            - superscript:
+              - link "[20]":
+                - /url: "#cite_note-20"
+            - text: (previously used by Liberty Financial Companies, Sinclair Oil Corp, and
+            - link "Liberty Media":
+              - /url: https://en.wikipedia.org/wiki/Liberty_Media
+            - superscript:
+              - link "[19]":
+                - /url: "#cite_note-InvestFAQ-19"
+            - text: )
+          - listitem:
+            - text: "M:"
+            - link "Macy's Inc.":
+              - /url: https://en.wikipedia.org/wiki/Macy's_Inc.
+            - text: (previously used by
+            - link "Marcor":
+              - /url: https://en.wikipedia.org/wiki/MCorp_Bank
+            - superscript:
+              - link "[19]":
+                - /url: "#cite_note-InvestFAQ-19"
+            - text: )
+          - listitem:
+            - text: "O:"
+            - link "Realty Income Corporation":
+              - /url: https://en.wikipedia.org/wiki/Realty_Income_Corporation
+            - text: (previously used by Odetics)
+          - listitem:
+            - text: "P:"
+            - link "Everpure":
+              - /url: https://en.wikipedia.org/wiki/Everpure
+            - superscript:
+              - link "[21]":
+                - /url: "#cite_note-“EverpureChange”-21"
+            - text: (previously used by
+            - link "Pandora":
+              - /url: https://en.wikipedia.org/wiki/Pandora_Radio
+            - text: and
+            - link "Phillips Petroleum Company":
+              - /url: https://en.wikipedia.org/wiki/Phillips_Petroleum_Company
+            - superscript:
+              - link "[22]":
+                - /url: "#cite_note-Wilson-22"
+            - text: )
+          - listitem:
+            - text: "Q:"
+            - link "Qnity Electronics":
+              - /url: https://en.wikipedia.org/wiki/Qnity_Electronics
+            - text: (previously used by
+            - link "Quintiles":
+              - /url: https://en.wikipedia.org/wiki/Quintiles
+            - text: and
+            - link "Qwest":
+              - /url: https://en.wikipedia.org/wiki/Qwest
+            - superscript:
+              - link "[19]":
+                - /url: "#cite_note-InvestFAQ-19"
+            - text: )
+          - listitem:
+            - text: "R:"
+            - link "Ryder":
+              - /url: https://en.wikipedia.org/wiki/Ryder
+            - text: (previously used by
+            - link "Uniroyal":
+              - /url: https://en.wikipedia.org/wiki/United_States_Rubber_Company#Uniroyal
+            - text: and
+            - link "LF Rothschild":
+              - /url: https://en.wikipedia.org/wiki/LF_Rothschild
+            - text: )
+          - listitem:
+            - text: "S:"
+            - link "SentinelOne":
+              - /url: https://en.wikipedia.org/wiki/SentinelOne
+            - text: (previously used by
+            - link "Sprint Corporation":
+              - /url: https://en.wikipedia.org/wiki/Sprint_Corporation
+            - text: and
+            - link "Sears":
+              - /url: https://en.wikipedia.org/wiki/Sears
+            - superscript:
+              - link "[19]":
+                - /url: "#cite_note-InvestFAQ-19"
+            - text: )
+          - listitem:
+            - text: "T:"
+            - link "AT&T":
+              - /url: https://en.wikipedia.org/wiki/AT&T
+            - text: (previously used by
+            - link "AT&T Corporation":
+              - /url: https://en.wikipedia.org/wiki/AT&T_Corporation
+            - text: )
+          - listitem:
+            - text: "U:"
+            - link "Unity Software":
+              - /url: https://en.wikipedia.org/wiki/Unity_Software
+            - text: (previously used by
+            - link "US Airways":
+              - /url: https://en.wikipedia.org/wiki/US_Airways
+            - text: )
+          - listitem:
+            - text: "V:"
+            - link "Visa":
+              - /url: https://en.wikipedia.org/wiki/Visa_Inc
+            - text: (previously used by
+            - link "Vivendi":
+              - /url: https://en.wikipedia.org/wiki/Vivendi
+            - text: ;
+            - link "New York, New Haven & Hartford Railroad":
+              - /url: https://en.wikipedia.org/wiki/New_York,_New_Haven_&_Hartford_Railroad
+            - text: ;
+            - link "Irving Bank":
+              - /url: https://en.wikipedia.org/wiki/Irving_Trust
+            - text: ; Vivra; and Viking General)
+          - listitem:
+            - text: "W:"
+            - link "Wayfair":
+              - /url: https://en.wikipedia.org/wiki/Wayfair
+            - text: (previously used by
+            - link "Westvaco":
+              - /url: https://en.wikipedia.org/wiki/NewPage
+            - superscript:
+              - link "[19]":
+                - /url: "#cite_note-InvestFAQ-19"
+            - text: )
+        - paragraph: "Unassigned letters:"
+        - list:
+          - listitem:
+            - text: "I: previously used by"
+            - link "Intelsat":
+              - /url: https://en.wikipedia.org/wiki/Intelsat
+            - text: ", Itel Corporation, and"
+            - link "First Interstate Bancorp":
+              - /url: https://en.wikipedia.org/wiki/First_Interstate_Bancorp
+            - superscript:
+              - link "[22]":
+                - /url: "#cite_note-Wilson-22"
+          - listitem:
+            - text: "K: previously used by"
+            - link "Kellanova":
+              - /url: https://en.wikipedia.org/wiki/Kellanova
+            - text: until acquisition by
+            - link "Mars, Inc.":
+              - /url: https://en.wikipedia.org/wiki/Mars,_Inc.
+            - text: on December 11, 2025.
+          - listitem:
+            - text: "N: previously used by"
+            - link "Inco":
+              - /url: https://en.wikipedia.org/wiki/Vale_Limited
+            - superscript:
+              - link "[19]":
+                - /url: "#cite_note-InvestFAQ-19"
+            - text: and
+            - link "NetSuite":
+              - /url: https://en.wikipedia.org/wiki/NetSuite
+          - listitem:
+            - text: "X: previously used by"
+            - link "US Steel":
+              - /url: https://en.wikipedia.org/wiki/US_Steel
+            - text: until its 2025 acquisition by
+            - link "Nippon Steel":
+              - /url: https://en.wikipedia.org/wiki/Nippon_Steel
+            - text: "(TYO: 5401)"
+          - listitem:
+            - text: "Y: previously used by"
+            - link "Alleghany Corporation":
+              - /url: https://en.wikipedia.org/wiki/Alleghany_Corporation
+          - listitem:
+            - text: "Z: previously used by"
+            - link "Woolworth Corporation":
+              - /url: https://en.wikipedia.org/wiki/FW_Woolworth_Company
+      - region "Single-letter NASDAQ ticker symbols":
+        - heading "Single-letter NASDAQ ticker symbols" [level=4]
+        - link "edit":
+          - /url: /w/index.php?title=Ticker_symbol&action=edit&section=10
+        - list:
+          - listitem:
+            - text: "Z:"
+            - link "Zillow":
+              - /url: https://en.wikipedia.org/wiki/Zillow
+        - paragraph: "Unassigned letters:"
+        - list:
+          - listitem: A–Y
+    - region "Other countries":
+      - heading "Other countries" [level=3]
+      - link "edit":
+        - /url: /w/index.php?title=Ticker_symbol&action=edit&section=11
+      - paragraph:
+        - text: In countries where
+        - link "Arabic script":
+          - /url: https://en.wikipedia.org/wiki/Arabic_script
+        - text: is used, and in
+        - link "East Asia":
+          - /url: https://en.wikipedia.org/wiki/East_Asia
+        - text: ", transliterated"
+        - link "Latin script":
+          - /url: https://en.wikipedia.org/wiki/Latin_script
+        - text: versions of company names may be confusing to an unpracticed Western reader; stock symbols provide a simple means of clear communication in the workplace. Many Asian countries use numerical or alphanumerical ticker symbols of only digits and Roman letters to facilitate international trade.
+      - list:
+        - listitem:
+          - link "Industrial and Commercial Bank of China":
+            - /url: https://en.wikipedia.org/wiki/Industrial_and_Commercial_Bank_of_China
+          - text: – 601398 [Shanghai], 1398 [Hong Kong]
+        - listitem:
+          - link "HSBC":
+            - /url: https://en.wikipedia.org/wiki/HSBC
+          - text: – 00005 [Hong Kong], HSBC [New York], HSBA [London]
+        - listitem:
+          - link "DBS Bank":
+            - /url: https://en.wikipedia.org/wiki/DBS_Bank
+          - text: – D05 [Singapore]
+        - listitem:
+          - link "Jardine Cycle & Carriage":
+            - /url: https://en.wikipedia.org/wiki/Jardine_Cycle_&_Carriage
+          - text: – C07 [Singapore]
+        - listitem:
+          - link "Eneos Holdings":
+            - /url: https://en.wikipedia.org/wiki/Eneos_Holdings
+          - text: – 5020 [Tokyo & Nagoya – Japan]
+        - listitem:
+          - link "Toshiba":
+            - /url: https://en.wikipedia.org/wiki/Toshiba
+          - text: – 6502 [Tokyo – Japan] (formerly, until
+          - link "went private":
+            - /url: https://en.wikipedia.org/wiki/Privatization
+          - text: in 2023 by
+          - link "Japan Industrial Partners":
+            - /url: https://en.wikipedia.org/wiki/Japan_Industrial_Partners
+          - text: )
+        - listitem:
+          - link "China CITIC Bank":
+            - /url: https://en.wikipedia.org/wiki/China_CITIC_Bank
+          - text: Ltd – 601998 [Shanghai – China]
+        - listitem:
+          - link "Hubei Golden Ring Co Ltd":
+            - /url: https://en.wikipedia.org/wiki/Hubei_Golden_Ring_Co_Ltd?action=edit&redlink=1
+          - text: "["
+          - link "zh":
+            - /url: https://zh.wikipedia.org/wiki/湖北金環
+          - text: "] – 000615 [Shenzhen – China]"
+        - listitem:
+          - link "Taiwan Semiconductor Manufacturing":
+            - /url: https://en.wikipedia.org/wiki/TSMC
+          - text: – 2330 [Taiwan] , TSM [New York]
+        - listitem:
+          - link "Asus":
+            - /url: https://en.wikipedia.org/wiki/Asus
+          - text: – 2357 [Taiwan]
+        - listitem:
+          - link "Chunghwa Telecom":
+            - /url: https://en.wikipedia.org/wiki/Chunghwa_Telecom
+          - text: – 2412 [Taiwan], CHT [New York]
+        - listitem:
+          - link "Saudi Electricity Company":
+            - /url: https://en.wikipedia.org/wiki/Saudi_Electricity_Company
+          - text: "- 5110 [Saudi Arabia]"
+  - region "See also":
+    - heading "See also" [level=2]
+    - link "edit":
+      - /url: /w/index.php?title=Ticker_symbol&action=edit&section=12
+    - list:
+      - listitem:
+        - link "Central Index Key":
+          - /url: https://en.wikipedia.org/wiki/Central_Index_Key
+      - listitem:
+        - link "CUSIP":
+          - /url: https://en.wikipedia.org/wiki/CUSIP
+      - listitem:
+        - link "Market identification code":
+          - /url: https://en.wikipedia.org/wiki/Market_identification_code
+      - listitem:
+        - link "Option symbol":
+          - /url: https://en.wikipedia.org/wiki/Option_symbol
+      - listitem:
+        - link "SEDOL":
+          - /url: https://en.wikipedia.org/wiki/SEDOL
+      - listitem:
+        - link "ISIN":
+          - /url: https://en.wikipedia.org/wiki/ISIN
+      - listitem:
+        - link "Wertpapierkennnummer":
+          - /url: https://en.wikipedia.org/wiki/Wertpapierkennnummer
+  - region "References":
+    - heading "References" [level=2]
+    - link "edit":
+      - /url: /w/index.php?title=Ticker_symbol&action=edit&section=13
+    - list:
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-1"
+          - text: ^
+        - link "\"What is a ticker? | Investing Definitions | Morningstar\"":
+          - /url: https://www.morningstar.com/investing-definitions/ticker
+        - text: . Morningstar, Inc. 2022-10-04. Retrieved 2024-08-31.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-2"
+          - text: ^
+        - link "\"How Ticker Symbols Shape the Financial System\"":
+          - /url: https://www.six-group.com/en/blog/ticker-symbols.html
+        - text: . SIX. Retrieved 2024-08-31.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-3"
+          - text: ^
+        - 'link "\"Stock Symbol (Ticker Symbol): Abbreviation for a Company''s Stock\""':
+          - /url: https://www.investopedia.com/terms/s/stocksymbol.asp
+        - text: . Investopedia. Retrieved 2024-08-31.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-4"
+          - text: ^
+        - 'link "\"What is a Stock Symbol: Overview and History\""':
+          - /url: https://www.vantagemarkets.com/academy/what-is-stock-symbol/
+        - text: . Vantage Markets. 25 August 2024. Retrieved 31 August 2024.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-Mantell_5-0"
+          - text: ^
+        - text: Mantell, Ruth (3 August 2006).
+        - link "\"Vivendi voluntarily delists from NYSE, ends ADR program\"":
+          - /url: https://web.archive.org/web/20130116102143/http://articles.marketwatch.com/2006-08-03/news/30830338_1_vivendi-shares-delists-american-depositary-receipt-program
+        - text: . Marketwatch. Archived from
+        - link "the original":
+          - /url: http://articles.marketwatch.com/2006-08-03/news/30830338_1_vivendi-shares-delists-american-depositary-receipt-program
+        - text: on 16 January 2013. Retrieved 14 January 2013.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-6"
+          - text: ^
+        - link "\"Home\"":
+          - /url: https://www.isin.com/
+        - text: . ISIN, CUSIP, LEI, SEDOL, WKN, CFI Codes, Database Securities Apply Application Register.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-7"
+          - text: ^
+        - link "\"ISIN for ETFs\"":
+          - /url: https://www.isin.net/isin-etf/
+        - text: . ISIN.net. Retrieved 2023-03-15.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-analyzerxl_8-0"
+          - text: ^
+        - link "\"Stock quotes Available For Download\"":
+          - /url: http://www.analyzerxl.de/symbols.htm
+        - text: . Market Indices, such as the
+        - link "Dow Jones Industrial Average":
+          - /url: https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average
+        - text: . Ticker symbols for these items all begin with the circumflex (caret) symbol, '^'.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-reuters_9-0"
+          - text: ^
+        - link "\"All American Indices\"":
+          - /url: https://web.archive.org/web/20071214190514/http://www.reuters.com/finance/markets/indices
+        - text: .
+        - link "Reuters":
+          - /url: https://en.wikipedia.org/wiki/Reuters
+        - text: . 2017-09-07. Archived from
+        - link "the original":
+          - /url: https://www.reuters.com/finance/markets/indices
+        - text: on 2007-12-14.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-10"
+          - text: ^
+        - link "\"ASX Codes and Descriptors\"":
+          - /url: https://www2.asx.com.au/markets/market-resources/asx-codes-and-descriptors
+        - text: . Australian Securities Exchange. Retrieved 2023-03-15.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-11"
+          - text: ^
+        - link "\"Stock Market Terms, Stock Symbol Extension\"":
+          - /url: http://www.tmxmoney.com/en/investor_tools/glossary.html#S
+        - text: . TMX Money. Retrieved 2016-04-01.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-12"
+          - text: ^
+        - link "\"Preferred Ticker Symbols and Names - QuantumOnline.com\"":
+          - /url: https://www.quantumonline.com/PfdSymbolsNames.cfm
+        - text: . www.quantumonline.com.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-13"
+          - text: ^
+        - link "\"How Harleys Became Known as 'Hogs'\"":
+          - /url: https://www.rideapart.com/features/254682/how-harleys-became-known-as-hogs/
+        - text: . RideApart.com.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-14"
+          - text: ^
+        - 'link "\"Sotheby''s (BID:New York): Stock Quote&Company Profile\""':
+          - /url: https://web.archive.org/web/20100214152907/http://investing.businessweek.com/research/stocks/snapshot/snapshot.asp?ticker=BID:US
+        - text: . Businessweek. 29 February 2012. Archived from
+        - link "the original":
+          - /url: http://investing.businessweek.com/research/stocks/snapshot/snapshot.asp?ticker=BID:US
+        - text: on 14 February 2010. Retrieved 18 March 2012.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-15"
+          - text: ^
+        - link "\"Tricon announces name change to Yum! Brands Inc | Yum Brands\"":
+          - /url: https://web.archive.org/web/20130116102136/http://www.ameinfo.com/5869.html
+        - text: . AMEinfo.com. Archived from
+        - link "the original":
+          - /url: http://www.ameinfo.com/5869.html
+        - text: on 2013-01-16. Retrieved 2012-11-13.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-16"
+          - text: ^
+        - text: Chris Isidore (1999-11-30).
+        - link "\"Exxon and Mobil to merge\"":
+          - /url: https://web.archive.org/web/20030406044418/http://money.cnn.com/1999/11/30/deals/exxonmobil/
+        - text: . CNN Money. Archived from
+        - link "the original":
+          - /url: https://money.cnn.com/1999/11/30/deals/exxonmobil/
+        - text: on April 6, 2003. Retrieved 2023-03-15.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-17"
+          - text: ^
+        - link "\"UPDATE 1-SEC allows Nasdaq to list 3-letter ticker symbols\"":
+          - /url: https://www.reuters.com/article/nasdaq-tickersymbols-idUSN1036624820070710
+        - text: . Reuters. 10 July 2017.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-18"
+          - text: ^
+        - link "\"CA Announces Move to NASDAQ\"":
+          - /url: http://www.ca.com/us/press/release.aspx?cid=174409
+        - text: .
+      - listitem:
+        - text: ^
+        - link "Jump up to:":
+          - /url: "#cite_ref-InvestFAQ_19-0"
+        - link:
+          - /url: "#cite_ref-InvestFAQ_19-1"
+        - link:
+          - /url: "#cite_ref-InvestFAQ_19-2"
+        - link:
+          - /url: "#cite_ref-InvestFAQ_19-3"
+        - link:
+          - /url: "#cite_ref-InvestFAQ_19-4"
+        - link:
+          - /url: "#cite_ref-InvestFAQ_19-5"
+        - link:
+          - /url: "#cite_ref-InvestFAQ_19-6"
+        - link:
+          - /url: "#cite_ref-InvestFAQ_19-7"
+        - link:
+          - /url: "#cite_ref-InvestFAQ_19-8"
+        - link:
+          - /url: "#cite_ref-InvestFAQ_19-9"
+        - link:
+          - /url: "#cite_ref-InvestFAQ_19-10"
+        - link "\"Trivia - One-Letter Ticker Symbols on NYSE\"":
+          - /url: http://invest-faq.com/articles/triv-one-letter-tick.html
+        - text: . The Investment FAQ. Retrieved 2 June 2011.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-20"
+          - text: ^
+        - link "\"Loews Scores Coveted One-Letter Ticker\"":
+          - /url: https://dealbook.blogs.nytimes.com/2008/06/17/loews-scores-coveted-one-letter-ticker/
+        - text: .
+        - link "New York Times":
+          - /url: https://en.wikipedia.org/wiki/New_York_Times
+        - text: . June 17, 2008. Retrieved May 25, 2010.
+      - listitem:
+        - link "Jump up":
+          - /url: "#cite_ref-“EverpureChange”_21-0"
+          - text: ^
+        - link "\"Everpure, Inc. will Change its Ticker to P from PSTG\"":
+          - /url: https://www.marketscreener.com/news/everpure-inc-will-change-its-ticker-to-p-from-pstg-ce7e50d2db80f622
+        - text: . S&P Capital IQ. Retrieved 20 April 2026.
+      - listitem:
+        - text: ^
+        - link "Jump up to:":
+          - /url: "#cite_ref-Wilson_22-0"
+        - link:
+          - /url: "#cite_ref-Wilson_22-1"
+        - text: Wilson, David.
+        - link "\"Zillow With a Z Will Break NYSE Grip on One-Letter Tickers\"":
+          - /url: https://web.archive.org/web/20110530160018/http://www.businessweek.com/news/2011-05-27/zillow-with-a-z-will-break-nyse-grip-on-one-letter-tickers.html
+        - text: . BusinessWeek. Archived from
+        - link "the original":
+          - /url: http://www.businessweek.com/news/2011-05-27/zillow-with-a-z-will-break-nyse-grip-on-one-letter-tickers.html
+        - text: on May 30, 2011. Retrieved 2 June 2011.
+    - list:
+      - listitem:
+        - text: "Eckett, Stephen, ed. (2004). The UK Stock Market Almanac 2005. Petersfield: Harriman House."
+        - link "ISBN":
+          - /url: https://en.wikipedia.org/wiki/ISBN_(identifier)
+        - link "1-897597-46-0":
+          - /url: https://en.wikipedia.org/wiki/Special:BookSources/1-897597-46-0
+        - text: .
+    - navigation "Authority control databases Edit this at Wikidata":
+      - table:
+        - rowgroup:
+          - row "Authority control databases Edit this at Wikidata GND":
+            - rowheader "Authority control databases Edit this at Wikidata":
+              - link "Authority control databases":
+                - /url: https://en.wikipedia.org/wiki/Help:Authority_control
+              - link "Edit this at Wikidata":
+                - /url: https://www.wikidata.org/wiki/Q1548784#identifiers
+                - img "Edit this at Wikidata"
+            - cell "GND":
+              - list:
+                - listitem:
+                  - link "GND":
+                    - /url: https://d-nb.info/gnd/4507604-2
+  - link "Categories":
+    - /url: /wiki/Help:Category
+  - text: ":"
+  - list:
+    - listitem:
+      - link "Financial metadata":
+        - /url: /wiki/Category:Financial_metadata
+    - listitem:
+      - link "Encodings":
+        - /url: /wiki/Category:Encodings
+    - listitem:
+      - link "Stock market":
+        - /url: /wiki/Category:Stock_market
+    - listitem:
+      - link "Types of security identifier":
+        - /url: /wiki/Category:Types_of_security_identifier
+- contentinfo:
+  - list:
+    - listitem: This page was last edited on 24 May 2026, at 10:53 (UTC).
+    - listitem:
+      - text: Page was rendered with
+      - link "Parsoid":
+        - /url: https://www.mediawiki.org/wiki/Special:MyLanguage/Parsoid
+      - text: .
+    - listitem:
+      - text: Text is available under the
+      - link "Creative Commons Attribution-ShareAlike 4.0 License":
+        - /url: /wiki/Wikipedia:Text_of_the_Creative_Commons_Attribution-ShareAlike_4.0_International_License
+      - text: ; additional terms may apply. By using this site, you agree to the
+      - link "Terms of Use":
+        - /url: https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Terms_of_Use
+      - text: and
+      - link "Privacy Policy":
+        - /url: https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Privacy_policy
+      - text: . Wikipedia® is a registered trademark of the
+      - link "Wikimedia Foundation, Inc.":
+        - /url: https://wikimediafoundation.org/
+      - text: ", a non-profit organization."
+  - list:
+    - listitem:
+      - link "Privacy policy":
+        - /url: https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Privacy_policy
+    - listitem:
+      - link "About Wikipedia":
+        - /url: /wiki/Wikipedia:About
+    - listitem:
+      - link "Disclaimers":
+        - /url: /wiki/Wikipedia:General_disclaimer
+    - listitem:
+      - link "Contact Wikipedia":
+        - /url: //en.wikipedia.org/wiki/Wikipedia:Contact_us
+    - listitem:
+      - link "Legal & safety contacts":
+        - /url: https://foundation.wikimedia.org/wiki/Special:MyLanguage/Legal:Wikimedia_Foundation_Legal_and_Safety_Contact_Information
+    - listitem:
+      - link "Code of Conduct":
+        - /url: https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Universal_Code_of_Conduct
+    - listitem:
+      - link "Developers":
+        - /url: https://developer.wikimedia.org
+    - listitem:
+      - link "Statistics":
+        - /url: https://stats.wikimedia.org/#/en.wikipedia.org
+    - listitem:
+      - link "Cookie statement":
+        - /url: https://foundation.wikimedia.org/wiki/Special:MyLanguage/Policy:Cookie_statement
+    - listitem:
+      - link "Mobile view":
+        - /url: //en.wikipedia.org/w/index.php?title=Ticker_symbol&mobileaction=toggle_view_mobile
+  - list:
+    - listitem:
+      - link "Wikimedia Foundation":
+        - /url: https://www.wikimedia.org/
+        - img "Wikimedia Foundation"
+    - listitem:
+      - link "Powered by MediaWiki":
+        - /url: https://www.mediawiki.org/
+        - img "Powered by MediaWiki"
+- list

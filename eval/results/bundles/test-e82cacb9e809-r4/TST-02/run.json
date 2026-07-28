@@ -1,0 +1,664 @@
+{
+ "id": "run_34c114e526fd",
+ "task": "On the Apple Inc. Wikipedia article, expand the last collapsed box on the page and tell me how many entries its first row group contains, and what that row group is labelled.",
+ "tier": "T-DECLARED",
+ "state": "done",
+ "session_id": "sess_f1b9bb3b61f9",
+ "created_at": 1785266485.2044652,
+ "started_at": 1785266485.2150238,
+ "finished_at": 1785266492.8294537,
+ "terminal_status": "succeeded_verified",
+ "failure_class": null,
+ "explanation": "All 1 required claims were re-extracted from the stored artifact through their declared label anchors and matched the run's values. Verified means consistent with the artifact preserved at capture time \u2014 not true in the world.",
+ "postcondition": {
+  "spec_version": "pc/1",
+  "goal": "On https://en.wikipedia.org/wiki/Apple_Inc., expand collapsed box 1 and report that it is no longer collapsed.",
+  "operation": "OP-5",
+  "target_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+  "inputs": {
+   "collapsible_index": 1
+  },
+  "required_actions": [
+   {
+    "kind": "click",
+    "target": "show",
+    "why": "the box is collapsed on load and its toggle is the only way to open it",
+    "times": 1
+   }
+  ],
+  "claims": [
+   {
+    "name": "still_collapsed",
+    "label": "collapsed marker of box 1",
+    "relation": "element_absent",
+    "value_type": "boolean",
+    "container": "(//*[contains(@class,\"mw-collapsible\")])[1][contains(@class,\"mw-collapsed\")]",
+    "optional": false
+   }
+  ],
+  "absence": "none",
+  "coverage_anchor": "",
+  "named_site": "en.wikipedia.org",
+  "entry_point_source": "task"
+ },
+ "postcondition_hash": "2a2b0117501d4b94a4cb0f6d00e0bb2f0b7b0d2af10bf15ac8f2980b437b057f",
+ "credential_tier": "paid",
+ "browser_generation": 1,
+ "pre_executed": 0,
+ "budget": {
+  "steps": 12,
+  "llm_calls_exploration": 1,
+  "llm_calls_recovery": 0,
+  "input_tokens": 3513,
+  "output_tokens": 139,
+  "usd": 0.001087,
+  "started_at": 1785266485.2150238,
+  "ended_at": 1785266492.8294537,
+  "elapsed_seconds": 7.61,
+  "output_cap_per_call": 2048,
+  "output_cap_per_run": 16000
+ },
+ "claims": [
+  {
+   "name": "still_collapsed",
+   "ok": true,
+   "failure_class": null,
+   "reason": "",
+   "evidence": {
+    "claim": "still_collapsed",
+    "artifact_id": "art_969b91317b26",
+    "source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+    "retrieved_at": 1785266491.8457196,
+    "artifact_sha256": "954c37cd36b2d3625b41bcdeb54f2944c80bb114bcdfddd80f8ddf4e8a152dcc",
+    "artifact_state": "stored",
+    "structural_anchor": "(//*[contains(@class,\"mw-collapsible\")])[1][contains(@class,\"mw-collapsed\")]",
+    "label_anchor": "collapsed marker of box 1",
+    "extracted_span": "collapsed marker of box 1: absent",
+    "normalised_value": true,
+    "trace_segment": [
+     6,
+     8,
+     9,
+     10,
+     12
+    ]
+   }
+  }
+ ],
+ "suspicions": [],
+ "execution_path": "model_driven",
+ "trace": [
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 1,
+   "kind": "policy_check",
+   "summary": "SSRF guard enabled",
+   "started_at": 1785266485.222865,
+   "finished_at": 1785266485.2279913,
+   "ok": 1,
+   "detail": {
+    "egress_guard": {
+     "app_env": "production",
+     "ssrf_guard_enabled": true,
+     "private_egress_allowed": false,
+     "note": "Private, loopback, link-local and CGNAT destinations are refused."
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 2,
+   "kind": "note",
+   "summary": "Execution path: model_driven (default for a promised record on a real site)",
+   "started_at": 1785266485.2428586,
+   "finished_at": 1785266485.2489755,
+   "ok": 1,
+   "detail": {
+    "execution_path": "model_driven",
+    "reason": "default for a promised record on a real site"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 3,
+   "kind": "note",
+   "summary": "Postcondition frozen: wikipedia collapsed box 1, expanded",
+   "started_at": 1785266485.4079137,
+   "finished_at": 1785266485.417206,
+   "ok": 1,
+   "detail": {
+    "operation": "OP-5",
+    "postcondition_hash": "2a2b0117501d4b94a4cb0f6d00e0bb2f0b7b0d2af10bf15ac8f2980b437b057f",
+    "postcondition": {
+     "spec_version": "pc/1",
+     "goal": "On https://en.wikipedia.org/wiki/Apple_Inc., expand collapsed box 1 and report that it is no longer collapsed.",
+     "operation": "OP-5",
+     "target_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+     "inputs": {
+      "collapsible_index": 1
+     },
+     "required_actions": [
+      {
+       "kind": "click",
+       "target": "show",
+       "why": "the box is collapsed on load and its toggle is the only way to open it",
+       "times": 1
+      }
+     ],
+     "claims": [
+      {
+       "name": "still_collapsed",
+       "label": "collapsed marker of box 1",
+       "relation": "element_absent",
+       "value_type": "boolean",
+       "container": "(//*[contains(@class,\"mw-collapsible\")])[1][contains(@class,\"mw-collapsed\")]",
+       "optional": false
+      }
+     ],
+     "absence": "none",
+     "coverage_anchor": "",
+     "named_site": "en.wikipedia.org",
+     "entry_point_source": "task"
+    },
+    "browser_generation": 1,
+    "note": "Frozen before execution. Verification re-checks against this object, so recovery cannot lower the bar."
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 4,
+   "kind": "policy_check",
+   "summary": "Policy check for https://en.wikipedia.org/wiki/Apple_Inc.",
+   "started_at": 1785266485.4248354,
+   "finished_at": 1785266485.5033848,
+   "ok": 1,
+   "detail": {
+    "egress": {
+     "allowed": true,
+     "url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+     "reason": "allowed",
+     "host": "en.wikipedia.org",
+     "resolved_ips": [
+      "208.80.154.224",
+      "208.80.154.224",
+      "208.80.154.224",
+      "2620:0:861:ed1a::1",
+      "2620:0:861:ed1a::1",
+      "2620:0:861:ed1a::1"
+     ]
+    },
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+     "evaluated_path": "/wiki/Apple_Inc.",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 5,
+   "kind": "navigate",
+   "summary": "Navigate to https://en.wikipedia.org/wiki/Apple_Inc.",
+   "started_at": 1785266485.5099587,
+   "finished_at": 1785266487.0795512,
+   "ok": 1,
+   "detail": {
+    "url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+    "status": 200,
+    "final_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+    "page_url_at_navigate": "https://en.wikipedia.org/wiki/Apple_Inc.",
+    "redirect_chain": [
+     {
+      "url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+      "status": 200
+     }
+    ],
+    "canonical_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 6,
+   "kind": "snapshot",
+   "summary": "Snapshot captured: step-1",
+   "started_at": 1785266488.882988,
+   "finished_at": 1785266488.8979566,
+   "ok": 1,
+   "detail": {
+    "artifact": {
+     "artifact_id": "art_068d3292cd59",
+     "kind": "dom:step-1",
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+     "retrieved_at": 1785266488.1215086,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/html",
+     "length": 2519247,
+     "sha256": "419402cfb133ac59de81e7295e2ead86df27b8337434f382bbab0c876942507d",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_artifact": {
+     "artifact_id": "art_42f842aa6cbe",
+     "kind": "aria:step-1",
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+     "retrieved_at": 1785266488.8724337,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/plain",
+     "length": 533419,
+     "sha256": "ba23712fa7c9fb7f3116e80656f64d79c51c453d925420979031167b66d5b28d",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_note": ""
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": "art_068d3292cd59"
+  },
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 7,
+   "kind": "note",
+   "summary": "Model call (exploration) for step 1",
+   "started_at": 1785266489.934978,
+   "finished_at": 1785266490.969908,
+   "ok": 1,
+   "detail": {
+    "purpose": "exploration",
+    "reduction": {
+     "rule_version": "reduce/v1.4",
+     "dropped": {
+      "interactive_invisible": 329,
+      "interactive_unnamed_link": 131,
+      "interactive_over_cap": 4140,
+      "interactive_repeated_affordance": 809,
+      "interactive_chrome_over_cap": 56,
+      "non_interactive_nodes": 18002,
+      "script_style_nodes": 779
+     },
+     "kept": {
+      "interactive": 60,
+      "anchor_regions": 3
+     },
+     "full_dom_chars": 2515814,
+     "rendered_text_chars": 154319,
+     "full_artifact_id": "art_068d3292cd59"
+    },
+    "prompt_chars": 11195,
+    "proposal": {
+     "action": "click",
+     "args": {
+      "ref": "e7"
+     },
+     "why": "Expanding the first collapsed box (e7) as requested.",
+     "strategy": "F2",
+     "diagnosis": "none",
+     "truncated_retry": false,
+     "call": {
+      "model": "gemini-3.1-flash-lite",
+      "credential_tier": "paid",
+      "cached": false,
+      "seconds": 1.013,
+      "finish_reason": "FinishReason.STOP",
+      "input_tokens": 3513,
+      "output_tokens": 139,
+      "thought_tokens": 90,
+      "usd": 0.001087
+     }
+    },
+    "budget": {
+     "input_tokens": 3513,
+     "output_tokens": 139,
+     "usd": 0.001087,
+     "exploration_calls": "1/8",
+     "recovery_calls": "0/4"
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 8,
+   "kind": "click",
+   "summary": "click e7 \u2014 Expanding the first collapsed box (e7) as requested.",
+   "started_at": 1785266491.0681133,
+   "finished_at": 1785266491.3661878,
+   "ok": 1,
+   "detail": {
+    "selector": "[data-agent-ref='e7']",
+    "element": {
+     "tag": "button",
+     "text": "show",
+     "ref": "e7"
+    },
+    "proposed_by": "planner",
+    "args": {
+     "ref": "e7"
+    },
+    "locator_provenance": "freshly derived",
+    "url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+    "observed": "",
+    "fragment": "",
+    "repair": "first attempt"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 9,
+   "kind": "snapshot",
+   "summary": "Snapshot captured: collapsible-1-expanded",
+   "started_at": 1785266492.5443041,
+   "finished_at": 1785266492.5714633,
+   "ok": 1,
+   "detail": {
+    "artifact": {
+     "artifact_id": "art_969b91317b26",
+     "kind": "dom:collapsible-1-expanded",
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+     "retrieved_at": 1785266491.8457196,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/html",
+     "length": 2520356,
+     "sha256": "954c37cd36b2d3625b41bcdeb54f2944c80bb114bcdfddd80f8ddf4e8a152dcc",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_artifact": {
+     "artifact_id": "art_ff1d4a919bf9",
+     "kind": "aria:collapsible-1-expanded",
+     "source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+     "retrieved_at": 1785266492.518497,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/plain",
+     "length": 617520,
+     "sha256": "5dd756840ea4167f40bebe8850d8343294ba5a4decdbf95cad63b57d5705503d",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_note": ""
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": "art_969b91317b26"
+  },
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 10,
+   "kind": "extract",
+   "summary": "Read the expanded box",
+   "started_at": 1785266492.5938184,
+   "finished_at": 1785266492.6200259,
+   "ok": 1,
+   "detail": {
+    "label_anchor": "expanded",
+    "locator_provenance": "freshly derived",
+    "still_collapsed": "True"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 11,
+   "kind": "note",
+   "summary": "The frozen postcondition is satisfiable from this page: every declared action has been observed and every required claim reads. The loop stops here rather than spending further model calls.",
+   "started_at": 1785266492.6310105,
+   "finished_at": 1785266492.638994,
+   "ok": 1,
+   "detail": {
+    "claims_present": [
+     "still_collapsed"
+    ]
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_34c114e526fd",
+   "seq": 12,
+   "kind": "extract",
+   "summary": "Deterministic verification",
+   "started_at": 1785266492.646426,
+   "finished_at": 1785266492.7847457,
+   "ok": 1,
+   "detail": {
+    "artifact_id": "art_969b91317b26",
+    "note": "Re-resolves the frozen anchors inside the full stored artifact and re-extracts each value independently of the reading taken during execution (S-4.8, A7.4).",
+    "locator_provenance": "freshly derived",
+    "verdict": {
+     "status": "succeeded_verified",
+     "failure_class": null,
+     "explanation": "All 1 required claims were re-extracted from the stored artifact through their declared label anchors and matched the run's values. Verified means consistent with the artifact preserved at capture time \u2014 not true in the world.",
+     "counts_as_success": true,
+     "evidence_summary": {
+      "claims": 1,
+      "independently_checked": 1,
+      "checked": [
+       "still_collapsed"
+      ],
+      "unchecked": [],
+      "unevaluated_checks": []
+     },
+     "checks": [
+      {
+       "name": "postcondition_frozen",
+       "ok": true,
+       "evaluated": true,
+       "detail": {
+        "hash": "2a2b0117501d4b94a4cb0f6d00e0bb2f0b7b0d2af10bf15ac8f2980b437b057f",
+        "operation": "OP-5"
+       }
+      },
+      {
+       "name": "artifact_available",
+       "ok": true,
+       "evaluated": true,
+       "detail": {
+        "artifact_id": "art_969b91317b26",
+        "kind": "dom:collapsible-1-expanded",
+        "source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+        "retrieved_at": 1785266491.8457196,
+        "retrieved_on": "2026-07-28",
+        "media_type": "text/html",
+        "length": 2520356,
+        "sha256": "954c37cd36b2d3625b41bcdeb54f2944c80bb114bcdfddd80f8ddf4e8a152dcc",
+        "state": "stored",
+        "expired_at": null,
+        "expired_on": null,
+        "pinned": false,
+        "available": true
+       }
+      },
+      {
+       "name": "artifact_origin_is_the_named_site",
+       "ok": true,
+       "evaluated": true,
+       "detail": {
+        "task_names": "en.wikipedia.org",
+        "artifact_origin": "en.wikipedia.org",
+        "frozen_at_plan_time": "en.wikipedia.org",
+        "artifact_source_url": "https://en.wikipedia.org/wiki/Apple_Inc."
+       }
+      },
+      {
+       "name": "artifact_source_is_accounted_for_by_the_trace",
+       "ok": true,
+       "evaluated": true,
+       "detail": {
+        "artifact_source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+        "matched": {
+         "url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+         "how": "the plan's target"
+        },
+        "accounted_for": [
+         {
+          "url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+          "how": "the plan's target"
+         }
+        ]
+       }
+      },
+      {
+       "name": "landing_explained_from_the_plan_target",
+       "ok": true,
+       "evaluated": true,
+       "detail": {
+        "plan_target_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+        "artifact_source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+        "explained": true,
+        "by": "the plan's own target page"
+       }
+      },
+      {
+       "name": "required_actions_present",
+       "ok": true,
+       "evaluated": true,
+       "detail": {
+        "actions": [
+         {
+          "kind": "click",
+          "target": "show",
+          "why": "the box is collapsed on load and its toggle is the only way to open it",
+          "times": 1
+         }
+        ]
+       }
+      }
+     ],
+     "claims": [
+      {
+       "name": "still_collapsed",
+       "ok": true,
+       "failure_class": null,
+       "reason": "",
+       "evidence": {
+        "claim": "still_collapsed",
+        "artifact_id": "art_969b91317b26",
+        "source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+        "retrieved_at": 1785266491.8457196,
+        "artifact_sha256": "954c37cd36b2d3625b41bcdeb54f2944c80bb114bcdfddd80f8ddf4e8a152dcc",
+        "artifact_state": "stored",
+        "structural_anchor": "(//*[contains(@class,\"mw-collapsible\")])[1][contains(@class,\"mw-collapsed\")]",
+        "label_anchor": "collapsed marker of box 1",
+        "extracted_span": "collapsed marker of box 1: absent",
+        "normalised_value": true,
+        "trace_segment": [
+         6,
+         8,
+         9,
+         10,
+         12
+        ]
+       }
+      }
+     ]
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  }
+ ],
+ "artifacts": [
+  {
+   "id": "art_068d3292cd59",
+   "kind": "dom:step-1",
+   "source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+   "media_type": "text/html",
+   "length": 2519247,
+   "sha256": "419402cfb133ac59de81e7295e2ead86df27b8337434f382bbab0c876942507d",
+   "state": "stored",
+   "retrieved_at": 1785266488.1215086,
+   "sha256_on_export": "419402cfb133ac59de81e7295e2ead86df27b8337434f382bbab0c876942507d",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_42f842aa6cbe",
+   "kind": "aria:step-1",
+   "source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+   "media_type": "text/plain",
+   "length": 533419,
+   "sha256": "ba23712fa7c9fb7f3116e80656f64d79c51c453d925420979031167b66d5b28d",
+   "state": "stored",
+   "retrieved_at": 1785266488.8724337,
+   "sha256_on_export": "ba23712fa7c9fb7f3116e80656f64d79c51c453d925420979031167b66d5b28d",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_969b91317b26",
+   "kind": "dom:collapsible-1-expanded",
+   "source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+   "media_type": "text/html",
+   "length": 2520356,
+   "sha256": "954c37cd36b2d3625b41bcdeb54f2944c80bb114bcdfddd80f8ddf4e8a152dcc",
+   "state": "stored",
+   "retrieved_at": 1785266491.8457196,
+   "sha256_on_export": "954c37cd36b2d3625b41bcdeb54f2944c80bb114bcdfddd80f8ddf4e8a152dcc",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_ff1d4a919bf9",
+   "kind": "aria:collapsible-1-expanded",
+   "source_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+   "media_type": "text/plain",
+   "length": 617520,
+   "sha256": "5dd756840ea4167f40bebe8850d8343294ba5a4decdbf95cad63b57d5705503d",
+   "state": "stored",
+   "retrieved_at": 1785266492.518497,
+   "sha256_on_export": "5dd756840ea4167f40bebe8850d8343294ba5a4decdbf95cad63b57d5705503d",
+   "sha256_matches": true
+  }
+ ]
+}

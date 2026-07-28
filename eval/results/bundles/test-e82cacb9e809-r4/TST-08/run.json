@@ -1,0 +1,1387 @@
+{
+ "id": "run_fe0a15507c51",
+ "task": "On https://www.rfc-editor.org, find RFC 2616 and tell me its publication date and its current status.",
+ "tier": "T-EXPERIMENTAL",
+ "state": "done",
+ "session_id": "sess_ea708bec22d7",
+ "created_at": 1785266529.8332462,
+ "started_at": 1785266529.840252,
+ "finished_at": 1785266560.5068734,
+ "terminal_status": "failed",
+ "failure_class": "budget_exhausted",
+ "explanation": "The run reached its 25-step budget without reaching the frozen postcondition. Budgets are fail-closed: no partial answer is emitted in their place.",
+ "postcondition": {
+  "spec_version": "pc/1",
+  "goal": "On https://www.rfc-editor.org, find RFC 2616 and tell me its publication date and its current status.\n\nTo complete this task you MUST emit `extract` pointing at the element that holds the value, with `label_anchor` set to the exact visible text of the label it is bound to, before you finish. Code re-reads the value from that label; a run that finishes without one cannot be verified and is scored as a failure.\n\nThis task asks for 2 separate values. Emit one `extract` for each, in this order, each with its own `label_anchor`:\n  answer_1: its publication date\n  answer_2: its current status\nAnswering some of them and stopping is a partial result, not a success.",
+  "operation": "generic",
+  "target_url": "https://www.rfc-editor.org",
+  "inputs": {
+   "entry_url": "https://www.rfc-editor.org",
+   "url_scope": "site",
+   "asked_for": [
+    "its publication date",
+    "its current status"
+   ],
+   "binding": "value re-read by code from a label located in the artifact"
+  },
+  "required_actions": [],
+  "claims": [
+   {
+    "name": "answer_1",
+    "label": "",
+    "relation": "located_label",
+    "value_type": "string",
+    "container": "",
+    "optional": false
+   },
+   {
+    "name": "answer_2",
+    "label": "",
+    "relation": "located_label",
+    "value_type": "string",
+    "container": "",
+    "optional": false
+   }
+  ],
+  "absence": "none",
+  "coverage_anchor": "",
+  "named_site": "rfc-editor.org",
+  "entry_point_source": "task"
+ },
+ "postcondition_hash": "64528f316f853670b5943fac9a30f24f174dc32885fdc3fa9acdf5e8e682676b",
+ "credential_tier": "paid",
+ "browser_generation": 1,
+ "pre_executed": 0,
+ "budget": {
+  "steps": 26,
+  "llm_calls_exploration": 7,
+  "llm_calls_recovery": 0,
+  "input_tokens": 20517,
+  "output_tokens": 1248,
+  "usd": 0.007001,
+  "started_at": 1785266529.840252,
+  "ended_at": 1785266560.5068734,
+  "elapsed_seconds": 30.67,
+  "output_cap_per_call": 2048,
+  "output_cap_per_run": 16000
+ },
+ "claims": [],
+ "suspicions": [],
+ "execution_path": "model_driven",
+ "trace": [
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 1,
+   "kind": "policy_check",
+   "summary": "SSRF guard enabled",
+   "started_at": 1785266529.8460362,
+   "finished_at": 1785266529.8531597,
+   "ok": 1,
+   "detail": {
+    "egress_guard": {
+     "app_env": "production",
+     "ssrf_guard_enabled": true,
+     "private_egress_allowed": false,
+     "note": "Private, loopback, link-local and CGNAT destinations are refused."
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 2,
+   "kind": "note",
+   "summary": "Execution path: model_driven (undeclared task, which only the generic loop can attempt)",
+   "started_at": 1785266529.8639443,
+   "finished_at": 1785266529.8682685,
+   "ok": 1,
+   "detail": {
+    "execution_path": "model_driven",
+    "reason": "undeclared task, which only the generic loop can attempt"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 3,
+   "kind": "note",
+   "summary": "Postcondition frozen: undeclared task on www.rfc-editor.org",
+   "started_at": 1785266529.9812624,
+   "finished_at": 1785266529.9865785,
+   "ok": 1,
+   "detail": {
+    "operation": "generic",
+    "postcondition_hash": "64528f316f853670b5943fac9a30f24f174dc32885fdc3fa9acdf5e8e682676b",
+    "postcondition": {
+     "spec_version": "pc/1",
+     "goal": "On https://www.rfc-editor.org, find RFC 2616 and tell me its publication date and its current status.\n\nTo complete this task you MUST emit `extract` pointing at the element that holds the value, with `label_anchor` set to the exact visible text of the label it is bound to, before you finish. Code re-reads the value from that label; a run that finishes without one cannot be verified and is scored as a failure.\n\nThis task asks for 2 separate values. Emit one `extract` for each, in this order, each with its own `label_anchor`:\n  answer_1: its publication date\n  answer_2: its current status\nAnswering some of them and stopping is a partial result, not a success.",
+     "operation": "generic",
+     "target_url": "https://www.rfc-editor.org",
+     "inputs": {
+      "entry_url": "https://www.rfc-editor.org",
+      "url_scope": "site",
+      "asked_for": [
+       "its publication date",
+       "its current status"
+      ],
+      "binding": "value re-read by code from a label located in the artifact"
+     },
+     "required_actions": [],
+     "claims": [
+      {
+       "name": "answer_1",
+       "label": "",
+       "relation": "located_label",
+       "value_type": "string",
+       "container": "",
+       "optional": false
+      },
+      {
+       "name": "answer_2",
+       "label": "",
+       "relation": "located_label",
+       "value_type": "string",
+       "container": "",
+       "optional": false
+      }
+     ],
+     "absence": "none",
+     "coverage_anchor": "",
+     "named_site": "rfc-editor.org",
+     "entry_point_source": "task"
+    },
+    "browser_generation": 1,
+    "note": "Frozen before execution. Verification re-checks against this object, so recovery cannot lower the bar."
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 4,
+   "kind": "policy_check",
+   "summary": "Policy check for https://www.rfc-editor.org",
+   "started_at": 1785266529.9916162,
+   "finished_at": 1785266529.9988036,
+   "ok": 1,
+   "detail": {
+    "egress": {
+     "allowed": true,
+     "url": "https://www.rfc-editor.org",
+     "reason": "allowed",
+     "host": "www.rfc-editor.org",
+     "resolved_ips": [
+      "104.18.21.81",
+      "104.18.21.81",
+      "104.18.21.81",
+      "104.18.20.81",
+      "104.18.20.81",
+      "104.18.20.81",
+      "2606:4700::6812:1451",
+      "2606:4700::6812:1451",
+      "2606:4700::6812:1451",
+      "2606:4700::6812:1551",
+      "2606:4700::6812:1551",
+      "2606:4700::6812:1551"
+     ]
+    },
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://www.rfc-editor.org",
+     "evaluated_path": "/",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 5,
+   "kind": "navigate",
+   "summary": "Navigate to https://www.rfc-editor.org",
+   "started_at": 1785266530.005457,
+   "finished_at": 1785266530.600656,
+   "ok": 1,
+   "detail": {
+    "url": "https://www.rfc-editor.org",
+    "status": 200,
+    "final_url": "https://www.rfc-editor.org/",
+    "page_url_at_navigate": "https://www.rfc-editor.org/",
+    "redirect_chain": [
+     {
+      "url": "https://www.rfc-editor.org/",
+      "status": 200
+     }
+    ],
+    "canonical_url": "https://www.rfc-editor.org/"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 6,
+   "kind": "snapshot",
+   "summary": "Snapshot captured: step-1",
+   "started_at": 1785266531.0217297,
+   "finished_at": 1785266531.0338213,
+   "ok": 1,
+   "detail": {
+    "artifact": {
+     "artifact_id": "art_5a98bc664c74",
+     "kind": "dom:step-1",
+     "source_url": "https://www.rfc-editor.org/",
+     "retrieved_at": 1785266530.740212,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/html",
+     "length": 177635,
+     "sha256": "f5c85a8b747ba51b8c661ea6844b42d84e1135d32ad0e215a6589ce2eb5b8ea7",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_artifact": {
+     "artifact_id": "art_0ce80648db18",
+     "kind": "aria:step-1",
+     "source_url": "https://www.rfc-editor.org/",
+     "retrieved_at": 1785266530.9991887,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/plain",
+     "length": 7720,
+     "sha256": "462b9bc97ab42ee3aabb9d4187b6e8f90a7525215dca42593c54bd71bf2f9668",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_note": ""
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": "art_5a98bc664c74"
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 7,
+   "kind": "note",
+   "summary": "Model call (exploration) for step 1",
+   "started_at": 1785266531.232488,
+   "finished_at": 1785266532.469773,
+   "ok": 1,
+   "detail": {
+    "purpose": "exploration",
+    "reduction": {
+     "rule_version": "reduce/v1.4",
+     "dropped": {
+      "anchor_region_over_cap": 5,
+      "interactive_invisible": 4,
+      "interactive_unnamed_link": 2,
+      "non_interactive_nodes": 427,
+      "script_style_nodes": 58
+     },
+     "kept": {
+      "interactive": 41,
+      "anchor_regions": 8
+     },
+     "full_dom_chars": 180905,
+     "rendered_text_chars": 2089,
+     "full_artifact_id": "art_5a98bc664c74"
+    },
+    "prompt_chars": 9906,
+    "proposal": {
+     "action": "fill",
+     "args": {
+      "ref": "e13",
+      "text": "2616"
+     },
+     "why": "I need to search for RFC 2616 to access its details page.",
+     "strategy": "F2",
+     "diagnosis": "none",
+     "truncated_retry": false,
+     "call": {
+      "model": "gemini-3.1-flash-lite",
+      "credential_tier": "paid",
+      "cached": false,
+      "seconds": 1.223,
+      "finish_reason": "FinishReason.STOP",
+      "input_tokens": 2987,
+      "output_tokens": 175,
+      "thought_tokens": 111,
+      "usd": 0.001009
+     }
+    },
+    "budget": {
+     "input_tokens": 2987,
+     "output_tokens": 175,
+     "usd": 0.001009,
+     "exploration_calls": "1/8",
+     "recovery_calls": "0/4"
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 8,
+   "kind": "fill",
+   "summary": "fill e13 \u2014 I need to search for RFC 2616 to access its details page.",
+   "started_at": 1785266532.5553277,
+   "finished_at": 1785266532.7607076,
+   "ok": 1,
+   "detail": {
+    "selector": "#search",
+    "element": {
+     "tag": "input",
+     "id": "search",
+     "name": "q",
+     "label": "Find an RFC (number, subseries, title, author, etc.)",
+     "ref": "e13"
+    },
+    "proposed_by": "planner",
+    "args": {
+     "ref": "e13",
+     "text": "2616"
+    },
+    "locator_provenance": "freshly derived",
+    "url": "https://www.rfc-editor.org/",
+    "observed": "",
+    "fragment": "",
+    "repair": "first attempt"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 9,
+   "kind": "snapshot",
+   "summary": "Snapshot captured: step-2",
+   "started_at": 1785266532.8454912,
+   "finished_at": 1785266532.8495958,
+   "ok": 1,
+   "detail": {
+    "artifact": {
+     "artifact_id": "art_7b35f0397cf0",
+     "kind": "dom:step-2",
+     "source_url": "https://www.rfc-editor.org/",
+     "retrieved_at": 1785266532.8031933,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/html",
+     "length": 180943,
+     "sha256": "3b90929df197a0e3a544d26f9e0a86a565569830ae3620242653dda4e97155dc",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_artifact": {
+     "artifact_id": "art_fde539121557",
+     "kind": "aria:step-2",
+     "source_url": "https://www.rfc-editor.org/",
+     "retrieved_at": 1785266532.8398218,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/plain",
+     "length": 7728,
+     "sha256": "24c49431815eae3c15223a0993a9c32e74c2b84d4a2741d9239b77910b5c3e17",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_note": ""
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": "art_7b35f0397cf0"
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 10,
+   "kind": "note",
+   "summary": "Model call (exploration) for step 2",
+   "started_at": 1785266532.904632,
+   "finished_at": 1785266536.8097715,
+   "ok": 1,
+   "detail": {
+    "purpose": "exploration",
+    "reduction": {
+     "rule_version": "reduce/v1.4",
+     "dropped": {
+      "anchor_region_over_cap": 5,
+      "interactive_invisible": 4,
+      "interactive_unnamed_link": 2,
+      "non_interactive_nodes": 427,
+      "script_style_nodes": 58
+     },
+     "kept": {
+      "interactive": 41,
+      "anchor_regions": 8
+     },
+     "full_dom_chars": 180903,
+     "rendered_text_chars": 2089,
+     "full_artifact_id": "art_7b35f0397cf0"
+    },
+    "prompt_chars": 10011,
+    "proposal": {
+     "action": "click",
+     "args": {
+      "ref": "e38"
+     },
+     "why": "Submit the search query for RFC 2616.",
+     "strategy": "F1",
+     "diagnosis": "none",
+     "truncated_retry": false,
+     "call": {
+      "model": "gemini-3.1-flash-lite",
+      "credential_tier": "paid",
+      "cached": false,
+      "seconds": 0.948,
+      "finish_reason": "FinishReason.STOP",
+      "input_tokens": 3030,
+      "output_tokens": 130,
+      "thought_tokens": 80,
+      "usd": 0.000953
+     }
+    },
+    "budget": {
+     "input_tokens": 6017,
+     "output_tokens": 305,
+     "usd": 0.001962,
+     "exploration_calls": "2/8",
+     "recovery_calls": "0/4"
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 11,
+   "kind": "click",
+   "summary": "click e38 \u2014 Submit the search query for RFC 2616.",
+   "started_at": 1785266536.8399436,
+   "finished_at": 1785266537.0408695,
+   "ok": 1,
+   "detail": {
+    "selector": "[name='search']",
+    "element": {
+     "tag": "button",
+     "name": "search",
+     "label": "Submit search",
+     "ref": "e38"
+    },
+    "proposed_by": "planner",
+    "args": {
+     "ref": "e38"
+    },
+    "locator_provenance": "freshly derived",
+    "url": "https://www.rfc-editor.org/search/?q=2616",
+    "observed": "",
+    "fragment": "",
+    "repair": "first attempt"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 12,
+   "kind": "snapshot",
+   "summary": "Snapshot captured: step-3",
+   "started_at": 1785266537.2316628,
+   "finished_at": 1785266537.2375097,
+   "ok": 1,
+   "detail": {
+    "artifact": {
+     "artifact_id": "art_65d206720d8b",
+     "kind": "dom:step-3",
+     "source_url": "https://www.rfc-editor.org/search/?q=2616",
+     "retrieved_at": 1785266537.0906835,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/html",
+     "length": 139285,
+     "sha256": "6516ece07fea401fad9a2f4e61c1f6d938016ebefdf644c13b6e67b6676395f3",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_artifact": {
+     "artifact_id": "art_bf2b068ecc9b",
+     "kind": "aria:step-3",
+     "source_url": "https://www.rfc-editor.org/search/?q=2616",
+     "retrieved_at": 1785266537.220171,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/plain",
+     "length": 5291,
+     "sha256": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_note": ""
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": "art_65d206720d8b"
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 13,
+   "kind": "note",
+   "summary": "Model call (exploration) for step 3",
+   "started_at": 1785266537.2982857,
+   "finished_at": 1785266541.70384,
+   "ok": 1,
+   "detail": {
+    "purpose": "exploration",
+    "reduction": {
+     "rule_version": "reduce/v1.4",
+     "dropped": {
+      "interactive_invisible": 7,
+      "interactive_unnamed_link": 2,
+      "non_interactive_nodes": 340,
+      "script_style_nodes": 60
+     },
+     "kept": {
+      "interactive": 39,
+      "anchor_regions": 5
+     },
+     "full_dom_chars": 156280,
+     "rendered_text_chars": 1432,
+     "full_artifact_id": "art_65d206720d8b"
+    },
+    "prompt_chars": 9844,
+    "proposal": {
+     "action": "click",
+     "args": {
+      "ref": "e35"
+     },
+     "why": "Submit search query to find RFC 2616 directly.",
+     "strategy": "F5",
+     "diagnosis": "none",
+     "truncated_retry": false,
+     "call": {
+      "model": "gemini-3.1-flash-lite",
+      "credential_tier": "paid",
+      "cached": false,
+      "seconds": 1.228,
+      "finish_reason": "FinishReason.STOP",
+      "input_tokens": 2866,
+      "output_tokens": 168,
+      "thought_tokens": 117,
+      "usd": 0.000968
+     }
+    },
+    "budget": {
+     "input_tokens": 8883,
+     "output_tokens": 473,
+     "usd": 0.00293,
+     "exploration_calls": "3/8",
+     "recovery_calls": "0/4"
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 14,
+   "kind": "click",
+   "summary": "click e35 \u2014 Submit search query to find RFC 2616 directly.",
+   "started_at": 1785266541.728331,
+   "finished_at": 1785266541.918358,
+   "ok": 1,
+   "detail": {
+    "selector": "[data-agent-ref='e35']",
+    "element": {
+     "tag": "button",
+     "label": "Submit the search query",
+     "title": "Submit the search query",
+     "ref": "e35"
+    },
+    "proposed_by": "planner",
+    "args": {
+     "ref": "e35"
+    },
+    "locator_provenance": "freshly derived",
+    "url": "https://www.rfc-editor.org/search/?q=2616",
+    "observed": "",
+    "fragment": "",
+    "repair": "first attempt"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 15,
+   "kind": "snapshot",
+   "summary": "Snapshot captured: step-4",
+   "started_at": 1785266542.014299,
+   "finished_at": 1785266542.0213072,
+   "ok": 1,
+   "detail": {
+    "artifact": {
+     "artifact_id": "art_04c4078a8e4b",
+     "kind": "dom:step-4",
+     "source_url": "https://www.rfc-editor.org/search/?q=2616",
+     "retrieved_at": 1785266541.9750283,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/html",
+     "length": 156318,
+     "sha256": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_artifact": {
+     "artifact_id": "art_a7571f3cb58b",
+     "kind": "aria:step-4",
+     "source_url": "https://www.rfc-editor.org/search/?q=2616",
+     "retrieved_at": 1785266542.0050716,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/plain",
+     "length": 5291,
+     "sha256": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_note": ""
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": "art_04c4078a8e4b"
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 16,
+   "kind": "note",
+   "summary": "Model call (exploration) for step 4",
+   "started_at": 1785266542.0654266,
+   "finished_at": 1785266546.341654,
+   "ok": 1,
+   "detail": {
+    "purpose": "exploration",
+    "reduction": {
+     "rule_version": "reduce/v1.4",
+     "dropped": {
+      "interactive_invisible": 7,
+      "interactive_unnamed_link": 2,
+      "non_interactive_nodes": 340,
+      "script_style_nodes": 60
+     },
+     "kept": {
+      "interactive": 39,
+      "anchor_regions": 5
+     },
+     "full_dom_chars": 156278,
+     "rendered_text_chars": 1432,
+     "full_artifact_id": "art_04c4078a8e4b"
+    },
+    "prompt_chars": 9873,
+    "proposal": {
+     "action": "fill",
+     "args": {
+      "ref": "e7",
+      "text": "2616"
+     },
+     "why": "The previous search was incorrect; re-entering '2616' into the search input.",
+     "strategy": "F2",
+     "diagnosis": "content_changed",
+     "truncated_retry": false,
+     "call": {
+      "model": "gemini-3.1-flash-lite",
+      "credential_tier": "paid",
+      "cached": false,
+      "seconds": 1.25,
+      "finish_reason": "FinishReason.STOP",
+      "input_tokens": 2879,
+      "output_tokens": 194,
+      "thought_tokens": 126,
+      "usd": 0.001011
+     }
+    },
+    "budget": {
+     "input_tokens": 11762,
+     "output_tokens": 667,
+     "usd": 0.003941,
+     "exploration_calls": "4/8",
+     "recovery_calls": "0/4"
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 17,
+   "kind": "fill",
+   "summary": "fill e7 \u2014 The previous search was incorrect; re-entering '2616' into the search input.",
+   "started_at": 1785266546.3808975,
+   "finished_at": 1785266546.6376617,
+   "ok": 1,
+   "detail": {
+    "selector": "[data-agent-ref='e7']",
+    "element": {
+     "tag": "input",
+     "label": "Search",
+     "text": "2616",
+     "ref": "e7"
+    },
+    "proposed_by": "planner",
+    "args": {
+     "ref": "e7",
+     "text": "2616"
+    },
+    "locator_provenance": "freshly derived",
+    "url": "https://www.rfc-editor.org/search/?q=2616",
+    "observed": "",
+    "fragment": "",
+    "repair": "first attempt"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 18,
+   "kind": "snapshot",
+   "summary": "Snapshot captured: step-5",
+   "started_at": 1785266546.7100272,
+   "finished_at": 1785266546.715309,
+   "ok": 1,
+   "detail": {
+    "artifact": {
+     "artifact_id": "art_933c77439405",
+     "kind": "dom:step-5",
+     "source_url": "https://www.rfc-editor.org/search/?q=2616",
+     "retrieved_at": 1785266546.6771746,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/html",
+     "length": 156318,
+     "sha256": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_artifact": {
+     "artifact_id": "art_98f3529e2e77",
+     "kind": "aria:step-5",
+     "source_url": "https://www.rfc-editor.org/search/?q=2616",
+     "retrieved_at": 1785266546.704263,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/plain",
+     "length": 5291,
+     "sha256": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_note": ""
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": "art_933c77439405"
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 19,
+   "kind": "note",
+   "summary": "Model call (exploration) for step 5",
+   "started_at": 1785266546.760272,
+   "finished_at": 1785266551.1269093,
+   "ok": 1,
+   "detail": {
+    "purpose": "exploration",
+    "reduction": {
+     "rule_version": "reduce/v1.4",
+     "dropped": {
+      "interactive_invisible": 7,
+      "interactive_unnamed_link": 2,
+      "non_interactive_nodes": 340,
+      "script_style_nodes": 60
+     },
+     "kept": {
+      "interactive": 39,
+      "anchor_regions": 5
+     },
+     "full_dom_chars": 156278,
+     "rendered_text_chars": 1432,
+     "full_artifact_id": "art_933c77439405"
+    },
+    "prompt_chars": 9916,
+    "proposal": {
+     "action": "fill",
+     "args": {
+      "ref": "e7",
+      "text": "2616"
+     },
+     "why": "The previous search was filtered; re-searching for 2616 without filters.",
+     "strategy": "F5",
+     "diagnosis": "content_changed",
+     "truncated_retry": false,
+     "call": {
+      "model": "gemini-3.1-flash-lite",
+      "credential_tier": "paid",
+      "cached": false,
+      "seconds": 1.42,
+      "finish_reason": "FinishReason.STOP",
+      "input_tokens": 2900,
+      "output_tokens": 209,
+      "thought_tokens": 143,
+      "usd": 0.001038
+     }
+    },
+    "budget": {
+     "input_tokens": 14662,
+     "output_tokens": 876,
+     "usd": 0.004979,
+     "exploration_calls": "5/8",
+     "recovery_calls": "0/4"
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 20,
+   "kind": "fill",
+   "summary": "fill e7 \u2014 The previous search was filtered; re-searching for 2616 without filters.",
+   "started_at": 1785266551.1539502,
+   "finished_at": 1785266551.3542743,
+   "ok": 1,
+   "detail": {
+    "selector": "[data-agent-ref='e7']",
+    "element": {
+     "tag": "input",
+     "label": "Search",
+     "text": "2616",
+     "ref": "e7"
+    },
+    "proposed_by": "planner",
+    "args": {
+     "ref": "e7",
+     "text": "2616"
+    },
+    "locator_provenance": "freshly derived",
+    "url": "https://www.rfc-editor.org/search/?q=2616",
+    "observed": "",
+    "fragment": "",
+    "repair": "first attempt"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 21,
+   "kind": "snapshot",
+   "summary": "Snapshot captured: step-6",
+   "started_at": 1785266551.4306269,
+   "finished_at": 1785266551.4357562,
+   "ok": 1,
+   "detail": {
+    "artifact": {
+     "artifact_id": "art_382b18f79089",
+     "kind": "dom:step-6",
+     "source_url": "https://www.rfc-editor.org/search/?q=2616",
+     "retrieved_at": 1785266551.3923583,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/html",
+     "length": 156318,
+     "sha256": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_artifact": {
+     "artifact_id": "art_a90a0555d4d8",
+     "kind": "aria:step-6",
+     "source_url": "https://www.rfc-editor.org/search/?q=2616",
+     "retrieved_at": 1785266551.424948,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/plain",
+     "length": 5291,
+     "sha256": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_note": ""
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": "art_382b18f79089"
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 22,
+   "kind": "note",
+   "summary": "Model call (exploration) for step 6",
+   "started_at": 1785266551.481277,
+   "finished_at": 1785266555.5654142,
+   "ok": 1,
+   "detail": {
+    "purpose": "exploration",
+    "reduction": {
+     "rule_version": "reduce/v1.4",
+     "dropped": {
+      "interactive_invisible": 7,
+      "interactive_unnamed_link": 2,
+      "non_interactive_nodes": 340,
+      "script_style_nodes": 60
+     },
+     "kept": {
+      "interactive": 39,
+      "anchor_regions": 5
+     },
+     "full_dom_chars": 156278,
+     "rendered_text_chars": 1432,
+     "full_artifact_id": "art_382b18f79089"
+    },
+    "prompt_chars": 9959,
+    "proposal": {
+     "action": "click",
+     "args": {
+      "ref": "e35"
+     },
+     "why": "The search results for '2616' did not return the RFC itself, retrying search.",
+     "strategy": "F5",
+     "diagnosis": "content_changed",
+     "truncated_retry": false,
+     "call": {
+      "model": "gemini-3.1-flash-lite",
+      "credential_tier": "paid",
+      "cached": false,
+      "seconds": 1.237,
+      "finish_reason": "FinishReason.STOP",
+      "input_tokens": 2921,
+      "output_tokens": 181,
+      "thought_tokens": 120,
+      "usd": 0.001002
+     }
+    },
+    "budget": {
+     "input_tokens": 17583,
+     "output_tokens": 1057,
+     "usd": 0.005981,
+     "exploration_calls": "6/8",
+     "recovery_calls": "0/4"
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 23,
+   "kind": "click",
+   "summary": "click e35 \u2014 The search results for '2616' did not return the RFC itself, retrying search.",
+   "started_at": 1785266555.6320808,
+   "finished_at": 1785266555.9073882,
+   "ok": 1,
+   "detail": {
+    "selector": "[data-agent-ref='e35']",
+    "element": {
+     "tag": "button",
+     "label": "Submit the search query",
+     "title": "Submit the search query",
+     "ref": "e35"
+    },
+    "proposed_by": "planner",
+    "args": {
+     "ref": "e35"
+    },
+    "locator_provenance": "freshly derived",
+    "url": "https://www.rfc-editor.org/search/?q=2616",
+    "observed": "",
+    "fragment": "",
+    "repair": "first attempt"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 24,
+   "kind": "snapshot",
+   "summary": "Snapshot captured: step-7",
+   "started_at": 1785266555.9962466,
+   "finished_at": 1785266556.003569,
+   "ok": 1,
+   "detail": {
+    "artifact": {
+     "artifact_id": "art_5589a8ec1d96",
+     "kind": "dom:step-7",
+     "source_url": "https://www.rfc-editor.org/search/?q=2616",
+     "retrieved_at": 1785266555.9568663,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/html",
+     "length": 156318,
+     "sha256": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_artifact": {
+     "artifact_id": "art_11f0cceb3e77",
+     "kind": "aria:step-7",
+     "source_url": "https://www.rfc-editor.org/search/?q=2616",
+     "retrieved_at": 1785266555.9908357,
+     "retrieved_on": "2026-07-28",
+     "media_type": "text/plain",
+     "length": 5291,
+     "sha256": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+     "state": "stored",
+     "expired_at": null,
+     "expired_on": null,
+     "pinned": false,
+     "available": true
+    },
+    "accessibility_note": ""
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": "art_5589a8ec1d96"
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 25,
+   "kind": "note",
+   "summary": "Model call (exploration) for step 7",
+   "started_at": 1785266556.0502884,
+   "finished_at": 1785266560.261756,
+   "ok": 1,
+   "detail": {
+    "purpose": "exploration",
+    "reduction": {
+     "rule_version": "reduce/v1.4",
+     "dropped": {
+      "interactive_invisible": 7,
+      "interactive_unnamed_link": 2,
+      "non_interactive_nodes": 340,
+      "script_style_nodes": 60
+     },
+     "kept": {
+      "interactive": 39,
+      "anchor_regions": 5
+     },
+     "full_dom_chars": 156278,
+     "rendered_text_chars": 1432,
+     "full_artifact_id": "art_5589a8ec1d96"
+    },
+    "prompt_chars": 9988,
+    "proposal": {
+     "action": "fill",
+     "args": {
+      "ref": "e7",
+      "text": "RFC 2616"
+     },
+     "why": "The previous search for '2616' was too broad or failed; retrying with 'RFC 2616'.",
+     "strategy": "F5",
+     "diagnosis": "content_changed",
+     "truncated_retry": false,
+     "call": {
+      "model": "gemini-3.1-flash-lite",
+      "credential_tier": "paid",
+      "cached": false,
+      "seconds": 1.325,
+      "finish_reason": "FinishReason.STOP",
+      "input_tokens": 2934,
+      "output_tokens": 191,
+      "thought_tokens": 113,
+      "usd": 0.00102
+     }
+    },
+    "budget": {
+     "input_tokens": 20517,
+     "output_tokens": 1248,
+     "usd": 0.007001,
+     "exploration_calls": "7/8",
+     "recovery_calls": "0/4"
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_fe0a15507c51",
+   "seq": 26,
+   "kind": "fill",
+   "summary": "fill e7 \u2014 The previous search for '2616' was too broad or failed; retrying with 'RFC 2616'.",
+   "started_at": 1785266560.2872121,
+   "finished_at": 1785266560.498844,
+   "ok": 1,
+   "detail": {
+    "selector": "[data-agent-ref='e7']",
+    "element": {
+     "tag": "input",
+     "label": "Search",
+     "text": "2616",
+     "ref": "e7"
+    },
+    "proposed_by": "planner",
+    "args": {
+     "ref": "e7",
+     "text": "RFC 2616"
+    },
+    "locator_provenance": "freshly derived",
+    "url": "https://www.rfc-editor.org/search?q=RFC+2616",
+    "observed": "",
+    "fragment": "",
+    "repair": "first attempt"
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  }
+ ],
+ "artifacts": [
+  {
+   "id": "art_5a98bc664c74",
+   "kind": "dom:step-1",
+   "source_url": "https://www.rfc-editor.org/",
+   "media_type": "text/html",
+   "length": 177635,
+   "sha256": "f5c85a8b747ba51b8c661ea6844b42d84e1135d32ad0e215a6589ce2eb5b8ea7",
+   "state": "stored",
+   "retrieved_at": 1785266530.740212,
+   "sha256_on_export": "f5c85a8b747ba51b8c661ea6844b42d84e1135d32ad0e215a6589ce2eb5b8ea7",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_0ce80648db18",
+   "kind": "aria:step-1",
+   "source_url": "https://www.rfc-editor.org/",
+   "media_type": "text/plain",
+   "length": 7720,
+   "sha256": "462b9bc97ab42ee3aabb9d4187b6e8f90a7525215dca42593c54bd71bf2f9668",
+   "state": "stored",
+   "retrieved_at": 1785266530.9991887,
+   "sha256_on_export": "462b9bc97ab42ee3aabb9d4187b6e8f90a7525215dca42593c54bd71bf2f9668",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_7b35f0397cf0",
+   "kind": "dom:step-2",
+   "source_url": "https://www.rfc-editor.org/",
+   "media_type": "text/html",
+   "length": 180943,
+   "sha256": "3b90929df197a0e3a544d26f9e0a86a565569830ae3620242653dda4e97155dc",
+   "state": "stored",
+   "retrieved_at": 1785266532.8031933,
+   "sha256_on_export": "3b90929df197a0e3a544d26f9e0a86a565569830ae3620242653dda4e97155dc",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_fde539121557",
+   "kind": "aria:step-2",
+   "source_url": "https://www.rfc-editor.org/",
+   "media_type": "text/plain",
+   "length": 7728,
+   "sha256": "24c49431815eae3c15223a0993a9c32e74c2b84d4a2741d9239b77910b5c3e17",
+   "state": "stored",
+   "retrieved_at": 1785266532.8398218,
+   "sha256_on_export": "24c49431815eae3c15223a0993a9c32e74c2b84d4a2741d9239b77910b5c3e17",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_65d206720d8b",
+   "kind": "dom:step-3",
+   "source_url": "https://www.rfc-editor.org/search/?q=2616",
+   "media_type": "text/html",
+   "length": 139285,
+   "sha256": "6516ece07fea401fad9a2f4e61c1f6d938016ebefdf644c13b6e67b6676395f3",
+   "state": "stored",
+   "retrieved_at": 1785266537.0906835,
+   "sha256_on_export": "6516ece07fea401fad9a2f4e61c1f6d938016ebefdf644c13b6e67b6676395f3",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_bf2b068ecc9b",
+   "kind": "aria:step-3",
+   "source_url": "https://www.rfc-editor.org/search/?q=2616",
+   "media_type": "text/plain",
+   "length": 5291,
+   "sha256": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+   "state": "stored",
+   "retrieved_at": 1785266537.220171,
+   "sha256_on_export": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_04c4078a8e4b",
+   "kind": "dom:step-4",
+   "source_url": "https://www.rfc-editor.org/search/?q=2616",
+   "media_type": "text/html",
+   "length": 156318,
+   "sha256": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+   "state": "stored",
+   "retrieved_at": 1785266541.9750283,
+   "sha256_on_export": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_a7571f3cb58b",
+   "kind": "aria:step-4",
+   "source_url": "https://www.rfc-editor.org/search/?q=2616",
+   "media_type": "text/plain",
+   "length": 5291,
+   "sha256": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+   "state": "stored",
+   "retrieved_at": 1785266542.0050716,
+   "sha256_on_export": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_933c77439405",
+   "kind": "dom:step-5",
+   "source_url": "https://www.rfc-editor.org/search/?q=2616",
+   "media_type": "text/html",
+   "length": 156318,
+   "sha256": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+   "state": "stored",
+   "retrieved_at": 1785266546.6771746,
+   "sha256_on_export": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_98f3529e2e77",
+   "kind": "aria:step-5",
+   "source_url": "https://www.rfc-editor.org/search/?q=2616",
+   "media_type": "text/plain",
+   "length": 5291,
+   "sha256": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+   "state": "stored",
+   "retrieved_at": 1785266546.704263,
+   "sha256_on_export": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_382b18f79089",
+   "kind": "dom:step-6",
+   "source_url": "https://www.rfc-editor.org/search/?q=2616",
+   "media_type": "text/html",
+   "length": 156318,
+   "sha256": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+   "state": "stored",
+   "retrieved_at": 1785266551.3923583,
+   "sha256_on_export": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_a90a0555d4d8",
+   "kind": "aria:step-6",
+   "source_url": "https://www.rfc-editor.org/search/?q=2616",
+   "media_type": "text/plain",
+   "length": 5291,
+   "sha256": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+   "state": "stored",
+   "retrieved_at": 1785266551.424948,
+   "sha256_on_export": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_5589a8ec1d96",
+   "kind": "dom:step-7",
+   "source_url": "https://www.rfc-editor.org/search/?q=2616",
+   "media_type": "text/html",
+   "length": 156318,
+   "sha256": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+   "state": "stored",
+   "retrieved_at": 1785266555.9568663,
+   "sha256_on_export": "8298b4956f28da836329b41305fc5a5678a968f3294af11a9a944a7fff26c9c4",
+   "sha256_matches": true
+  },
+  {
+   "id": "art_11f0cceb3e77",
+   "kind": "aria:step-7",
+   "source_url": "https://www.rfc-editor.org/search/?q=2616",
+   "media_type": "text/plain",
+   "length": 5291,
+   "sha256": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+   "state": "stored",
+   "retrieved_at": 1785266555.9908357,
+   "sha256_on_export": "889b6b998e17c47cae69c33cf62c8e3b07fa1829464c0777fe3820e065fc8bd1",
+   "sha256_matches": true
+  }
+ ]
+}

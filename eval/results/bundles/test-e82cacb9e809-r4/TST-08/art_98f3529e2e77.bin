@@ -1,0 +1,164 @@
+- status: Search | RFC Editor
+- banner:
+  - link "Skip to content":
+    - /url: "#main"
+  - link "RFC Editor - Official home of RFCs":
+    - /url: /
+    - img "RFC Editor - Official home of RFCs"
+  - navigation "Primary":
+    - heading "Primary navigation" [level=2]
+    - navigation:
+      - list:
+        - listitem:
+          - button "The RFC Series"
+        - listitem:
+          - button "For Authors"
+        - listitem:
+          - button "About Us"
+        - listitem:
+          - link "Search":
+            - /url: /search/
+            - img
+        - listitem:
+          - button "Your preferences":
+            - img
+- main:
+  - heading "Search RFCs" [level=1]
+  - search:
+    - searchbox "Search": "2616"
+    - button "Submit the search query":
+      - img
+  - checkbox "Search in RFC contents"
+  - text: Search in RFC contents
+  - heading "Filter" [level=2]
+  - button "Clear all"
+  - group "Status":
+    - text: Status
+    - list:
+      - listitem:
+        - checkbox "Proposed Standard"
+        - text: Proposed Standard
+  - checkbox "Hide obsoleted / historic" [checked]
+  - text: Hide obsoleted / historic
+  - group "Publication date":
+    - text: Publication date
+    - combobox "Publication date start year": "2011"
+    - combobox "Publication date start month": Jun
+    - text: to
+    - combobox "Publication date end year": "2011"
+    - combobox "Publication date end month": Jun
+  - text: Publication Stream
+  - combobox "Publication Stream":
+    - option "Any" [selected]
+    - option "IETF (1)"
+  - text: Area
+  - combobox "Area":
+    - option "Any" [selected]
+    - option "wit - Web and Internet Transport (1)"
+  - text: Working group
+  - textbox "Working group httpbis - HTTP1":
+    - /placeholder: Search for group...
+  - list:
+    - listitem:
+      - checkbox "httpbis - HTTP1"
+      - text: httpbis - HTTP1
+  - text: Author
+  - textbox "Author J. Reschke1":
+    - /placeholder: Search for author...
+  - list:
+    - listitem:
+      - checkbox "J. Reschke1"
+      - text: J. Reschke1
+  - text: 1 result in 1 ms milliseconds
+  - status
+  - text: Sort By
+  - combobox "Sort By":
+    - option "Relevancy" [selected]
+    - option "RFC no. (Lowest first)"
+    - option "RFC no. (Highest first)"
+    - option "Publication date (Oldest first)"
+    - option "Publication date (Newest first)"
+    - option "Subseries no. (Lowest first)"
+    - option "Subseries no. (Highest first)"
+  - group "Display results as":
+    - text: Display results as
+    - radio "Full Display" [checked]
+    - text: Full Display
+    - radio "Dense Display"
+    - text: Dense Display
+    - radio "Compact Display"
+    - text: Compact Display
+  - list:
+    - listitem:
+      - 'heading "RFC 6266: Use of the Content-Disposition Header Field in the Hypertext Transfer Protocol (HTTP)" [level=3]':
+        - link "RFC 6266:":
+          - /url: /info/rfc6266/
+        - text: Use of the Content-Disposition Header Field in the Hypertext Transfer Protocol (HTTP)
+      - text: Proposed Standard
+      - list:
+        - listitem: J. Reschke
+      - list:
+        - listitem: June 2011
+        - listitem: IETF publication
+        - listitem: Web and Internet Transport
+      - heading "Abstract" [level=4]
+      - paragraph: RFC 2616 defines the Content-Disposition response header field, but points out that it is not part of the HTTP/1.1 Standard. This specification takes over the definition and registration of Content-Disposition, as used in HTTP, and clarifies internationalization aspects. [STANDARDS-TRACK]
+  - navigation "Pagination":
+    - list:
+      - listitem:
+        - button "Page 1": "1"
+    - text: Results per page?
+    - combobox "Results per page?":
+      - option "10 per page" [selected]
+      - option "25 per page"
+      - option "50 per page"
+      - option "100 per page"
+- contentinfo:
+  - heading "Footer" [level=2]
+  - navigation "Footer":
+    - paragraph:
+      - text: rfc-editor.org is maintained by the
+      - link "Internet Engineering Task Force":
+        - /url: https://www.ietf.org
+    - link "IETF":
+      - /url: https://www.ietf.org
+      - img "IETF"
+    - list:
+      - listitem:
+        - link "System Status":
+          - /url: https://status.ietf.org
+      - listitem:
+        - text: ·
+        - link "Report a Bug":
+          - /url: https://github.com/ietf-tools/red/issues
+      - listitem: · Version 1.69.0
+    - heading "Useful links" [level=3]
+    - list:
+      - listitem:
+        - link "IETF.org":
+          - /url: https://www.ietf.org
+      - listitem:
+        - link "IRTF.org":
+          - /url: https://www.irtf.org
+      - listitem:
+        - link "IAB.org":
+          - /url: https://www.iab.org
+      - listitem:
+        - link "Datatracker":
+          - /url: https://datatracker.ietf.org
+      - listitem:
+        - link "Author Resources":
+          - /url: https://authors.ietf.org
+    - heading "Contact Us" [level=3]
+    - list:
+      - listitem:
+        - link "RFC Editor":
+          - /url: /about/contact/
+      - listitem:
+        - link "rfc-dist Info Page":
+          - /url: https://mailman.rfc-editor.org/mailman/listinfo/rfc-dist
+      - listitem:
+        - link "rfc-interest Info Page":
+          - /url: https://mailman.rfc-editor.org/mailman/listinfo/rfc-interest
+  - link "Go to top of page":
+    - /url: "#top"

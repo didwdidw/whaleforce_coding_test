@@ -334,7 +334,16 @@ So the two sets were not measuring the same thing:
   question the answer is good, and `r3` is the evidence.
 - The held-out split measures **how many reasonable tasks it accepts at all.** On that question the
   answer is poor, and nothing we had built could have told us — every case we wrote ourselves was
-  written by someone who already knew what the router takes.
+  written by someone who already knew what the router takes. (This is stated in the README as well,
+  beside the support matrix and the score, because it is the conclusion and not the appendix.)
+
+**The three `robots_disallowed` are the strongest evidence in the round, and they are easy to
+mistake for noise.** They are *our own* cases hitting *our own* policy. Nobody wrote them to be
+refused — they were written as ordinary questions about public pages, by the person who set the
+requirements. So the finding is not "robots enforcement works", which we already knew and test. It
+is that **our intuition about what an ordinary task looks like is wider than the policy we ourselves
+chose**, on a set of eight, three times. The policy is correct and does not move; what that leaves
+is a reachable surface narrower than anyone involved expected, measured rather than argued.
 
 Three tier disagreements make the same point structurally: two cases declared `T-DECLARED` were
 routed experimental by the running system. A promise stated per `site × operation` is only worth the

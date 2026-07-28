@@ -1,0 +1,76 @@
+{
+ "id": "run_c6e4788b5ab7",
+ "task": "Show me the edit history of the Apple Inc. Wikipedia article and tell me who made the most recent change.",
+ "tier": "T-EXPERIMENTAL",
+ "state": "done",
+ "session_id": "sess_6c392fba14b6",
+ "created_at": 1785266529.5529957,
+ "started_at": 1785266529.559214,
+ "finished_at": 1785266529.582923,
+ "terminal_status": "unsupported",
+ "failure_class": "policy_refused",
+ "explanation": "This task names no page or site to start from, and no promised operation recognises it, so there is nowhere to begin. Picking a starting page the task never named would answer a question nobody asked. Name a URL or a site \u2014 for example \"on example.org, \u2026\" \u2014 and it will be attempted best-effort as an experimental run.",
+ "postcondition": null,
+ "postcondition_hash": null,
+ "credential_tier": "none (no model call in M2)",
+ "browser_generation": null,
+ "pre_executed": 0,
+ "budget": {
+  "steps": 2,
+  "llm_calls_exploration": 0,
+  "llm_calls_recovery": 0,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "usd": 0.0,
+  "started_at": 1785266529.559214,
+  "ended_at": 1785266529.582923,
+  "elapsed_seconds": 0.02,
+  "output_cap_per_call": 2048,
+  "output_cap_per_run": 16000
+ },
+ "claims": [],
+ "suspicions": [],
+ "execution_path": null,
+ "trace": [
+  {
+   "run_id": "run_c6e4788b5ab7",
+   "seq": 1,
+   "kind": "policy_check",
+   "summary": "SSRF guard enabled",
+   "started_at": 1785266529.563654,
+   "finished_at": 1785266529.5692477,
+   "ok": 1,
+   "detail": {
+    "egress_guard": {
+     "app_env": "production",
+     "ssrf_guard_enabled": true,
+     "private_egress_allowed": false,
+     "note": "Private, loopback, link-local and CGNAT destinations are refused."
+    }
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  },
+  {
+   "run_id": "run_c6e4788b5ab7",
+   "seq": 2,
+   "kind": "note",
+   "summary": "No promised record matches and no entry point was named",
+   "started_at": 1785266529.5735948,
+   "finished_at": 1785266529.577989,
+   "ok": 0,
+   "detail": {
+    "candidates": [],
+    "markers": {},
+    "entry_url": ""
+   },
+   "diagnosed_cause": null,
+   "family_from": null,
+   "family_to": null,
+   "artifact_id": null
+  }
+ ],
+ "artifacts": []
+}

@@ -133,6 +133,15 @@ product: it re-checked values against rendered text only, and `books.toscrape` c
 the `title` attribute, which the product read — the better behaviour. In `r2` those four are gone and
 two findings remain, both tier disagreements. `r1` stays committed as the record.
 
+> **Measured caveat, and it belongs here rather than only in the analysis: the routing that assigns
+> `T-DECLARED` recognises less than this table promises.** On the held-out split, **two of four
+> declared-tier cases were routed to `T-EXPERIMENTAL`** by the running system — they never reached
+> the promised surface at all. This is the same family as OP-7's fixed-product defect, found and
+> fixed before the freeze: we promise per `site × operation`, and the implementation recognises a
+> narrower set of *phrasings* than that. Our own dev split cannot measure this, because those cases
+> were written by people who already knew what the router accepts. Treat every row above as
+> conditional on the task being phrased the way we happened to expect.
+
 **These records are the promise. Everything else is best-effort and is labelled as such in the UI.**
 A grader submitting a task we have never seen gets a T-EXPERIMENTAL run that browses honestly and
 abstains when it cannot prove its answer — not a confident guess.
@@ -330,13 +339,23 @@ a small number and the interval is the file saying so.
 seen by the engineering session — which is exactly what makes them able to disagree with us, and
 they did.
 
+**Five of the eight never browsed.** Three were refused by `robots.txt` and two by the pre-browse
+policy gate. So the two sets were not measuring the same thing:
+
+> **Our own splits measure how well the system answers a task it accepts. The held-out split
+> measures how many reasonable tasks it *accepts* at all — and that second number is the one we
+> could not have produced ourselves, because every case we wrote was written by someone who already
+> knew what the router takes.**
+
+**This system's bottleneck is what it accepts, not what it gets right.**
+
 What the histogram says about *why*, without opening a single case:
 
-- **Three of eight ended `blocked / robots_disallowed`** and two more `unsupported / policy_refused`.
-  Five of eight never browsed at all. The refusals are correct — they quote the rule that matched —
-  but a system that refuses five of eight ordinary-looking tasks is describing its own reachable
-  surface, not its accuracy. This is L-4 at scale: the policy is right and the coverage it leaves is
-  the product.
+- **The three `robots_disallowed` are our own cases hitting our own policy**, and that is the
+  sharpest evidence here rather than noise in it. Nobody wrote those tasks to be refused; they were
+  written as ordinary questions. What the round measured is that **our intuition about what counts
+  as an ordinary task is wider than our own policy allows** — and since the policy is correct and
+  stays, the gap is the reachable surface, not the rule. This is L-4 at scale.
 - **Three tier disagreements, and they run the wrong way.** Two cases the owner declared
   `T-DECLARED` were routed to `T-EXPERIMENTAL` by the running system, and one declared `T-REFUSED`
   also landed experimental. Half the promised-tier cases did not reach the promised surface. That is
@@ -347,12 +366,18 @@ What the histogram says about *why*, without opening a single case:
 - **The one declared case that ran to an answer, passed.** Of the four declared cases, one produced
   a verified answer, one exhausted its step budget, and two were mis-tiered before they got that far.
 
-**No evidence bundles were exported for this round, and that is a gap.** Held-out results withhold
-per-case detail where the file is written (S-10.4), and the bundle exporter reads that same
-withheld structure — so a round with seven non-successes carried **zero** bundles, on precisely the
-split whose failures are most worth inspecting. The runs and their artifacts exist in the scored
-service's own store; nothing exported them. Recorded here rather than discovered by a grader who
-clicks through and finds an empty directory.
+**The round exported no evidence bundles, and they were recovered by hand.** Held-out results
+withhold per-case detail where the file is written (S-10.4), and the bundle exporter reads that same
+withheld structure — so the round with seven non-successes carried **zero** bundles, on precisely
+the split whose failures are most worth inspecting. Nothing was lost: the runs and artifacts were in
+the scored service's store, and `eval/results/bundles/test-e82cacb9e809-r4/` now holds **all eight
+cases with their full traces and all 24 artifacts**, hashes re-verified against what the store
+recorded. That directory says in its own manifest that it was not produced by the exporter, because
+a rescue that looks like a normal export is a worse artifact than a rescue that admits it.
+
+Five of the eight carry no artifacts. That is the outcome, not a gap in the rescue — those runs were
+refused before any navigation, so there was no page to capture, and for a refusal the evidence *is*
+the trace: the rule that matched, the URL it matched against, and where the run stopped.
 
 **Validation split — NOT RUN, deliberately.** Its purpose was to keep the engineering session honest
 *during* development by holding cases back from it. Development is over, so running it now buys a
