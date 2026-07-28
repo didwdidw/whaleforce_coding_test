@@ -470,6 +470,21 @@ class Executor:
 
             await self._verify(run, ctx)
 
+    @staticmethod
+    def _absorb(run: Run, budget: RunBudget) -> None:
+        """Copy what the provider has charged so far onto the run.
+
+        Called on every way out of a model call, not only the one that succeeds: a call
+        that produced a truncated or refused proposal has still been made and still been
+        billed, and a run that reports zero calls for it is reporting a budget that is not
+        the budget it spent.
+        """
+        run.budget.input_tokens = budget.input_tokens
+        run.budget.output_tokens = budget.output_tokens
+        run.budget.usd = budget.usd
+        run.budget.llm_calls_exploration = budget.exploration_calls
+        run.budget.llm_calls_recovery = budget.recovery_calls
+
     def _freeze(self, run: Run, plan: Plan) -> None:
         """Serialise and hash the postcondition before anything is browsed (S-4.12).
 
@@ -570,15 +585,23 @@ class Executor:
                     # Our output allowance, not a defect in our code and not a model that
                     # broke its contract. Naming it `internal_error` blamed the wrong thing
                     # and sent anyone reading the histogram looking for a bug.
-                    self._finish_step(run, call, ok=False, truncated=exc.reason)
+                    self._absorb(run, budget)
+                    self._finish_step(run, call, ok=False, truncated=exc.reason,
+                                      output_cap_per_call=(
+                                          settings.budgets.max_output_tokens_per_call),
+                                      budget=budget.to_dict())
                     self._terminate(
-                        run, TerminalStatus.FAILED, FailureClass.PROVIDER_ERROR,
-                        f"{exc.reason} The run stops here rather than guessing what the "
+                        run, TerminalStatus.FAILED, FailureClass.OUTPUT_TRUNCATED,
+                        f"{exc.reason} The per-call output allowance is "
+                        f"{settings.budgets.max_output_tokens_per_call} tokens and the "
+                        f"model's deliberation shares it. Both calls are charged to this "
+                        f"run's budget. The run stops here rather than guessing what the "
                         f"cut-off reply was going to say.")
                     return
                 except ProposalRejected as exc:
                     # Outside the contract. Recorded and refused, never repaired into
                     # something plausible.
+                    self._absorb(run, budget)
                     self._finish_step(run, call, ok=False, rejected=exc.reason,
                                       response_head=exc.raw)
                     self._terminate(
@@ -587,15 +610,12 @@ class Executor:
                         f"refused rather than repaired: {exc.reason}")
                     return
                 except ProviderError as exc:
+                    self._absorb(run, budget)
                     self._finish_step(run, call, ok=False, provider_error=str(exc)[:300])
                     self._provider_failure(run, exc)
                     return
 
-                run.budget.input_tokens = budget.input_tokens
-                run.budget.output_tokens = budget.output_tokens
-                run.budget.usd = budget.usd
-                run.budget.llm_calls_exploration = budget.exploration_calls
-                run.budget.llm_calls_recovery = budget.recovery_calls
+                self._absorb(run, budget)
                 run.credential_tier = (proposal.completion.credential_tier.value
                                        if proposal.completion else run.credential_tier)
                 self._finish_step(run, call, proposal=proposal.to_dict(),

@@ -442,6 +442,10 @@ class Provider:
             "configured": self.configured(),
             "prices_usd_per_1m": {"input": settings.provider.prices_usd_per_1m[0],
                                   "output": settings.provider.prices_usd_per_1m[1]},
+            # Output is the dominant term at these prices, so the cap is a cost lever and
+            # not a detail: a cost range measured under one cap does not describe another.
+            "output_cap_per_call": settings.budgets.max_output_tokens_per_call,
+            "output_cap_per_run": settings.budgets.max_output_tokens_per_run,
             "effective_rpm": settings.provider.effective_rpm,
             "cache_enabled": self.cache_enabled,
             "quota_exhausted_tiers": [t.value for t in self._quota_exhausted],

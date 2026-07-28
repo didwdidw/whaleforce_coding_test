@@ -66,6 +66,10 @@ class FailureClass(str, enum.Enum):
     # Added by Amendment 7.7.
     CONTEXT_BUDGET_EXCEEDED = "context_budget_exceeded"
     TOKEN_BUDGET_EXHAUSTED = "token_budget_exhausted"
+    # Added by Amendment 17.8. A reply cut off by *our own* per-call output cap, which the
+    # model's thinking tokens share. Recording it as `internal_error` blamed our code for
+    # our configuration, and inflated the one rate S-5.3 says is itself a finding.
+    OUTPUT_TRUNCATED = "output_truncated"
 
 
 class RunState(str, enum.Enum):
@@ -186,6 +190,8 @@ class BudgetUse:
         return (self.ended_at or time.time()) - self.started_at
 
     def to_dict(self) -> dict[str, Any]:
+        from app.config import settings
+
         return {
             "steps": self.steps,
             "llm_calls_exploration": self.llm_calls_exploration,
@@ -196,6 +202,11 @@ class BudgetUse:
             "started_at": self.started_at,
             "ended_at": self.ended_at,
             "elapsed_seconds": round(self.elapsed_seconds, 2),
+            # The cap this cost was incurred under. Output is charged at several times
+            # input on this model family, so raising the cap invalidates every cost figure
+            # measured below it (A17.10) — the number and the condition travel together.
+            "output_cap_per_call": settings.budgets.max_output_tokens_per_call,
+            "output_cap_per_run": settings.budgets.max_output_tokens_per_run,
         }
 
 

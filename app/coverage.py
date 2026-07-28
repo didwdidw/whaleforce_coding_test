@@ -52,6 +52,9 @@ FAILURE_DUE: dict[FailureClass, str] = {
     FailureClass.PROVIDER_ERROR: "M3",
     FailureClass.TOKEN_BUDGET_EXHAUSTED: "M3",
     FailureClass.CONTEXT_BUDGET_EXCEEDED: "M3",
+    # Our own per-call output cap, which the model's thinking tokens share (A17.8). It was
+    # first produced by a live run at M4, wearing `internal_error`.
+    FailureClass.OUTPUT_TRUNCATED: "M4",
     # The injection defence is demonstrated at M6; the page it is demonstrated on exists now.
     FailureClass.INJECTION_DETECTED: "M6",
 }

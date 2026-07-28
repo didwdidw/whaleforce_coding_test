@@ -159,7 +159,8 @@ def test_values_not_due_until_later_are_not_counted_against_m2(store):
     report = CoverageLedger(store, "M2").report()
     later = {r["value"]: r for r in report["failure_class"] if not r["due_now"]}
     assert set(later) == {"provider_quota", "provider_error", "token_budget_exhausted",
-                          "context_budget_exceeded", "injection_detected"}
+                          "context_budget_exceeded", "injection_detected",
+                          "output_truncated"}
     assert not any(r["overdue"] for r in later.values())
 
 

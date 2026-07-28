@@ -277,6 +277,38 @@ class _FaultyProvider(_NoNetworkProvider):
         raise ProviderError("injected fault: the pinned model returned HTTP 503")
 
 
+class _TruncatingProvider(_NoNetworkProvider):
+    """Every reply cut off by the output allowance, including the re-ask.
+
+    Injected the same way `_FaultyProvider` is, and for the same reason: the alternative is
+    a prompt engineered to make a real model deliberate past the cap, which would be a test
+    of that prompt rather than of this path.
+    """
+
+    def complete(self, prompt, *, budget, purpose, max_output_tokens=None):
+        from app.provider import Completion, CredentialTier, Usage
+
+        budget.check_calls(purpose)
+        usage = Usage(input_tokens=800, output_tokens=max_output_tokens or 1024)
+        usage.usd = self.cost(usage)
+        budget.record(usage, purpose)
+        return Completion('{"action": "finish", "args": {}, "why": "I reviewed the',
+                          usage, self.model_id, CredentialTier.FREE, cached=False,
+                          seconds=0.05, finish_reason="FinishReason.MAX_TOKENS")
+
+
+def test_a_reply_cut_off_twice_is_our_cap_and_is_named_as_ours(executor):
+    """A17.8. `internal_error` blamed our code for our configuration, and inflated the one
+    rate S-5.3 says is itself a finding."""
+    run = _planned_run(executor, _TruncatingProvider(policy=CredentialPolicy.DEVELOPMENT))
+    assert run.terminal_status is TerminalStatus.FAILED
+    assert run.failure_class is FailureClass.OUTPUT_TRUNCATED
+    assert str(settings.budgets.max_output_tokens_per_call) in run.explanation
+    # Both calls are on the bill, not just the one that produced the failure (A17.9).
+    assert run.budget.llm_calls_exploration == 2
+    assert run.budget.usd > 0
+
+
 def _planned_run(executor_bundle, provider, task="Paginate to page 2 of the browse "
                                                  "listing, use the planner"):
     ex, store, loop = executor_bundle
@@ -449,6 +481,13 @@ def test_every_status_due_by_m3_is_reached_by_running_the_product(executor):
         produce(executor)
     report = CoverageLedger(store, "M3").report()
     assert report["gate_passes"] is True, f"still unreachable: {report['overdue']}"
-    # Only the injection defence is still ahead of us; everything else has been produced.
     later = {r["value"] for r in report["failure_class"] if not r["due_now"]}
-    assert later == {"injection_detected"}
+    assert later == {"injection_detected", "output_truncated"}
+
+    # ...and the M4 class, produced the same way, so the M4 ledger passes too.
+    test_a_reply_cut_off_twice_is_our_cap_and_is_named_as_ours(executor)
+    report = CoverageLedger(store, "M4").report()
+    assert report["gate_passes"] is True, f"still unreachable: {report['overdue']}"
+    # Only the injection defence is still ahead of us; everything else has been produced.
+    assert {r["value"] for r in report["failure_class"]
+            if not r["due_now"]} == {"injection_detected"}

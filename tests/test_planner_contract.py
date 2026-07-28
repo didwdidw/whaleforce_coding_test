@@ -317,3 +317,106 @@ def test_malformed_json_that_was_not_truncated_is_still_a_contract_failure():
                                               purpose="exploration", view={})
     assert not isinstance(caught.value, ResponseTruncated)
     assert _Provider.calls == 1, "a malformed reply must not be re-asked"
+
+
+# --- A17.9: the re-ask is charged to the run that made it ---------------------------
+
+def _truncating_provider(monkeypatch, replies):
+    """A real `Provider` with only the network call replaced.
+
+    The accounting under test lives in `Provider.complete` — the call budget, the token
+    budget and the spend ledger are all touched there. A stub provider would exercise the
+    planner's retry and none of the accounting it is supposed to be charged to, which is
+    exactly the fiction A17.9 is about.
+    """
+    from app.provider import CredentialPolicy, CredentialTier, Provider
+
+    provider = Provider(policy=CredentialPolicy.DEVELOPMENT)
+    monkeypatch.setattr(provider, "available_tiers", lambda: [CredentialTier.FREE])
+    monkeypatch.setattr(provider, "key_for", lambda tier: "test-key")
+    monkeypatch.setattr(provider, "_pace", lambda: 0.0)
+    monkeypatch.setattr(provider, "_record_spend", lambda completion: None)
+    monkeypatch.setattr(provider, "_check_spend", lambda: None)
+    provider.cache_enabled = False
+    served = iter(replies)
+    monkeypatch.setattr(provider, "_call",
+                        lambda prompt, key, tier, cap: next(served))
+    return provider
+
+
+def _completion(text, finish, tokens=120):
+    from app.provider import Completion, CredentialTier, Usage
+
+    usage = Usage(input_tokens=1000, output_tokens=tokens)
+    usage.usd = (1000 * 0.10 + tokens * 0.40) / 1_000_000
+    return Completion(text, usage, "m", CredentialTier.FREE, cached=False, seconds=0.1,
+                      finish_reason=finish)
+
+
+TRUNCATED = '{"action": "finish", "args": {}, "why": "I reviewed the'
+GOOD = ('{"action": "finish", "args": {}, "why": "done", "strategy": "F1",'
+        ' "diagnosis": "none"}')
+
+
+def test_the_re_ask_counts_against_the_call_budget_and_the_cost(monkeypatch):
+    """A retry that is free in the accounting makes both budgets fiction: the run reports
+    one call where it made two, and a cost that omits the more expensive of the two."""
+    from app.planner import Planner
+    from app.provider import RunBudget
+
+    provider = _truncating_provider(monkeypatch, [_completion(TRUNCATED, "MAX_TOKENS"),
+                                                  _completion(GOOD, "STOP", tokens=40)])
+    budget = RunBudget()
+
+    proposal = Planner(provider=provider).propose("p", budget=budget,
+                                                  purpose="exploration", view={})
+
+    assert proposal.truncated_retry is True
+    assert budget.exploration_calls == 2
+    assert budget.output_tokens == 160
+    assert budget.usd == pytest.approx((2000 * 0.10 + 160 * 0.40) / 1_000_000)
+
+
+def test_a_run_out_of_calls_cannot_borrow_one_to_retry_a_truncation(monkeypatch):
+    """The budget is fail-closed, and the re-ask is inside it rather than beside it."""
+    from app.config import settings
+    from app.planner import Planner
+    from app.provider import ProviderError, RunBudget
+
+    provider = _truncating_provider(monkeypatch, [_completion(TRUNCATED, "MAX_TOKENS"),
+                                                  _completion(GOOD, "STOP")])
+    budget = RunBudget(exploration_calls=settings.budgets.exploration_calls - 1)
+
+    with pytest.raises(ProviderError) as caught:
+        Planner(provider=provider).propose("p", budget=budget, purpose="exploration",
+                                           view={})
+    assert "exploration call budget" in str(caught.value)
+    assert budget.exploration_calls == settings.budgets.exploration_calls
+
+
+def test_a_second_truncation_ends_the_step_as_output_truncated(monkeypatch):
+    """Not `internal_error`, and not `provider_error`: our own cap, named as ours."""
+    from app.models import FailureClass
+    from app.planner import Planner, ResponseTruncated
+    from app.provider import RunBudget
+
+    provider = _truncating_provider(monkeypatch, [_completion(TRUNCATED, "MAX_TOKENS"),
+                                                  _completion(TRUNCATED, "MAX_TOKENS")])
+    budget = RunBudget()
+
+    with pytest.raises(ResponseTruncated):
+        Planner(provider=provider).propose("p", budget=budget, purpose="exploration",
+                                           view={})
+    assert budget.exploration_calls == 2
+    assert FailureClass("output_truncated") is FailureClass.OUTPUT_TRUNCATED
+
+
+def test_the_cost_a_run_reports_carries_the_output_cap_it_was_measured_under():
+    """Output is charged at several times input on this model family, so a cost range
+    measured under one cap does not describe another (A17.10)."""
+    from app.config import settings
+    from app.models import BudgetUse
+
+    recorded = BudgetUse(usd=0.0021).to_dict()
+    assert recorded["output_cap_per_call"] == settings.budgets.max_output_tokens_per_call
+    assert recorded["output_cap_per_run"] == settings.budgets.max_output_tokens_per_run
