@@ -333,17 +333,44 @@ So the two sets were not measuring the same thing:
 - The dev and experimental splits measure **how well the system answers a task it accepts.** On that
   question the answer is good, and `r3` is the evidence.
 - The held-out split measures **how many reasonable tasks it accepts at all.** On that question the
-  answer is poor, and nothing we had built could have told us — every case we wrote ourselves was
-  written by someone who already knew what the router takes. (This is stated in the README as well,
-  beside the support matrix and the score, because it is the conclusion and not the appendix.)
+  answer is poor — two of eight were refused for naming no page or site to start from, and three of
+  four declared-tier cases did not reach the tier they were declared at. Nothing we had built could
+  have told us, because every case we wrote ourselves was written by someone who already knew what
+  the router takes. (This is stated in the README as well, beside the support matrix and the score,
+  because it is the conclusion and not the appendix.)
 
-**The three `robots_disallowed` are the strongest evidence in the round, and they are easy to
-mistake for noise.** They are *our own* cases hitting *our own* policy. Nobody wrote them to be
-refused — they were written as ordinary questions about public pages, by the person who set the
-requirements. So the finding is not "robots enforcement works", which we already knew and test. It
-is that **our intuition about what an ordinary task looks like is wider than the policy we ourselves
-chose**, on a set of eight, three times. The policy is correct and does not move; what that leaves
-is a reachable surface narrower than anyone involved expected, measured rather than argued.
+**The three `robots_disallowed` are not what they looked like, and the correction is worth more than
+the original reading.** They were first written up here — and in the README — as our own cases
+hitting our own policy, evidence that our sense of an ordinary task was wider than the rules we
+chose. That was wrong. It was caught within the hour, by opening the evidence we had just rescued
+and published, which is the only reason it is a correction and not a claim in a submitted document.
+
+What the three actually are: **one transient network failure, on one host.** All three carry the
+identical `robots` record — `source: "unfetchable"`, `rule: "robots.txt could not be fetched:
+URLError: <urlopen error timed out>"`, no directive and no pattern, because nothing matched. An
+unfetchable `robots.txt` is refused by design (it is a row in
+`docs/m4-fail-closed-inventory.md`: 404 means unrestricted, unreachable means refuse), and that is
+the correct action — we will not browse a site whose policy we could not read.
+
+The site in question, `books.toscrape.com`, publishes **no `robots.txt` at all**. It returns 404,
+which the matcher reads as unrestricted. It did so for seven cases in `r3`, twenty minutes before
+this round, and it does so now in 0.6 seconds. Three held-out cases on a **promised** site were lost
+to a fetch that timed out inside a 78-second window.
+
+Three things follow, and the first is the one that matters:
+
+1. **`r4` measured availability as much as capability, and 1 of 8 is therefore a floor.** The number
+   stands — the first run is the reported score (S-10.6), and a round is not re-taken because it
+   went badly. But a reader who takes it as a capability estimate is reading it as more than it is,
+   and this paragraph exists so that the qualifier travels with the figure, which is the rule this
+   whole document is written under.
+2. **The failure class conflates two different events**, and that is defect 10 below. `the site
+   forbade this` and `we could not ask the site` both arrive as `robots_disallowed`. The refusal is
+   right in both cases; the label is right in only one, and a reader counting policy refusals across
+   a round cannot separate them without opening each trace — as we did not, at first.
+3. **There is no retry**, and one is not obviously correct: retrying a policy fetch is a decision
+   about how hard to try to be allowed, which is exactly the kind of decision that should not be
+   made quietly. It is named here as a gap rather than patched in after a bad round.
 
 Three tier disagreements make the same point structurally: two cases declared `T-DECLARED` were
 routed experimental by the running system. A promise stated per `site × operation` is only worth the
@@ -367,8 +394,9 @@ round rather than by anything in the system, which is the same shape as every ot
 ### 5.4 Verifying the verifier
 
 A system whose central claim is "our checks are real" has to expect the checks themselves to be
-wrong. **Nine** defects of that exact shape were found, seven of them fixed, all the same species — **a
-check that reported on a coincidence**, or a check that could not fire at all. The first five were found during development:
+wrong. **Ten** defects of that exact shape were found, seven of them fixed, all the same species —
+**a check that reported on a coincidence**, a check that could not fire at all, or a label too
+coarse to carry the conclusion drawn from it. The first five were found during development:
 
 | | The defect |
 |---|---|
@@ -394,8 +422,18 @@ in an appendix because the pattern is the finding rather than the count:
 
 | 9 | The dry run's job is *everything that can fail before money is spent*, and it skipped the two checks a held-out round needs most: that the case file is mounted where the operator said, and that its hash matches the committed one. It empties the split list right after printing the forecast, so both run only on the real start. The runbook told the operator to look for the hash line in the dry run — a line that path cannot print. **Found and not fixed**, for the same reason as 8 |
 
-Numbers 8 and 9 arrived after the build was frozen, which is the only reason they are still open, and how that
-was handled is part of the finding. Correcting either would have meant a code change between the
+| 10 | `robots_disallowed` is returned both when a rule forbade the path and when `robots.txt` could not be fetched at all. Both refusals are correct; only one of the two labels is. In `r4` three held-out cases carried it for a **timed-out fetch** on a site that publishes no `robots.txt`, and the round was first written up as a finding about our policy's coverage — by us, from the histogram, before anyone opened a trace. **Found and not fixed** |
+
+Number 10 is the one to read if you only read one. Every other entry in this table was a check
+reporting a coincidence; this one is *us* reading our own aggregate and drawing a confident,
+wrong conclusion from a `failure_class` that was not precise enough to carry it. It was caught
+because the evidence had just been rescued and published and somebody clicked it. That is the
+argument for the whole design — the trace was there and it disagreed with the summary — and it is
+also the sharpest demonstration in this project that a well-organised number is not the same as a
+true one.
+
+Numbers 8, 9 and 10 arrived after the build was frozen, which is the only reason they are still
+open, and how that was handled is part of the finding. Correcting any of them would have meant a code change between the
 round that measured the system and the round that scores the held-out split — so the choice was
 between tidier code and two rounds that describe the same build. The code lost. It is
 written here, in the table with the other seven, rather than repaired quietly afterwards and

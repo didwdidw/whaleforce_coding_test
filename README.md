@@ -341,7 +341,7 @@ a small number and the interval is the file saying so.
 |---|---|
 | All cases | **1 of 8** — 0.125, 95% Wilson **0.02–0.47** |
 | Declared-tier cases | **1 of 4** — 0.25, 95% Wilson **0.05–0.70** |
-| Failure classes | `robots_disallowed` 3 · `policy_refused` 2 · `budget_exhausted` 1 · `postcondition_unmet` 1 · one success |
+| Failure classes | `robots_disallowed` 3 — **all one transient fetch failure, see below** · `policy_refused` 2 · `budget_exhausted` 1 · `postcondition_unmet` 1 · one success |
 | Build / split | `e82cacb9e809` / `test-set.md` `43ee8ce5…`, hash-checked before the first case |
 | Ran | 2026-07-28 19:21–19:22 UTC |
 
@@ -350,8 +350,14 @@ a small number and the interval is the file saying so.
 seen by the engineering session — which is exactly what makes them able to disagree with us, and
 they did.
 
-**Five of the eight never browsed.** Three were refused by `robots.txt` and two by the pre-browse
-policy gate. So the two sets were not measuring the same thing:
+**Five of the eight never browsed** — and the two halves of that five are different in kind. Three
+were lost to a transient `robots.txt` fetch failure (below); two were refused because the task named
+no page or site to start from, which is L-1's entry-point limitation and is a real property of the
+system. So the honest reading of `r4` is that **it measured availability as much as capability**,
+and the number below is a floor rather than an estimate. It is still the score: the first run is the
+reported score (S-10.6), it is not re-run, and a round is not re-taken because it went badly.
+
+On the part that *is* about capability, the two sets were not measuring the same thing:
 
 > **Our own splits measure how well the system answers a task it accepts. The held-out split
 > measures how many reasonable tasks it *accepts* at all — and that second number is the one we
@@ -362,11 +368,14 @@ policy gate. So the two sets were not measuring the same thing:
 
 What the histogram says about *why*, without opening a single case:
 
-- **The three `robots_disallowed` are our own cases hitting our own policy**, and that is the
-  sharpest evidence here rather than noise in it. Nobody wrote those tasks to be refused; they were
-  written as ordinary questions. What the round measured is that **our intuition about what counts
-  as an ordinary task is wider than our own policy allows** — and since the policy is correct and
-  stays, the gap is the reachable surface, not the rule. This is L-4 at scale.
+- **The three `robots_disallowed` are not a policy finding at all — they are one transient network
+  failure, and reading them as coverage was our own error, caught by clicking the evidence we had
+  just published.** All three are the same host and the same cause: `books.toscrape.com/robots.txt`
+  **could not be fetched** during the round (`urlopen error timed out`), and an unfetchable
+  `robots.txt` is refused by design. No `Disallow` matched anything. That site publishes **no
+  `robots.txt` at all** — it 404s, which our matcher reads as unrestricted, and it did exactly that
+  for seven cases in `r3` twenty minutes earlier and does it again now in 0.6 s. **Three of eight
+  held-out cases were lost to a ~78-second network event on a site we promise.**
 - **Three tier disagreements, and they run the wrong way.** Two cases the owner declared
   `T-DECLARED` were routed to `T-EXPERIMENTAL` by the running system, and one declared `T-REFUSED`
   also landed experimental. Half the promised-tier cases did not reach the promised surface. That is
