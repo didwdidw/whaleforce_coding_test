@@ -37,6 +37,20 @@ OVERLAY_ANCHOR = ('//*[contains(normalize-space(.), "Before you continue")]'
                   '[not(.//*[contains(normalize-space(.), "Before you continue")])]')
 
 
+@pytest.fixture(autouse=True)
+def deployed_fixture_host():
+    """Every replay here is a deployment whose fixture is `FIXTURE_HOST`, and since A24.4
+    a fixture task names the fixture — so the deployment's configured host is what the
+    task resolves to. `settings` is frozen and held by reference, so the override goes
+    through `object.__setattr__` and is undone after."""
+    from app.config import settings
+
+    previous = settings.fixture_base_url
+    object.__setattr__(settings, "fixture_base_url", FIXTURE_HOST)
+    yield FIXTURE_HOST
+    object.__setattr__(settings, "fixture_base_url", previous)
+
+
 @pytest.fixture()
 def store(tmp_path) -> Store:
     return Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
@@ -106,10 +120,10 @@ def _search_postcondition(term: str) -> Postcondition:
 # --- Defect A: an overlay task that was routed to the paginator ---------------------
 
 def test_replay_a_misroute_is_rejected(store):
-    """"Dismiss the overlay on the gated page and read the reference code" returned
+    """"Dismiss the overlay on the fixture gated page and read the reference code" returned
     `Page 2 of 3 · 14 products` — a correct pager reading for a question nobody asked."""
     pc = _overlay_postcondition()
-    run = _run(store, "Dismiss the overlay on the gated page and read the reference code",
+    run = _run(store, "Dismiss the overlay on the fixture gated page and read the reference code",
                pc, [_step(1, StepKind.NAVIGATE, "Navigate to /browse"),
                     _step(2, StepKind.CLICK, "Click 'Next' (1 of 1)", "#next"),
                     _step(3, StepKind.EXTRACT, "Read the visible rows on page 2")])
@@ -405,9 +419,14 @@ def test_a_plan_that_froze_a_different_site_than_the_task_named_is_rejected(stor
                              "task_names": "en.wikipedia.org"}
 
 
-def test_a_task_naming_no_site_still_reaches_the_fixture(store):
-    """The constraint has to be absent when the task names nothing, or every fixture
-    demonstration fails on a site it never claimed to be about."""
+def test_a_fixture_task_names_the_fixture_and_the_check_binds_to_it(store):
+    """Inverted by A24.4. This asserted that a fixture demonstration names no site and the
+    constraint therefore goes unenforced — which is the shape A22.9 is about: the check
+    existed, ran on every fixture run, and could not fail on any of them.
+
+    Naming the fixture is now the only way to reach it, so the check has something to
+    compare and a fixture run is bound to the fixture like any other run is bound to its
+    site."""
     pc = _search_postcondition("the fixture catalogue for lant")
     run = _run(store, "Search the fixture catalogue for lantern", pc,
                [_step(1, StepKind.FILL, "Fill the search field", "#q"),
@@ -421,5 +440,25 @@ def test_a_task_naming_no_site_still_reaches_the_fixture(store):
                    "items": [], "empty_state": True})
 
     assert verdict.status is TerminalStatus.NO_RESULT_VERIFIED
-    named = next(c for c in verdict.checks if c.name == "named_site_frozen")
-    assert named.detail["task_names"] is None
+    # The check that fires is the one with something to compare. Before A24.4 this run
+    # produced `named_site_frozen` with `task_names: None` — a check that ran on every
+    # fixture run and could not fail on any of them.
+    assert not [c for c in verdict.checks if c.name == "named_site_frozen"]
+    origin = next(c for c in verdict.checks if c.name == "artifact_origin_is_the_named_site")
+    assert origin.ok is True
+    assert origin.detail["task_names"] == "wf-fixture.zeabur.app"
+    assert origin.detail["artifact_origin"] == "wf-fixture.zeabur.app"
+
+
+def test_a_task_naming_no_site_is_not_answered_by_the_fixture():
+    """A24.4, the prohibition itself. The fixture's catalogue is data we invented, so a
+    question that names no site and is answered from it gets fabricated data back — and it
+    would come back verified, with evidence, looking exactly like a correct answer."""
+    from app.executor import Executor
+
+    for task in ("Is any product priced over £100?",
+                 "Read page 2 of the browse listing without clicking next",
+                 "Dismiss the overlay on the gated page and read the reference code",
+                 "Search the catalogue for lantern"):
+        operation, _, _ = Executor.route(Executor.__new__(Executor), task)
+        assert operation not in Executor.FIXTURE_ONLY_ROUTES, f"{task!r} reached the fixture"

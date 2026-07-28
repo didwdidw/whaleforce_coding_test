@@ -124,6 +124,12 @@ def resolve_entry(task: str) -> str:
     return ""
 
 
+def fixture_host() -> str:
+    from app.config import settings
+
+    return host_key(urlsplit(settings.fixture_base_url).netloc)
+
+
 def site_aliases() -> dict[str, str]:
     """The bare names people use for the sites we serve, mapped to their hosts."""
     aliases: dict[str, str] = {}
@@ -133,6 +139,11 @@ def site_aliases() -> dict[str, str]:
         labels = host.split(".")
         if len(labels) >= 2:
             aliases[labels[-2]] = host
+    # The fixture is not a promised record and never appears in the support matrix, but a
+    # task can still name it, and naming it is now the only way to reach it (A24.4). Its
+    # host is whatever the deployment configured, so the word is what a person can write.
+    aliases.setdefault("fixture", fixture_host())
+    aliases.setdefault(fixture_host(), fixture_host())
     return aliases
 
 

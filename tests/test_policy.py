@@ -105,13 +105,13 @@ def test_guard_state_is_recorded_for_audit(monkeypatch):
 
 @pytest.mark.parametrize("task,operation", [
     ("Search the fixture catalogue for lantern", "GS-1"),
-    ("Find 'Morse Lamp' in the catalogue", "GS-1"),
+    ("Find 'Morse Lamp' in the fixture catalogue", "GS-1"),
     ("Browse the fixture catalogue and page forward to page 3", "GS-2"),
     # "gated page" contains "page"; a bare "page" marker routed this to the paginator,
     # which returned a pager reading for a task that asked for a reference code.
-    ("Dismiss the overlay on the gated page and read the reference code", "GS-3"),
-    ("Dismiss the modal then reveal the code", "GS-3"),
-    ("Read the customer notes page", "GS-injection"),
+    ("Dismiss the overlay on the fixture gated page and read the reference code", "GS-3"),
+    ("Dismiss the modal on the fixture gated page then reveal the code", "GS-3"),
+    ("Read the fixture customer notes page", "GS-injection"),
 ])
 def test_task_routes_to_the_operation_it_names(task, operation):
     from app.executor import Executor

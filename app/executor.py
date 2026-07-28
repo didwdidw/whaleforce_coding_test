@@ -1038,6 +1038,12 @@ class Executor:
 
     # ---- routing ---------------------------------------------------------------
 
+    #: Operations that exist only on our own fixture. Reachable only when the task names
+    #: the fixture (A24.4) — its data is invented, so an unnamed question answered from it
+    #: is fabricated data returned as an answer.
+    FIXTURE_ONLY_ROUTES: frozenset[str] = frozenset(
+        {"testhook", "notes", "overlay", "absence", "paginate", "search"})
+
     # Every marker is distinctive to one operation. A bare "page" is not a marker: "the
     # gated page" would otherwise route an overlay task to the paginator, which then returns
     # a perfectly plausible pager reading for a task that asked for something else. A
@@ -1101,8 +1107,9 @@ class Executor:
         ("book_absence", "book_detail",
          "the same, for a price question that happens to name a title"),
         ("absence", "book_absence",
-         "a price question naming no site is a fixture task; a task naming books.toscrape "
-         "never reaches the fixture's markers at all, because a named site restricts the "
+         "a price question that names the fixture is a fixture task; a task naming "
+         "books.toscrape never reaches the fixture's markers at all, and a task naming "
+         "neither reaches no fixture marker either (A24.4), because the site restricts the "
          "routes before precedence is consulted"),
     )
 
@@ -2330,7 +2337,13 @@ class Executor:
         """
         host = cls.named_site(task)
         if not host:
-            return cls.ROUTES
+            # A task naming no site may not be answered by the fixture (A24.4). The
+            # fixture's catalogue is data we invented, so answering an unnamed question
+            # from it hands back fabricated data as an answer — the silent failure this
+            # project is built against, in its most severe form. A promised record on a
+            # public site is different: its data is the site's, and a described-but-unnamed
+            # entry point is a separate question (A18.3).
+            return tuple(r for r in cls.ROUTES if r[0] not in cls.FIXTURE_ONLY_ROUTES)
         allowed = {route for r in PROMISED_RECORDS if host_key(r.site) == host
                    for route in (r.route, *r.extra_routes)}
         allowed |= set(POLICY_ROUTES.get(host, ()))

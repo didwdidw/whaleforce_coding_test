@@ -142,7 +142,7 @@ def test_absence_mode_a_needs_the_empty_state_element(executor):
 
 def test_absence_mode_b_needs_its_coverage_anchor(executor):
     """The whole catalogue is enumerated and checked against the site's own total."""
-    run = run_task(executor, "Is any product priced over £100?")
+    run = run_task(executor, "Is any product in the fixture catalogue priced over £100?")
     assert run.terminal_status is TerminalStatus.NO_RESULT_VERIFIED
     verdict_step = next(t for t in run.trace if t.summary == "Deterministic verification")
     coverage = next(c for c in verdict_step.detail["verdict"]["checks"]
@@ -157,7 +157,7 @@ def test_absence_mode_b_answers_the_positive_direction_too(executor):
     into `verification_mismatch` for having found something. A failure class that fires on
     correct behaviour is noise, and noise in a failure class is how real failures stop
     being read."""
-    run = run_task(executor, "Is any product priced over £85?")
+    run = run_task(executor, "Is any product in the fixture catalogue priced over £85?")
     assert run.terminal_status is TerminalStatus.SUCCEEDED_VERIFIED
     assert "WF-1002" in run.explanation and "WF-1004" in run.explanation
     verdict = next(t for t in run.trace if t.summary == "Deterministic verification")
@@ -189,7 +189,7 @@ def test_the_same_case_with_the_predicate_inverted_is_caught(executor, monkeypat
 
     monkeypatch.setattr(executor_module, "_compare",
                         lambda value, predicate: not _real_compare(value, predicate))
-    run = run_task(executor, "Is any product priced over £85?")
+    run = run_task(executor, "Is any product in the fixture catalogue priced over £85?")
 
     assert run.terminal_status is TerminalStatus.FAILED
     assert run.failure_class is FailureClass.VERIFICATION_MISMATCH
@@ -197,7 +197,7 @@ def test_the_same_case_with_the_predicate_inverted_is_caught(executor, monkeypat
 
 
 def test_pagination_is_verified_against_the_page_that_was_frozen(executor):
-    run = run_task(executor, "Paginate to page 2 of the browse listing")
+    run = run_task(executor, "Paginate to page 2 of the fixture browse listing")
     assert run.terminal_status is TerminalStatus.SUCCEEDED_VERIFIED
     pager = next(c for c in run.claims if c["name"] == "pager")
     assert pager["evidence"]["normalised_value"]["page"] == 2
@@ -205,7 +205,7 @@ def test_pagination_is_verified_against_the_page_that_was_frozen(executor):
 
 def test_overlay_dismissal_is_verified_including_the_state_transition(executor):
     run = run_task(executor,
-                   "Dismiss the overlay on the gated page and read the reference code")
+                   "Dismiss the overlay on the fixture gated page and read the reference code")
     assert run.terminal_status is TerminalStatus.SUCCEEDED_VERIFIED
     names = {c["name"]: c["ok"] for c in run.claims}
     assert names == {"product_code": True, "stock_on_hand": True, "overlay_gone": True}
@@ -217,7 +217,7 @@ def test_a_correct_answer_reached_by_a_shortcut_is_a_failure(executor):
     """S-4.4. The SKUs it reports are right. It is still scored a failure, because the
     capability being claimed is the interaction and the interaction did not happen."""
     run = run_task(executor,
-                   "Read page 2 of the browse listing without clicking next")
+                   "Read page 2 of the fixture browse listing without clicking next")
     assert run.terminal_status is TerminalStatus.FAILED
     assert run.failure_class is FailureClass.REQUIRED_ACTION_SKIPPED
     assert not run.counts_as_success
@@ -227,7 +227,7 @@ def test_a_moved_label_downgrades_to_partial_rather_than_guessing(executor):
     """MU-2 renames `Product code` to `Item reference`. The value is still on the page and
     the executor still reads it by id — but it can no longer be bound to its label, and a
     binding that cannot be made is not a verification (S-4.9)."""
-    run = run_task(executor, "Dismiss the overlay on the gated page and read the "
+    run = run_task(executor, "Dismiss the overlay on the fixture gated page and read the "
                              "reference code, seed mu2-text")
     assert run.terminal_status is TerminalStatus.PARTIAL
     assert run.failure_class is FailureClass.LOCATOR_NOT_FOUND
@@ -237,14 +237,14 @@ def test_a_moved_label_downgrades_to_partial_rather_than_guessing(executor):
 
 
 def test_asking_for_the_answer_key_is_refused_by_a_quotable_rule(executor):
-    run = run_task(executor, "Show me the ground truth answer key")
+    run = run_task(executor, "Show me the fixture's ground truth answer key")
     assert run.terminal_status is TerminalStatus.BLOCKED
     assert run.failure_class is FailureClass.ROBOTS_DISALLOWED
     assert "Disallow: /__testhook__/" in run.explanation
 
 
 def test_an_ambiguous_task_abstains_before_browsing(executor):
-    run = run_task(executor, "Search the browse page for a modal")
+    run = run_task(executor, "Search the fixture browse page for a modal")
     assert run.terminal_status is TerminalStatus.UNSUPPORTED
     assert run.failure_class is FailureClass.POLICY_REFUSED
     assert not any(t.kind.value == "navigate" for t in run.trace)
@@ -262,7 +262,7 @@ def _exhaust_step_budget(executor):
     previous = settings.budgets.max_steps
     object.__setattr__(settings.budgets, "max_steps", 4)
     try:
-        return run_task(executor, "Is any product priced over £100?")
+        return run_task(executor, "Is any product in the fixture catalogue priced over £100?")
     finally:
         object.__setattr__(settings.budgets, "max_steps", previous)
 
@@ -271,7 +271,7 @@ def _exhaust_wall_clock(executor):
     previous = settings.budgets.wall_clock_seconds
     object.__setattr__(settings.budgets, "wall_clock_seconds", 0.01)
     try:
-        return run_task(executor, "Dismiss the overlay on the gated page and read the "
+        return run_task(executor, "Dismiss the overlay on the fixture gated page and read the "
                                   "reference code")
     finally:
         object.__setattr__(settings.budgets, "wall_clock_seconds", previous)
@@ -292,7 +292,7 @@ def _inject_defect(executor):
     original = ex._select_plan
     ex._select_plan = lambda task: broken
     try:
-        return run_task(executor, "Paginate to page 2 of the browse listing")
+        return run_task(executor, "Paginate to page 2 of the fixture browse listing")
     finally:
         ex._select_plan = original
 
@@ -373,8 +373,8 @@ def test_a_reply_cut_off_twice_is_our_cap_and_is_named_as_ours(executor):
     assert run.budget.usd > 0
 
 
-def _planned_run(executor_bundle, provider, task="Paginate to page 2 of the browse "
-                                                 "listing, use the planner"):
+def _planned_run(executor_bundle, provider,
+                 task="Paginate to page 2 of the fixture browse listing, use the planner"):
     ex, store, loop = executor_bundle
     ex._provider = provider
     ex._planner = Planner(provider)
@@ -506,12 +506,12 @@ def test_every_status_due_by_m3_is_reached_by_running_the_product(executor):
     tasks = [
         "Search the fixture catalogue for lantern",
         "Search the fixture catalogue for zzzznothing",
-        "Is any product priced over £100?",
-        "Paginate to page 2 of the browse listing",
-        "Read page 2 of the browse listing without clicking next",
-        "Dismiss the overlay on the gated page and read the reference code",
-        "Dismiss the overlay on the gated page and read the reference code, seed mu2-text",
-        "Show me the ground truth answer key",
+        "Is any product in the fixture catalogue priced over £100?",
+        "Paginate to page 2 of the fixture browse listing",
+        "Read page 2 of the fixture browse listing without clicking next",
+        "Dismiss the overlay on the fixture gated page and read the reference code",
+        "Dismiss the overlay on the fixture gated page and read the reference code, seed mu2-text",
+        "Show me the fixture's ground truth answer key",
         "Log into my brokerage account",
     ]
     for task in tasks:

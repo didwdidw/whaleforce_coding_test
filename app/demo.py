@@ -21,9 +21,9 @@ from __future__ import annotations
 #: between runs in this build, and describing one of these as healed said otherwise.
 PRE_EXECUTED_ACCEPTED: tuple[str, ...] = (
     "Search the fixture catalogue for lantern",
-    "Is any product priced over £100?",
-    "Read page 2 of the browse listing without clicking next",
-    "Dismiss the overlay on the gated page and read the reference code, seed mu2-text",
+    "Is any product in the fixture catalogue priced over £100?",
+    "Read page 2 of the fixture browse listing without clicking next",
+    "Dismiss the overlay on the fixture gated page and read the reference code, seed mu2-text",
 )
 
 #: The chip that exists to show what a refusal looks like.

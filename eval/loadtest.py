@@ -47,8 +47,8 @@ LOADTEST_VERSION = "loadtest/1.0"
 #: load is not four copies of the same code path.
 LOAD_TASKS: tuple[str, ...] = (
     "Search the fixture catalogue for lantern",
-    "Read page 2 of the browse listing without clicking next",
-    "Is any product priced over £100?",
+    "Read page 2 of the fixture browse listing without clicking next",
+    "Is any product in the fixture catalogue priced over £100?",
 )
 
 

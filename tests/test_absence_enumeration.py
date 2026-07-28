@@ -58,10 +58,18 @@ def test_a_price_question_on_the_promised_site_is_a_declared_run():
     assert executor.route(POETRY)[0] == "book_absence"
 
 
-def test_a_price_question_naming_no_site_still_reaches_the_fixture():
-    """The fixture's own demonstration must not be captured by the new route."""
+def test_a_price_question_naming_no_site_is_not_answered_by_the_fixture():
+    """Inverted by A24.4. It used to assert that a price question naming no site reaches
+    the fixture — a defect written down as a requirement, which is A22.9's family inside
+    the test suite. The fixture's catalogue is invented, so an unnamed question answered
+    from it returns fabricated data wearing a verified label.
+
+    The fixture is still reachable, by naming it, which is what its own demonstration now
+    does."""
     executor = Executor.__new__(Executor)
-    assert executor.route("Is any product priced over £100?")[0] == "absence"
+    assert executor.route("Is any product priced over £100?")[0] != "absence"
+    assert executor.route(
+        "Is any product in the fixture catalogue priced over £100?")[0] == "absence"
 
 
 def test_asking_whether_anything_matches_is_not_a_request_for_the_listing():
@@ -206,7 +214,7 @@ def test_the_fixtures_own_tasks_still_reach_the_fixture():
     """The rule must not close the door on the demonstrations it was written around."""
     executor = Executor.__new__(Executor)
     assert executor.route("Search the fixture catalogue for lantern")[0] == "search"
-    assert executor.route("Is any product priced over £100?")[0] == "absence"
+    assert executor.route("Is any product in the fixture catalogue priced over £100?")[0] == "absence"
 
 
 # ---- the positive direction (A17.11, A17.12) ------------------------------------
