@@ -33,7 +33,7 @@ from app.executor import PROMISED_RECORDS, Executor
 from app.fetcher import ServerFetcher
 from app.latency import summarise as latency_summary
 from app.limitations import limitations
-from app.models import Run, RunState, TerminalStatus, Tier, new_id
+from app.models import FailureClass, Run, RunState, TerminalStatus, Tier, new_id
 from app.provider import Provider, ProviderError
 from app.queue import AdmissionRefused, RunQueue
 from app.robots import RobotsCache
@@ -146,13 +146,39 @@ def _check_planner() -> None:
     try:
         detail = state.provider.validate_or_die()
     except ProviderError as exc:
-        state.planner_status = {"available": False, "reason": str(exc)[:300],
-                                "failure_class": exc.failure_class.value}
+        state.planner_status = {
+            "available": False, "reason": str(exc)[:300],
+            "failure_class": exc.failure_class.value,
+            "checked_at": time.time(),
+            # A quota answer describes a window, not the deployment. Frozen at startup it
+            # said "planner unavailable" for the life of the container because one boot-time
+            # call landed inside a rate limit.
+            "retryable": exc.failure_class is FailureClass.PROVIDER_QUOTA,
+        }
         log.warning("planner unavailable: %s", exc)
         return
     state.planner_status = {"available": True, "model": detail["model"],
                             "credential_tier": detail["credential_tier"],
+                            "checked_at": time.time(),
                             "validated_by": "a live minimal call at startup (A9.3)"}
+
+
+def _planner_status() -> dict[str, Any]:
+    """The planner state /healthz reports, re-checked when the last answer has expired.
+
+    Only a quota refusal is re-checked, and only after the cooldown: a missing credential
+    does not fix itself, and re-validating on every health probe would spend quota to answer
+    a health probe.
+    """
+    status = state.planner_status
+    if not status.get("retryable"):
+        return status
+    age = time.time() - float(status.get("checked_at") or 0)
+    if age < settings.provider.quota_cooldown_seconds:
+        return {**status, "retry_in_seconds": round(
+            settings.provider.quota_cooldown_seconds - age)}
+    _check_planner()
+    return state.planner_status
 
 
 async def _seed_pre_executed() -> None:
@@ -432,7 +458,7 @@ async def healthz(response: Response) -> dict[str, Any]:
         # about the secret and this endpoint is public.
         "credentials": state.provider.credential_state(),
         "provider_spend": state.provider.spend_state(),
-        "planner": state.planner_status,
+        "planner": _planner_status(),
         # Which declared statuses this deployment has actually produced. `overdue` is the
         # list of paths nothing has ever reached, which is the shape an untested gate takes.
         "status_coverage": {k: v for k, v in state.coverage.report().items()

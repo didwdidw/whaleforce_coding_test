@@ -250,3 +250,39 @@ def test_no_new_build_is_reported_as_no_measurement(monkeypatch):
     report = coldstart.watch("http://test", t0=None, deadline_seconds=0.01, poll_seconds=0)
     assert "error" in report
     assert "seconds_to_first_response" not in report
+
+
+# ---- a startup answer about a rate limit is not a permanent answer -----------------
+
+def test_a_quota_refusal_at_startup_is_re_checked_once_its_window_has_passed(monkeypatch):
+    """One boot-time call landing inside a rate limit made the deployment report
+    `planner unavailable` for the life of the container. A missing credential is not
+    re-checked, because that one does not fix itself."""
+    import time
+
+    from app import server
+    from app.config import settings
+
+    server.state.planner_status = {"available": False, "failure_class": "provider_quota",
+                                   "retryable": True, "checked_at": time.time()}
+    monkeypatch.setattr(server, "_check_planner",
+                        lambda: server.state.planner_status.update(
+                            {"available": True, "retryable": False}))
+
+    inside = server._planner_status()
+    assert inside["available"] is False
+    assert inside["retry_in_seconds"] > 0
+
+    server.state.planner_status["checked_at"] = (
+        time.time() - settings.provider.quota_cooldown_seconds - 1)
+    assert server._planner_status()["available"] is True
+
+
+def test_a_missing_credential_is_not_re_checked_on_every_health_probe(monkeypatch):
+    from app import server
+
+    server.state.planner_status = {"available": False, "failure_class": "provider_error",
+                                   "reason": "no credential"}
+    monkeypatch.setattr(server, "_check_planner",
+                        lambda: pytest.fail("re-validated a missing credential"))
+    assert server._planner_status()["available"] is False
