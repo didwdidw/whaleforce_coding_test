@@ -804,3 +804,53 @@ fixture 兩條路由都補了。負向案例是 /detour —— 301 到跟 /moved
 待你
 
 第二次驗收（只看改動）。HEAD 1ff03ab，五個 commit 全部未推。累計 billed
+
+==========
+
+七項全部做完，600 tests passing，沒有 push。
+
+V-1 — 你是對的，而且第一類真的被種回去了
+
+else 分支同時吃掉 prefix（已經 append 過一次真的 check，這是重複）和 site（通過時只靠這裡）。改成每個 scope 各自評估：
+
+- site → 真的比對 _same_site，成敗都記
+- prefix → 原本就有真的 check，重複的那次刪掉
+- 其他任何值 → Check(ok=None)，帶 not_evaluated_because，並進到 evidence_summary["unevaluated_checks"]
+
+測試放在 test_persistence_and_vacuity.py —— 那是 A11.7 的檔案，這筆缺陷本來就屬於那一族。
+
+V-2 — 確認是真路徑，不是理論
+
+return {"explained": False} 在迴圈內。現在掃完所有導向 target 的 NAVIGATE，全部無法交代才判死，失敗訊息帶 navigations_examined（每次的 chain 與 canonical）。測試用真實瀏覽器跑一次 /moved，然後在前面插一筆「只有 url、沒有 chain 也沒有 canonical」的導向記錄 —— 那正是「第一次在 response 之前就掛掉」的形狀。
+
+V-3 — 排除不行，canonical 是 gate 1 的必要條件
+
+先報一個實測後果：/wiki/Apple_Inc 的 page_url_at_navigate 是導向當下取的，那時 JS 還沒改網址列（實測要約 2 秒）。所以 reached 集合裡若沒有 canonical，artifact 來源 /wiki/Apple_Inc. 會卡在 gate 1。排除它會直接打死 DEV-04。
+
+所以照你說的另一半做：把 gate 2 的信任邊界搬進 gate 1 —— canonical 只在與宣告它的那次導向同源時才計入（「一個頁面只能在自己的 origin 內改自己的名字」）。名字也改了：artifact_source_is_accounted_for_by_the_trace，而且集合改成帶 how 的清單，evidence 裡看得到是哪一種來源匹配上的。gate 2 維持更嚴的規則（只信 plan 目標頁那一份）。
+
+V-4 — 補檢查，不是改註解
+
+_chain_from：chain[0] 必須是 plan 目標、chain[-1] 必須是 artifact 來源、最後一跳以外每一跳都要是 3xx。測試把 /detour 的 chain 冒充成 /moved 的 —— 只看 chain[-1] 會通過。
+
+A-14b — 照裁決收窄
+
+password 那半從 _landed_somewhere_real 移走，只在導向步驟記 login_form_v 當 failure class 是 locator_not_found / postcondition_unmet 時才改判成
+blocked / site_unavailable，並把原本的 explanation 原文保留在訊息裡。
+
+四支測試鎖住四個方向：401/403/429 仍終止；/members 導向後 run 還活著；改判只在該兩類發生；budget_exhausted 不受影響。README 那句現在字面為真。
+
+D-1 — 散文裡的總數，連寫成文字的也管
+
+三處全部改成純連結。檢查加強成兩條規則，因為只抓數字確實漏掉了 "under a tenth of a dollar"（它斷行後那一行連 spend 都沒有）：
+
+1. 金額寫成文字的字彙一律禁止（cent/dollar/pennies/a tenth of a）—— 這兩是偽裝的總數
+2. 段落層級：spend 詞 ＋ 總量詞 ＋ 金額 → 失敗
+
+拿五筆歷史違規（含 §5.5 的 "Three cents was a good price"）回測，五筆全
+
+FROM-r3
+兩個標記已放（§3 support matrix、§6 開頭），並且加了一支測試：eval/resul 記必須存在；一旦 r3落地，測試改為要求標記消失並指名該重生成的兩節。忘記就是紅燈，不是靠記性
+
+---
+HEAD 0a5660a，本輪三個 commit（含 prompt log）全部未推。等第三次驗收。

@@ -50,11 +50,6 @@ def test_a_scope_the_verifier_cannot_check_is_reported_unevaluated_not_passed(tm
     `artifact_source_matches_plan: True` for every other scope without comparing anything —
     §5.4's defect 1, a constraint recorded as satisfied that was never evaluated, under a
     name that says it was. A check this file cannot evaluate says so."""
-    from app.models import Run, Tier, new_id
-    from app.postcondition import ClaimSpec, Postcondition, Relation
-    from app.store import Store
-    from app.verifier import Verifier
-
     store = Store(tmp_path / "runs.sqlite3", tmp_path / "artifacts")
     pc = Postcondition(
         goal="read a labelled field", operation="OP-7",
@@ -75,6 +70,11 @@ def test_a_scope_the_verifier_cannot_check_is_reported_unevaluated_not_passed(tm
     check = next(c for c in verdict.checks if c.name == "artifact_source_matches_plan")
     assert check.ok is None, "an unevaluated constraint must not read as a satisfied one"
     assert check.evaluated is False
+    # ...and naming it is not enough. Continuing would let a run reach success with no
+    # artifact-source gate having run at all, which is fail-open on a hard gate.
+    assert verdict.status is TerminalStatus.UNVERIFIED
+    assert verdict.failure_class is FailureClass.POSTCONDITION_UNMET
+    assert verdict.counts_as_success is False
     assert "not a scope this verifier knows" in check.detail["not_evaluated_because"]
     named = [row["check"] for row in verdict.evidence_summary["unevaluated_checks"]]
     assert "artifact_source_matches_plan" in named, (

@@ -1226,9 +1226,15 @@ class Executor:
         # Recorded, never acted on here. Presence of a login form is not proof that content
         # was replaced by one, so it may not stop a run that can still proceed; `_terminate`
         # uses it only to correct the class of a run that was failing anyway.
+        #
+        # Written through the store rather than onto the in-memory entry, because the
+        # explanation this produces — "a visible login form was standing on X" — is a claim,
+        # and a claim nobody can re-derive from the stored trace is the thing this system
+        # exists to refuse. The step has already been finished once by then.
         try:
             if await ctx.page.locator('input[type="password"]:visible').count():
                 nav.detail["login_form_visible"] = True
+                self._store.save_trace_entry(run.id, nav)
         except Exception:  # noqa: BLE001 - a selector that cannot run is not a finding
             pass
         for selector, why in self.ABSENT_PAGE_MARKERS:

@@ -123,3 +123,26 @@ control. Everything else is asserting that a refusal refuses. And for anything w
 declared set of reasons, fields or markers, enumerate that set *from the code* and require
 each member to be exercised — otherwise the set and its evidence drift apart silently, which
 is how a rule ends up shipping with nothing behind it.
+
+## Addendum, 2026-07-29 — two judgements the table did not have
+
+The **same-page evidence check** row above has since been split by Amendment 26. It is now
+two independent assertions — did the evidence come from a page the trace accounts for, and
+is that landing reached from the plan's target by a recorded route — and both directions of
+both are in `tests/test_m2_integration.py`, against a real browser and the fixture's
+`/moved`, `/detour` and `/soft-moved` routes. `/detour` is the must-refuse half that the
+old single check could not have: it reaches exactly the right final URL by a route no plan
+named.
+
+| Control | Where | Refusal it produces | Can we tell "right" from "always-on"? |
+|---|---|---|---|
+| Unknown URL scope | `app/verifier.py` | `unverified / postcondition_unmet` | **Yes.** Only our own compiler produces a scope, so this fires only on our own mistake — which is precisely what must not be able to buy a success. Asserted with the check recorded as *unevaluated* rather than as satisfied, and every legitimate scope exercised beside it |
+| Login wall met mid-run | `app/executor.py` | `blocked / site_unavailable`, **by reclassification only** | **Yes, and the negative half is the point.** A visible password field shows a login form is *present*, not that content was replaced by one, so it may not end a live run — only correct the class of one already failing as `locator_not_found` / `postcondition_unmet`. Tested in all four directions: the wall is recorded, the run survives it, the reclassification fires for those two classes, and it leaves `budget_exhausted` alone |
+
+The second is the more interesting entry in this whole table, because it is a fail-closed
+control **deliberately denied the power to fail closed**. The rule this document is built on
+is that a control which is always on and judging wrongly is indistinguishable from one
+judging correctly. A wall detector that can end runs would be exactly that on unseen sites —
+its wrong answers would arrive as `blocked`, which reads as caution. Restricting it to
+re-labelling failures removes the state in which being wrong is invisible: it can now only
+change *why* a run failed, never *whether* it did.

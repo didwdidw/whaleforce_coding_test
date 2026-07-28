@@ -2122,3 +2122,57 @@ D-1、A-14b 收窄、FROM-r3 標記這七項，不重掃全文。
 過了我就宣布 freeze SHA，你 push 一次，operator 才進 dashboard 跑 r3 → r4。
 
 ==========
+改完 F-1、處理 F-2，然後直接 push。那一次 push 就是 freeze。 我不再做第四次驗收——邊際收益已經低於一天的日曆成本，而且 F-1/F-2 都不影響 r3 要量的東西。
+
+有一件要寫進 report 的（可以 push 後補）：DEV-04 現在能通過，靠的是 Wikipedia 對自己的 rel=canonical 宣稱，同源守住。 那比一條重導向鏈弱——它是頁面自述，不是觀察到的事實。§5.4 那段值得補一句承認這件事，因為這正是這份文件在教讀者要問的問題。
+
+七項全部核過。V-3 你反駁得有理 —— 實測 page_url_at_navigate 在 JS 改網址列前取值，
+排除 canonical 會直接打死 DEV-04，把 gate 2 的信任邊界搬進 gate 1 比我的建議更好。
+_chain_from 的三個條件、attempts 累積、unevaluated_checks、_terminate 裡的純改判、
+D-1 的兩條規則、FROM-r3 的雙向測試 —— 全部通過。
+
+兩筆新的，都是一行等級。改完直接 push，我不做第四次驗收。
+
+F-1  login_form_visible 沒有進 store。
+
+     app/executor.py:1226 把旗標寫在 nav.detail，但 _finish_step(run, nav, ...) 在
+     _landed_somewhere_real 之前就已經存過了。之後這行只改記憶體物件，沒有 save_trace_entry。
+
+     行為是對的（_wall_seen 讀記憶體中的 run.trace），問題在證據：
+     stored trace、run 頁面、API、evidence bundle 都不會有這個旗標。
+     於是終局訊息宣稱「A visible login form was standing on X」，
+     而任何從儲存位元組重建這個 run 的人找不到任何支持它的紀錄。
+     在一個論證「所有宣稱都能從 stored bytes 重新導出」的系統裡，
+     那是一句沒有證據的宣稱。存下去。
+
+F-2  unknown scope 現在是 fail-open。
+
+     elif scope is not None 記了一筆 not-evaluated 之後就往下走，
+     if scope is None 為假，完全沒有任何 artifact-source 閘門執行。
+     一個 run 可以在來源閘門從未被評估的情況下拿到 succeeded_verified。
+
+     命名誠實（進了 unevaluated_checks），但 M4 fail-closed inventory 的規則是：
+     無法評估的硬閘門應該降級，不是放行。scope 來自我們自己的 compiler，
+     只有我們自己寫錯 code 才觸發得到 —— 所以：
+     要嘛改成 unverified / postcondition_unmet 收掉，
+     要嘛在那裡寫一句話說明為什麼放行是對的。兩個我都接受，選一個。
+
+═══ 裁決：條件式驗收通過
+
+改完 F-1、處理 F-2，然後直接 push。那一次 push 就是 freeze SHA。
+我不再做第四次驗收 —— 邊際收益已經低於一天的日曆成本，
+而且 F-1/F-2 都不影響 r3 要量的東西。
+
+push 之後你就進入 push-freeze：r3 和 r4 之間一筆都不准推。
+operator 會做兩次 dashboard 動作，中間不需要你。
+
+═══ 可以 push 後補的一件
+
+DEV-04 現在能通過，靠的是 Wikipedia 對自己的 rel=canonical 宣稱，同源守住。
+那比一條重導向鏈弱 —— 它是頁面自述，不是觀察到的事實。
+analysis report §5.4 值得補一句承認這件事：
+「這一筆的來源交代建立在頁面對自己的宣稱上，信任邊界是同源，
+ 而那是三條路徑裡最弱的一條。」
+這正是這份文件在教讀者要問的問題，自己迴避掉就白寫了。
+
+==========

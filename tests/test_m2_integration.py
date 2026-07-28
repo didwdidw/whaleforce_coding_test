@@ -611,6 +611,14 @@ def test_a_login_form_reclassifies_a_failing_run_and_never_ends_a_live_one(execu
     assert run.terminal_status is None, run.explanation
     assert run.trace[-1].detail["login_form_visible"] is True
 
+    # And recorded in the *store*, not only on the object in memory. The explanation this
+    # produces is a claim about the page; a claim nobody can re-derive from the stored
+    # trace — the run page, the API, the evidence bundle all read from there — is exactly
+    # what this system refuses to let itself make.
+    stored = store.load_run(run.id)
+    walled = [t for t in stored.trace if t.detail.get("login_form_visible")]
+    assert walled, "the flag never reached the bytes anyone else would read"
+
     # It takes effect only when the run ends for the reason a wall gets misattributed to.
     ex._terminate(run, TerminalStatus.FAILED, FailureClass.LOCATOR_NOT_FOUND,
                   "The expected label was not on the page.")

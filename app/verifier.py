@@ -230,14 +230,26 @@ class Verifier:
                     f"The evidence was captured on {ref.source_url}, which is not on the "
                     f"site the task named ({pc.target_url}).", checks)
         elif scope is not None:
-            # An unrecognised scope evaluates nothing, and says so. Recording a pass here
-            # would be defect 1 of §5.4 — a constraint reported as satisfied that was never
-            # evaluated — reintroduced by the change that fixed defect 7.
+            # An unrecognised scope evaluates nothing, and says so rather than recording a
+            # pass — that would be defect 1 of §5.4, a constraint reported as satisfied
+            # that was never evaluated, reintroduced by the fix for defect 7.
+            #
+            # Naming it is not enough on its own: leaving the run to continue means it can
+            # reach `succeeded_verified` with no artifact-source gate having run at all,
+            # which is fail-open on a hard gate. The scope comes from our own compiler, so
+            # this is only reachable by our own mistake — and a mistake of ours is exactly
+            # what must not be able to buy a success.
             checks.append(Check("artifact_source_matches_plan", None,
                                 {"artifact_source_url": ref.source_url, "scope": scope,
                                  "not_evaluated_because": (
                                      f"`{scope}` is not a scope this verifier knows how to "
                                      f"check, so nothing was compared")}))
+            return Verdict(
+                TerminalStatus.UNVERIFIED, FailureClass.POSTCONDITION_UNMET,
+                f"The plan froze a URL scope this verifier cannot check (`{scope}`), so "
+                f"nothing established that the evidence came from the right place. The "
+                f"answer may well be correct; nothing here can say so, and an unevaluated "
+                f"gate is not a passed one.", checks)
         if scope is None:
             # Two questions, asked separately (A26). Comparing the plan's frozen target with
             # one recorded endpoint answered neither: with a redirect in the way they are

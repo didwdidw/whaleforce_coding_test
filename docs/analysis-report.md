@@ -376,6 +376,19 @@ recorded fact that does not depend on when it was read. It is a claim by an untr
 counts only from the page the *task* named and only same-origin — otherwise a third-party page could
 explain away evidence that came from somewhere else.
 
+**And that route is the weakest of the three, which is worth saying out loud rather than leaving in
+the code.** A redirect chain is an *observation*: our own browser was sent from one URL to another
+and recorded each hop with the status that caused it. A canonical link is a *page's statement about
+itself*. DEV-04 — the case this whole section is about — passes on the second kind. What holds it up
+is not that we watched Wikipedia move us, but that Wikipedia said where it lives and the same-origin
+rule bounds how far that statement can reach: a page may rename itself only within its own origin,
+so the worst a hostile site can do with it is account for evidence it served us anyway. That is a
+real bound and it is not the same as having seen it happen. A document that spends this many pages
+asking *"what would have to be true for this check to be reporting a coincidence"* does not get to
+skip the question when the answer is inconvenient — so: this one rests on a self-description, and if
+that were unacceptable, the honest alternative would be to fail DEV-04 rather than to widen the rule
+until it passed.
+
 Both assertions can fail alone, and the fixture carries a case for each, because an assertion that
 cannot fail is the defect in this table one row up. The one that matters is `/detour`: it 301s to
 **exactly the same page** as `/moved`. A run sent there arrives at the right final URL by a door the
