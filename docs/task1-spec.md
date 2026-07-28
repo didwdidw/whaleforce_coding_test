@@ -1986,3 +1986,45 @@ alone.
   (A19.3, A19.4).
 - [ ] **A-60** The support matrix states the language the declared promise holds in, and the
   limitations list carries the remaining language limitation with a runnable example (A19.1, A19.5).
+
+### Amendment 20 — A push is a deployment (2026-07-28)
+
+Supersedes the timing protocol in **A18.8**; extends **A12.5**, **A17.13**, **A18.7**.
+
+The engineering session found that **every `git push` to this repository triggers an automatic
+redeploy**. The live SHA advanced to a commit nobody deliberately released. This is not a platform
+complaint — it is a property of the deployment we chose, and it invalidates a protocol we agreed one
+day ago while assuming a human would press a button.
+
+**A20.1** **`t0` for the deploy-to-usable measurement (A18.8 item 1) is the push**, reported by
+whoever pushed. This replaces A18.8's "the operator reports the moment they pressed deploy". It is
+more precise than the protocol it supersedes, not less: the pusher knows the instant exactly.
+
+**A20.2** **No push during a scored round or a cold-arrival idle window** — and this binds the
+**product-owner session too**, which pushes specs and eval sets. A commit to a document is a
+production deployment here. Whoever intends to push during a measurement window announces it first.
+
+**A20.3** Discipline is not a mechanism. **A scored round MUST record the SHA it started against and
+abort if the SHA changes mid-round**, reporting the partial round as degraded under A18.7. A20.2 will
+eventually be forgotten by someone; A20.3 is what catches it when it is.
+
+**A20.4** Round identity is `EVAL_ROUND`, not the commit SHA. Keying a round on the SHA meant one
+push created a new round identity, so the skip-if-already-scored protection — written to stop
+duplicate work — silently stopped protecting the case that costs money. A protection that holds for
+the free path and lapses for the paid one is inverted.
+
+**A20.5** A spend ceiling is a backstop and MUST NOT be raised to accommodate a forecast. The
+forecast gate (refuse the round before case 1) is the control; the ceiling is what catches the
+forecast being wrong. Raising the ceiling because a round might approach it removes the only check on
+the forecast. The USD 1/day ceiling in A12.5 stands.
+
+**A20.6** The startup credential-validation call (A9.3) is a real paid call and **MUST be recorded in
+the spend ledger**. A call that is free in the accounting makes the ledger fiction, which is A17.9's
+rule applied to the one call that happens before any run exists.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-61** A scored round records its starting SHA and aborts, marking its results degraded, if
+  the deployment changes underneath it (A20.3).
+- [ ] **A-62** The spend ledger includes the startup validation call, and the ledger's total matches
+  the provider's own reported spend for the day within rounding (A20.6).

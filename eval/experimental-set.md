@@ -29,6 +29,14 @@ pages that happen to work is not a breadth number:
 | **Route the site disallows** | EXP-08 | a real `Disallow` on a real site — feeds A14.3 |
 | **Modern JS-heavy site** | EXP-10 | expected to be hard; a miss here is a true miss and is reported as one |
 
+**Every task names its host in a form the code can read.** This is deliberate and it is a
+measurement decision, not a convenience: this split measures **execution breadth on unseen sites**,
+and entry-point resolution from a described-but-unnamed page is a *different* variable, measured on
+the declared side by DEV-02 and governed by A18.3. EXP-06, EXP-07 and EXP-10 originally said
+"Project Gutenberg" and "MDN"; all three would have failed identically at `entry_point_unresolved`
+before reaching what they were written to test, and three tenths of the split would have measured one
+thing twice. One variable per split.
+
 Three cases (EXP-03, EXP-07, EXP-08) accept more than one terminal status because more than one
 behaviour is genuinely correct. Those carry **`manual_review`**: the harness scores the status, and
 a human checks the run against the stated silent-failure condition. A status the harness accepts is
@@ -139,7 +147,7 @@ No case's answer is taken from a run's own claim. That would be the system gradi
 
 - **record** XB-EXP · labelled field
 - **tier** T-EXPERIMENTAL
-- **task** "On Project Gutenberg, open eBook number 1342 and tell me the Language listed in its bibliographic record."
+- **task** "On www.gutenberg.org/ebooks/1342, tell me the Language listed in the bibliographic record."
 - **entry_point** `https://www.gutenberg.org/ebooks/1342`
 - **required_actions** locate the bibliographic record table and bind the value to its label
 - **state_transition** none required — this case tests binding, not interaction
@@ -152,7 +160,7 @@ No case's answer is taken from a run's own claim. That would be the system gradi
 
 - **record** XB-EXP · ambiguous label
 - **tier** T-EXPERIMENTAL
-- **task** "On Project Gutenberg's page for eBook 1342, tell me what the Note says."
+- **task** "On www.gutenberg.org/ebooks/1342, tell me what the Note says."
 - **entry_point** `https://www.gutenberg.org/ebooks/1342`
 - **required_actions** locate the bibliographic record table
 - **state_transition** none required
@@ -191,7 +199,7 @@ No case's answer is taken from a run's own claim. That would be the system gradi
 
 - **record** XB-EXP · JS-rendered widget
 - **tier** T-EXPERIMENTAL
-- **task** "On MDN, open the reference page for the JavaScript method Array.prototype.flat() and tell me the Chrome version listed in its browser compatibility table."
+- **task** "On developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat, tell me the Chrome version listed in the browser compatibility table."
 - **entry_point** `https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat`
 - **required_actions** reach the browser-compatibility section and read the Chrome entry
 - **state_transition** the compatibility table is rendered client-side after page load
