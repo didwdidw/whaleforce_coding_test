@@ -1000,6 +1000,40 @@ class Executor:
         entry.artifact_id = ref.id
         self._finish_step(ctx.run, entry)
         ctx.evidence_artifact = ref.id
+        await self._capture_accessibility(ctx, label)
+        return ref.id
+
+    async def _capture_accessibility(self, ctx: ExecutionContext, label: str) -> str | None:
+        """Store the accessibility tree beside the DOM (A24.6).
+
+        An F1 locator is a semantic role and an accessible name, and this is the corpus
+        those are read from. Stored markup is not a substitute: the name a browser computes
+        can come from a label, an `aria-labelledby` several elements away, or the element's
+        own text, and re-deriving it from the DOM afterwards means re-implementing the
+        browser. Without this, an F1 claim — and any recovery or healing that passed through
+        F1 — cannot be re-derived from the evidence, which is what §4 rests on.
+
+        A page that will not produce one is recorded as not having produced one. An
+        accessibility snapshot missing without a trace entry would read as a page that had
+        no accessible structure (A11.8).
+        """
+        try:
+            snapshot = await ctx.page.locator("body").aria_snapshot()
+        except Exception as exc:  # noqa: BLE001 - the DOM is already stored either way
+            entry = self._step(ctx.run, StepKind.SNAPSHOT,
+                               f"Accessibility snapshot unavailable: {label}")
+            self._finish_step(ctx.run, entry, ok=False,
+                              error=f"{type(exc).__name__}: {exc}")
+            return None
+        ref = ctx.store.put_artifact(
+            ctx.run.id, f"aria:{label}", snapshot.encode("utf-8"),
+            source_url=ctx.page.url, media_type="text/plain",
+            pinned=ctx.run.pre_executed)
+        entry = self._step(ctx.run, StepKind.SNAPSHOT,
+                           f"Accessibility snapshot captured: {label}",
+                           artifact=ref.to_dict())
+        entry.artifact_id = ref.id
+        self._finish_step(ctx.run, entry)
         return ref.id
 
     # ---- routing ---------------------------------------------------------------

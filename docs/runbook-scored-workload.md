@@ -200,6 +200,11 @@ Copy that directory into `eval/results/bundles/` and commit it with the result f
 serves it at `GET /api/eval-bundles` and `GET /api/eval-bundles/<round>/<case>/<file>`, so
 the public frontend reaches the evidence and the scored service is never reachable.
 
+Since A24.6 each captured DOM is accompanied by an `aria:` artifact — the accessibility
+tree, which is what an F1 locator's role and name are read from. Measured on the fixture it
+adds **22–32%** to the stored bytes of a capture (959–1,638 B against 3.3–7.4 KB of DOM);
+r1's dev split used 5.95 MiB of a 48 MiB cap, so the cap is not what decides this.
+
 The cap is `EVAL_BUNDLE_CAP_MIB` (48 MiB per round). Every candidate is **weighed from the
 store** before the cap is applied, so anything listed as `over the size cap` is a measured
 omission rather than a guess — and that residue, not the whole category, is what A21.4's

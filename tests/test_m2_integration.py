@@ -115,6 +115,25 @@ def test_search_with_matches_is_verified(executor):
     assert codes["items"]["evidence"]["artifact_sha256"]
 
 
+def test_every_capture_stores_the_accessibility_tree_beside_the_dom(executor):
+    """A24.6. An F1 locator is a semantic role and an accessible name; this is the corpus
+    those are read from, and re-deriving them from stored markup afterwards means
+    re-implementing the browser. One aria artifact per DOM artifact, or the evidence cannot
+    answer for an F1 claim."""
+    _, store, _ = executor
+    run = run_task(executor, "Search the fixture catalogue for lantern")
+
+    refs = store.artifacts_for_run(run.id)
+    dom = [r.kind.split(":", 1)[1] for r in refs if r.kind.startswith("dom:")]
+    aria = [r for r in refs if r.kind.startswith("aria:")]
+    assert dom, "the run captured nothing"
+    assert [r.kind.split(":", 1)[1] for r in aria] == dom
+
+    tree = store.read_artifact(aria[0].id).decode("utf-8")
+    assert "- " in tree, "an accessibility snapshot with no node in it is not one"
+    assert any(role in tree for role in ("textbox", "button", "heading", "link")), tree[:200]
+
+
 def test_absence_mode_a_needs_the_empty_state_element(executor):
     run = run_task(executor, "Search the fixture catalogue for zzzznothing")
     assert run.terminal_status is TerminalStatus.NO_RESULT_VERIFIED
