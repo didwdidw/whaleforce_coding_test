@@ -2028,3 +2028,71 @@ rule applied to the one call that happens before any run exists.
   the deployment changes underneath it (A20.3).
 - [ ] **A-62** The spend ledger includes the startup validation call, and the ledger's total matches
   the provider's own reported spend for the day within rounding (A20.6).
+
+### Amendment 21 — The scored volume cannot be shared, so the record travels in the repository (2026-07-28)
+
+Replaces the storage premise of **A18.10**; extends **A12.3**, **A18.7**, **A18.11**.
+
+A18.10 put scored results on the volume the application serves, so a round's file and the evidence
+its runs produced would be inspectable through the public frontend. That rested on an assumption
+nobody checked: that one volume can be attached to two services. On this platform it cannot — the
+dashboard offers no way to select an existing volume, and entering the same details on a second
+service creates a second volume. The scored workload came up against an empty `/data` and refused.
+
+The premise is void. It is replaced rather than worked around, and the cost is stated rather than
+absorbed.
+
+**A21.1** The scored workload has **a volume of its own**, mounted at `/data`. It is not optional: a
+round whose database and evidence live in the container's filesystem is lost to the next restart,
+and a restart is free for the platform and paid for by us.
+
+**A21.2** **The record of a scored round is its result file, and that file is committed to
+`eval/results/`** alongside every other measurement in this project. Until it is committed, a paid
+round exists in exactly one place that nothing else can read. Carrying it out is part of running it,
+not a follow-up.
+
+**A21.3** `/api/eval-results` serves the **union** of the committed results shipped in the image and
+any files on this service's volume, and each entry states which. The repository resolves first: a
+committed file has been reviewed and a copy on a volume is whatever the last process to write there
+left behind.
+
+**A21.4** **Known limitation, and it is a real one**: the evidence bundles produced by scored rounds
+— screenshots, DOM snapshots, the per-step trace — are on the scored workload's volume and are **not
+reachable from the public frontend**. What a reader gets for those rounds is the result file, which
+carries the per-case verification records, the postcondition hash, and the provenance block. The
+bundle is corroboration; the verification record is the claim. This limitation is listed, not
+narrated away, and if it is ever fixed it is rewritten under A18.11 rather than deleted.
+
+**A21.5** A precondition MUST be checked against something the checking process controls. Preflight
+demanded a directory created by the *application's* store, which runs after preflight; it passed only
+because a shared volume already had that directory on it. **A check that is satisfied by another
+process's side effect is not a check** — it reports on a coincidence, and it fails or passes for
+reasons unrelated to what it claims to test.
+
+**A21.6** Two rejected alternatives, recorded because they will be proposed again:
+
+- *Merging the scored workload's run database and artifacts into the application's store.* Two
+  independent SQLite databases with colliding run identifiers produce a merged record that looks
+  complete and is assembled. This project penalises plausible-but-wrong results above loud failures;
+  manufacturing one to recover a convenience is the wrong trade.
+- *Publishing a domain on the scored service so it can serve its own results.* That destroys the
+  property A12.3 exists to hold — the container with the billing credential is not reachable from
+  outside the host. Inspectability is not worth reaching for through the one door that must stay shut.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-63** `/api/eval-results` serves committed results with no volume attached at all, labels
+  each entry's source, and resolves the repository's copy first (A21.3).
+- [ ] **A-64** The scored workload starts against an empty volume of its own — creating what it
+  needs — and refuses when the mount point is missing or not writable (A21.1, A21.5).
+- [ ] **A-65** The limitation in A21.4 appears in the submitted list of what is unreliable, in the
+  same register as the rest, and names what a reader gets instead.
+
+**A21.7** **Open, and it blocks the first paid round, not the dry run.** The spend ledger lives in
+the store, the store lives on the volume, and the volumes are now separate — so the two services
+keep **independent ledgers**. The USD 1/day ceiling of A12.5 is therefore enforced twice, and the
+system's worst case is USD 2/day. Nobody raised a ceiling; a storage decision raised it, which is
+A20.5's failure in a form A20.5 does not catch. The rule that follows: **the system's daily ceiling
+is the sum of the per-process ceilings, and that sum is the number the project promises.** The split
+between the public demo and the scored workload is the product owner's to set. Until it is set, no
+paid round runs.

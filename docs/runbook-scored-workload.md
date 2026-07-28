@@ -19,7 +19,7 @@ A new Zeabur service in the same project, from the same repository:
 | Setting | Value | Why |
 |---|---|---|
 | Domain | **none** | Publishing one breaks the property this service exists to hold (A12.3). |
-| Volume | the same volume as `app`, at `/data` | Scored runs' evidence lands in the same store and stays inspectable through the public run views; the spend ledger is shared, so one ceiling covers both. |
+| Volume | **its own**, at `/data` | The platform will not attach an existing volume to a second service, so this cannot be the app's (A21.1). It is still required: without it the round's database and evidence are gone at the next restart. |
 | `APP_ROLE` | `scored` | |
 | `CREDENTIAL_POLICY` | `scored` | Paid unconditionally. The workload refuses to start on any other value. |
 | `APP_ENV` | `production` | |
@@ -75,10 +75,14 @@ Clear `EVAL_DRY_RUN` and restart to score for real.
 ## The round is priced before the first case
 
 The daily ceiling (`PROVIDER_SPEND_CEILING_USD_PER_DAY`, default $1.00) is enforced before
-every provider call, and the ledger is shared with the public demo through the volume. Left
-at that, a round that runs out of allowance stops mid-way and leaves a half-blocked result
-file wearing the round's name — the ceiling would have destroyed a round and made it look
-like a round.
+every provider call. **The ledger is in the store, the store is on the volume, and the
+volumes are separate — so this service and the public demo count independently** (A21.7).
+Two services at $1.00 each is a system ceiling of $2.00, which is not the number the project
+promises. The split is the product owner's to set, and no paid round runs until it is set.
+
+Left at that, a round that runs out of allowance also stops mid-way and leaves a
+half-blocked result file wearing the round's name — the ceiling would have destroyed a round
+and made it look like a round.
 
 So the workload forecasts first and refuses whole:
 
@@ -96,9 +100,9 @@ is forecast at about **$0.16** and could in principle reach **$0.98**.
 If a round does end early anyway, its result is written as `…-r<round>-degraded.json`, so
 the clean name stays free and the same round number can be re-run.
 
-The ceiling is per-process configuration while the spend ledger is shared state, so raising
-`PROVIDER_SPEND_CEILING_USD_PER_DAY` **on this service only** gives the round headroom
-without loosening anything on the public path.
+Do not raise `PROVIDER_SPEND_CEILING_USD_PER_DAY` to make a round fit (A20.5). The forecast
+gate is the control; the ceiling is what catches the forecast being wrong, and raising it
+because a round approaches it removes the only check on the forecast.
 
 ## Running a round
 
@@ -116,17 +120,33 @@ for the platform and not for us: an automatic restart loop would re-spend a paid
 the result it was spent on. To score again, change `EVAL_ROUND` and restart — or set `EVAL_FORCE=1`
 deliberately.
 
-## Reading the results
+## Getting the results out — this is part of running the round (A21.2)
 
-The workload writes `<split>-deploy-<git_sha>-r<round>.json` into `/data/task1/eval-results` on the
-shared volume, and the app service serves that directory read-only:
+The workload writes `<split>-deploy-<git_sha>-r<round>.json` into `/data/task1/eval-results` on **its
+own** volume. Nothing else can read that volume. A paid round that stays there exists in one place,
+on a disk whose contents are one console click from gone.
 
-- `GET /api/eval-results` — one line per file: split, commit, finish time, and whether the file
-  carries a degradation block.
-- `GET /api/eval-results/<file>` — the report.
+From the host, k3s keeps volume contents on the local filesystem:
+
+```bash
+sudo find /var/lib/rancher/k3s/storage -path '*task1/eval-results/*.json' -newermt '-1 day'
+```
+
+Copy the round's file into `eval/results/` and commit it, like every other measurement in this
+project. It is then served publicly from the image:
+
+- `GET /api/eval-results` — one line per file: split, commit, finish time, `source`
+  (`repository` or `volume`), and whether the file carries a degradation block.
+- `GET /api/eval-results/<file>` — the report. The repository's copy resolves first.
 
 Held-out splits carry no per-case detail; the harness withholds it where the file is written, not
 where it is served. Held-out case files are never in the image — they are mounted at score time.
+
+**What a reader does not get** (A21.4): the evidence bundles those runs produced — screenshots, DOM
+snapshots, the per-step trace — stay on the scored workload's volume and are not reachable from the
+public frontend. The result file carries the per-case verification records and the postcondition
+hash, which is what a claim is judged on; the bundle is corroboration. This is on the limitations
+list, not hidden in a runbook.
 
 ## Failure modes it refuses rather than works around
 

@@ -91,17 +91,41 @@ def test_the_public_service_serves_what_the_scored_workload_wrote(results_dir):
 
     client = TestClient(app)
     listing = client.get("/api/eval-results").json()
-    assert [f["file"] for f in listing["files"]] == ["dev-deploy-abc123def456-r1.json"]
-    assert listing["files"][0]["split"] == "dev"
-    assert listing["files"][0]["degraded"] is False
+    written = next(f for f in listing["files"]
+                   if f["file"] == "dev-deploy-abc123def456-r1.json")
+    assert written["split"] == "dev"
+    assert written["degraded"] is False
+    assert written["source"] == "volume"
     fetched = client.get("/api/eval-results/dev-deploy-abc123def456-r1.json").json()
     assert fetched["aggregate"]["headline_declared"]["passed"] == 10
+
+
+def test_a_committed_result_is_served_without_any_volume(results_dir):
+    """A21.3. The scored workload has a volume of its own that no other service can read,
+    so a round reaches the public surface by being committed and shipped in the image."""
+    listing = TestClient(app).get("/api/eval-results").json()
+    from_repo = [f for f in listing["files"] if f["source"] == "repository"]
+    assert from_repo, "the committed results in eval/results/ must be served"
+    name = from_repo[0]["file"]
+    assert TestClient(app).get(f"/api/eval-results/{name}").status_code == 200
+
+
+def test_a_committed_result_wins_over_a_copy_left_on_the_volume(results_dir):
+    """A committed file has been reviewed; the volume holds whatever the last writer left."""
+    name = "dev-local-427cd96.json"
+    (results_dir / name).write_text(json.dumps({"provenance": {"split": "tampered"}}))
+
+    listing = TestClient(app).get("/api/eval-results").json()
+    entries = [f for f in listing["files"] if f["file"] == name]
+    assert len(entries) == 1 and entries[0]["source"] == "repository"
+    assert entries[0]["split"] != "tampered"
 
 
 def test_the_listing_shows_that_a_file_is_degraded_without_opening_it(results_dir):
     (results_dir / "dev-deploy-x-r1.json").write_text(json.dumps(
         {"provenance": {"split": "dev", "degraded": {"not_a_capability_measurement": True}}}))
-    assert TestClient(app).get("/api/eval-results").json()["files"][0]["degraded"] is True
+    listing = TestClient(app).get("/api/eval-results").json()["files"]
+    assert next(f for f in listing if f["file"] == "dev-deploy-x-r1.json")["degraded"] is True
 
 
 @pytest.mark.parametrize("name", ["../runs.sqlite3", "..%2Fruns.sqlite3", "secret",
@@ -349,16 +373,33 @@ def test_the_held_reason_is_repeated_so_a_log_window_shows_it(monkeypatch, capsy
     assert "would be restarted" in err
 
 
-def test_a_missing_volume_says_which_of_the_two_ways_it_is_missing(tmp_path):
-    """"The volume is not mounted" was true and not actionable: an empty /data and a /data
-    holding somebody else's data need different fixes, and the image creates an empty one."""
-    empty = tmp_path / "data"
-    empty.mkdir()
-    assert "Either no volume is attached" in scored_workload._what_is_at_data(empty)
+def test_the_store_check_creates_its_own_directory_on_a_fresh_volume(tmp_path):
+    """Live: preflight demanded `task1/`, which the *application's* store creates — and
+    preflight runs before the server. It passed only because the workload was sharing a
+    volume the app had already written to. Given a volume of its own it refused forever.
+    A precondition satisfied by another process's side effect is not a precondition."""
+    mount = tmp_path / "data"
+    mount.mkdir()
+    data_dir = mount / "task1"
 
-    (empty / "some-other-service").mkdir()
-    wrong = scored_workload._what_is_at_data(empty)
-    assert "not the app's" in wrong
-    assert "some-other-service" in wrong
+    scored_workload.check_writable_store(data_dir)
+    assert data_dir.is_dir()
+    assert not (data_dir / ".writable").exists(), "the write probe must clean up after itself"
 
-    assert "wrong with the image" in scored_workload._what_is_at_data(tmp_path / "absent")
+
+def test_the_store_check_refuses_when_the_mount_point_is_absent(tmp_path):
+    with pytest.raises(SystemExit) as exit_info:
+        scored_workload.check_writable_store(tmp_path / "absent" / "task1")
+    assert "wrong with the image" in str(exit_info.value)
+
+
+def test_the_store_check_refuses_a_directory_it_cannot_write(tmp_path):
+    """A round whose database is not persisted is a round that gets paid for twice."""
+    mount = tmp_path / "data"
+    mount.mkdir(mode=0o555)
+    try:
+        with pytest.raises(SystemExit) as exit_info:
+            scored_workload.check_writable_store(mount / "task1")
+        assert "not writable" in str(exit_info.value)
+    finally:
+        mount.chmod(0o755)

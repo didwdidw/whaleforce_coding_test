@@ -1,4 +1,4 @@
-"""The workload that runs scored splits (A12.3, A18.10).
+"""The workload that runs scored splits (A12.3, A18.10, A21).
 
 Scored runs must use the billing credential, and the billing credential must never sit on
 the filesystem of the container serving anonymous traffic. Those two rules together mean an
@@ -14,8 +14,9 @@ This module runs inside a second container built from the same image:
      unreachable even from the platform's private network,
   3. it drives the splits over HTTP against that loopback server, which is why the harness
      is still measuring a deployed system rather than an import,
-  4. it writes each result onto the shared volume, where the public service can serve it
-     read-only, and where the artifacts those runs produced already live,
+  4. it writes each result onto a volume of its own — the platform will not attach one
+     volume to two services (A21.1) — from which the operator carries the file into
+     `eval/results/`, where the public service serves it read-only,
   5. it releases the browser and idles.
 
 It does not re-run a split whose result file already exists. A container restart is free
@@ -81,25 +82,32 @@ def hold(reason: str, *, interval: float = 900.0) -> int:
         print(f"[{WORKLOAD_VERSION}] still refusing: {reason}", file=sys.stderr, flush=True)
 
 
-def _what_is_at_data(mount: pathlib.Path = pathlib.Path("/data")) -> str:
-    """Say which of the two ways the volume is wrong, since the fix differs.
+def check_writable_store(data_dir: pathlib.Path) -> None:
+    """The store has to survive a restart, which means asking about the mount point (A21.5).
 
-    The image creates an empty `/data`, so "no volume" and "a fresh volume of this
-    service's own" look identical from in here. What can be told apart is *that* case from
-    "a volume with somebody else's data on it", and the listing is what tells them apart.
+    The first version of this check asked whether `data_dir` already existed. It passed for
+    the wrong reason: `task1/` is created by the application's store, and the workload was
+    sharing a volume on which the app had already created it. Given a volume of its own the
+    same check refuses forever, because nothing runs before preflight to create the
+    directory preflight demands.
+
+    A precondition that is satisfied by another process's side effect is not a
+    precondition. What matters here is that the mount point is present and writable: a
+    round that loses its database to a restart is a round paid for twice.
     """
+    mount = data_dir.parent
     if not mount.is_dir():
-        return (f"{mount} is not a directory at all, which the image itself creates — "
-                f"something is wrong with the image, not with the volume settings.")
-    names = sorted(p.name for p in mount.iterdir())[:10]
-    if not names:
-        return (f"{mount} is empty. Either no volume is attached to this service — the "
-                f"image creates an empty {mount} — or one is attached that is not the "
-                f"app's. Attach the *same* volume as the app service, mounted at {mount}: "
-                f"a volume of this service's own would keep scored evidence where the "
-                f"public run views cannot reach it.")
-    return (f"{mount} contains {names}, but no task1/. A volume is mounted and it is not "
-            f"the app's. Scored runs must share the app's volume, not have one of their own.")
+        _refuse(f"{mount} does not exist, and the image creates it. Something is wrong with "
+                f"the image rather than with the volume settings.")
+    try:
+        data_dir.mkdir(parents=True, exist_ok=True)
+        probe = data_dir / ".writable"
+        probe.write_text("", encoding="utf-8")
+        probe.unlink()
+    except OSError as exc:
+        _refuse(f"{data_dir} is not writable ({exc}). Attach a volume at {mount}: without "
+                f"one the round's database and evidence live in the container's own "
+                f"filesystem and are gone the next time the platform restarts it.")
 
 
 def preflight() -> None:
@@ -117,9 +125,7 @@ def preflight() -> None:
     if not key_path.is_file():
         _refuse(f"no billing credential at {key_path}. It is placed by the operator in the "
                 f"platform's config editor, outside the artifact store's tree.")
-    if settings.data_dir == pathlib.Path("/data/task1") and not settings.data_dir.is_dir():
-        _refuse(f"{settings.data_dir} does not exist, so the evidence from scored runs "
-                f"would not reach the public run views.\n{_what_is_at_data()}")
+    check_writable_store(settings.data_dir)
 
 
 def budget_ceiling_usd_per_run() -> float:
@@ -321,6 +327,14 @@ def run(splits: list[str], *, port: int, round_id: str, force: bool,
             server.kill()
 
     print(f"[{WORKLOAD_VERSION}] done. Wrote: {', '.join(written) or 'nothing'}")
+    if written:
+        # This volume is this service's own (A21.1), so nothing else can read it. The
+        # result file is the round's record and it travels in the repository (A21.2);
+        # until it is committed it exists in exactly one place.
+        print(f"[{WORKLOAD_VERSION}] these files are on this service's own volume and no "
+              f"other service can read them. Copy them off the host and commit them to "
+              f"eval/results/ — see docs/runbook-scored-workload.md. A round that is not "
+              f"carried out is a round that was paid for and lost.")
     if idle:
         # Exiting would have the platform restart us, and a restart is another split round.
         print(f"[{WORKLOAD_VERSION}] idling. Change EVAL_ROUND and restart to score again.")

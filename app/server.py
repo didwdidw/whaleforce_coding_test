@@ -423,32 +423,51 @@ async def reachability(url: str) -> Response:
                          "sha256": result.sha256, "reason": f"HTTP {result.status}"})
 
 
-#: A result file's name, and nothing that could be a path. The scored workload writes into
-#: one directory and this reads out of that directory; no name it accepts can leave it.
+#: A result file's name, and nothing that could be a path. Names are resolved inside known
+#: directories and no name this accepts can leave one of them.
 RESULT_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,80}\.json$")
+REPO = Path(__file__).parent.parent
 
 
-def _result_files() -> list[Path]:
-    directory = settings.eval_results_dir
-    if not directory.is_dir():
-        return []
-    return sorted((p for p in directory.iterdir()
-                   if p.is_file() and RESULT_NAME.match(p.name)),
-                  key=lambda p: p.stat().st_mtime, reverse=True)
+def _result_sources() -> list[tuple[str, Path]]:
+    """Where a result file can come from, in resolution order (A21.3).
+
+    The scored workload cannot share this service's volume — the platform will not attach
+    an existing volume to a second service — so a scored round's file reaches the public
+    surface by being committed to the repository and shipped in the image. The volume is
+    still read, because anything this process itself measures lands there.
+
+    The repository is checked first: a committed file has been reviewed, and the copy on
+    the volume is whatever the last process to write there left behind.
+    """
+    return [("repository", REPO / "eval" / "results"),
+            ("volume", settings.eval_results_dir)]
+
+
+def _result_files() -> list[tuple[str, Path]]:
+    found: dict[str, tuple[str, Path]] = {}
+    for source, directory in _result_sources():
+        if not directory.is_dir():
+            continue
+        for path in directory.iterdir():
+            if path.is_file() and RESULT_NAME.match(path.name) and path.name not in found:
+                found[path.name] = (source, path)
+    return sorted(found.values(), key=lambda pair: pair[1].stat().st_mtime, reverse=True)
 
 
 @app.get("/api/eval-results")
 async def eval_results() -> dict[str, Any]:
-    """Split results produced by the scored workload (A12.3, A18.10).
+    """Split results, from the repository and from this service's volume (A12.3, A21.3).
 
-    That workload holds the paid credential and is not reachable over HTTP from outside
-    the host, so the only way its results reach anyone is the volume it shares with this
-    process. Held-out splits carry no per-case detail — the harness withholds it at the
-    point the file is written, not here (S-10.4).
+    The workload that holds the paid credential is not reachable over HTTP from outside the
+    host and has a volume of its own, so its files reach anyone by being committed. Held-out
+    splits carry no per-case detail — the harness withholds it at the point the file is
+    written, not here (S-10.4).
     """
     files = []
-    for path in _result_files():
-        summary: dict[str, Any] = {"file": path.name, "bytes": path.stat().st_size}
+    for source, path in _result_files():
+        summary: dict[str, Any] = {"file": path.name, "bytes": path.stat().st_size,
+                                   "source": source}
         try:
             report = json.loads(path.read_text(encoding="utf-8"))
             meta = report.get("provenance") or {}
@@ -458,17 +477,19 @@ async def eval_results() -> dict[str, Any]:
         except (OSError, ValueError) as exc:
             summary["error"] = f"unreadable: {exc}"
         files.append(summary)
-    return {"directory": str(settings.eval_results_dir), "files": files}
+    return {"sources": {source: str(directory) for source, directory in _result_sources()},
+            "files": files}
 
 
 @app.get("/api/eval-results/{name}")
 async def eval_result(name: str) -> Response:
     if not RESULT_NAME.match(name):
         return JSONResponse({"error": "bad_name"}, status_code=400)
-    path = settings.eval_results_dir / name
-    if not path.is_file():
-        return JSONResponse({"error": "not_found"}, status_code=404)
-    return Response(path.read_bytes(), media_type="application/json")
+    for _, directory in _result_sources():
+        path = directory / name
+        if path.is_file():
+            return Response(path.read_bytes(), media_type="application/json")
+    return JSONResponse({"error": "not_found"}, status_code=404)
 
 
 @app.get("/healthz")
