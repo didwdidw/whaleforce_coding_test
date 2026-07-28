@@ -1235,3 +1235,7 @@ REFUSING TO RUN THE SCORED WORKLOAD: /data/task1 does not exist: the shared volu
 只能手動輸入一次跟app一樣的資訊
 
 ==========
+
+ INFO: "/data is empty. Either no volume is attached to this service — the image creates an empty /data — or one is attached that is not the app's. Attach the *same* volume as the app service, mounted at /data: a volume of this service's own would keep scored evidence where the public run views cannot reach it."
+
+==========
