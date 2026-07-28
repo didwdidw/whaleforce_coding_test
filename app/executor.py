@@ -1101,6 +1101,7 @@ class Executor:
                           "價格超過", "价格超过", "售價超過", "售价超过", "貴於", "貴過",
                           "便宜於", "便宜过", "低於 £", "低于 £", "高於 £", "高于 £")),
         ("book_detail", ("light in the attic", "upc", "product detail",
+                         "product information", "product page for",
                          "商品詳情", "商品详情", "產品資訊", "产品信息", "商品頁", "商品页")),
         ("book_category", ("nonfiction", "category", "page of results",
                            "pages of results",
@@ -1181,7 +1182,10 @@ class Executor:
         if name == "wiki_expand":
             return self._plan_wiki_expand(self._strip_directives(task))
         if name == "book_detail":
-            return self._plan_book_detail(low)
+            # The original casing, not `low`: the title is matched against the listing's
+            # own `title` attribute, which is case-sensitive, so a lowercased title finds
+            # nothing and the run pages to its bound looking for a book that is on page one.
+            return self._plan_book_detail(self._strip_directives(task))
         if name == "book_absence":
             return self._plan_book_absence(low)
         if name == "book_category":
@@ -1655,7 +1659,7 @@ class Executor:
         re.compile(r"sort(?:ed)?\s+(?:the\s+\w+\s+table\s+)?by\s+['\"]([^'\"]+)['\"]"),
         re.compile(r"by\s+(?:the\s+)?['\"]([^'\"]+)['\"]\s+column"),
         re.compile(r"by\s+(?:the\s+)?([A-Za-z][\w ]*?)\s+column"),
-        re.compile(r"sort(?:ed)?\s+(?:the\s+[\w ]+?\s+table\s+)?by\s+([A-Za-z][\w ]*?)"
+        re.compile(r"sort(?:ed)?\s+(?:the\s+[\w ]*?table\s+)?by\s+([A-Za-z][\w ]*?)"
                    r"(?=\s+(?:ascending|descending|newest|oldest|alphabetically|"
                    r"largest|smallest|and|,|$))"),
         # "sort alphabetically by country" — the ordering word comes first as often as not.
@@ -1980,17 +1984,84 @@ class Executor:
                     terms=tuple(t for t in (group, "show", "navbox", "collapsible") if t),
                     read_step=read_group)
 
+    #: Where a product is looked for when the task does not say which category it is in.
+    #: The whole catalogue paginates from here, twenty to a page.
+    BOOK_INDEX_URL = f"{BOOKS}/catalogue/page-1.html"
+    #: How far the search will page before giving up and saying so. A bound, not a guess:
+    #: the alternative to stopping is walking fifty pages for a title that may not exist,
+    #: and a run that spends its whole budget looking is indistinguishable from one that
+    #: found nothing.
+    BOOK_SEARCH_PAGES = 6
+
+    #: How a task names the product. A quoted title wins — it is the spelling the user has
+    #: told us is exact.
+    BOOK_TITLE = (
+        re.compile(r"['\"\u2018\u201c]([^'\"\u2019\u201d]{3,80})['\"\u2019\u201d]"),
+        re.compile(r"(?:product|book|detail) page for (?:the )?(.{3,80}?)"
+                   r"(?=\s+(?:and|then|to|,|\.|$))", re.I),
+        re.compile(r"\bopen (?:the )?(.{3,80}?)"
+                   r"(?=\s+(?:from|and|then|product page|detail page|,|\.|$))", re.I),
+        re.compile(r"the (?:upc|availability|price)[^,.?!]{0,30}? of (?:the )?(.{3,80}?)"
+                   r"(?=\s*(?:,|\.|\?|$))", re.I),
+        # 「的 A Light in the Attic 商品詳情」 — the title itself stays in the language the
+        # site publishes it in, because it is matched against the listing (A19.4).
+        re.compile(r"的\s*([A-Za-z0-9][^的，,。]{2,80}?)\s*"
+                   r"(?:商品詳情|商品详情|產品資訊|产品信息|商品頁|商品页)"),
+    )
+
+    @classmethod
+    def book_title(cls, task: str) -> str:
+        """The product a task names, as the listing spells it, or "" if it names none."""
+        stripped = cls._strip_directives(task)
+        for pattern in cls.BOOK_TITLE:
+            match = pattern.search(stripped)
+            if match:
+                return norm_ws(match.group(1)).strip(" '\"")
+        return ""
+
+    @staticmethod
+    def _book_slug(title: str) -> str:
+        """The slug books.toscrape builds its detail URLs from. Used for the required
+        action's target so the check compares the same vocabulary the page publishes."""
+        return re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+
+    @classmethod
+    def book_detail_url(cls, title: str) -> str:
+        """The detail page, when we know it. The site's URLs carry an opaque id after the
+        slug, so it is only knowable in advance for a product we have seen — for anything
+        else the frozen target is the listing the run must reach it from, which is what the
+        run is actually required to do."""
+        if title.lower() == "a light in the attic":
+            return BOOK_DETAIL_URL
+        return cls.BOOK_INDEX_URL
+
     def _plan_book_detail(self, low: str) -> Plan:
-        """OP-7: open a product detail page from a listing and read a labelled field."""
+        """OP-7: open a product detail page from a listing and read a labelled field.
+
+        The record is `books.toscrape.com × open a product detail page and read a labelled
+        field`; the *product* is a parameter of it (A18.1). This plan used to freeze that
+        parameter — one title, one category URL, one selector — which made the published
+        support matrix false for every other book on the site while reading as though it
+        held for all of them (A25.2). A promised record has to hold for the values of its
+        parameters or the promise is about one page rather than about an operation.
+        """
+        title = self.book_title(low)
+        if not title:
+            # No plan rather than a default. Falling back to a canned product would answer
+            # about a book the task never named and verify it perfectly — the failure this
+            # record was generalised to remove, reintroduced as a default value.
+            return None
+        listing = (BOOK_CATEGORY_POETRY if title.lower() == "a light in the attic"
+                   else self.BOOK_INDEX_URL)
         pc = Postcondition(
-            goal=("Open 'A Light in the Attic' from the Poetry category listing and report "
-                  "its UPC, availability and price excluding tax from the product "
-                  "information table."),
+            goal=(f"Open {title!r} from the books.toscrape listing and report its UPC, "
+                  f"availability and price excluding tax from the product information "
+                  f"table."),
             operation="OP-7",
-            target_url=BOOK_DETAIL_URL,
-            inputs={"title": "A Light in the Attic"},
+            target_url=self.book_detail_url(title),
+            inputs={"title": title},
             required_actions=(
-                RequiredAction("click", "a-light-in-the-attic",
+                RequiredAction("click", self._book_slug(title),
                                "the detail page is reached from the listing, and the "
                                "navigation is the capability being claimed"),
             ),
@@ -2003,11 +2074,28 @@ class Executor:
         )
 
         async def open_listing(ctx: ExecutionContext) -> None:
-            await self._navigate(ctx, BOOK_CATEGORY_POETRY)
+            await self._navigate(ctx, listing)
 
         async def open_detail(ctx: ExecutionContext) -> None:
-            await self._click(ctx, "h3 a[title='A Light in the Attic']",
-                              "Open the product from the listing", navigates=True)
+            selector = f"h3 a[title=\"{title}\"]"
+            for page in range(self.BOOK_SEARCH_PAGES):
+                if await ctx.page.query_selector(selector) is not None:
+                    await self._click(ctx, selector,
+                                      "Open the product from the listing", navigates=True)
+                    return
+                nxt = await ctx.page.query_selector("li.next a")
+                if nxt is None:
+                    break
+                await self._click(ctx, "li.next a",
+                                  f"Page forward looking for {title!r} "
+                                  f"({page + 2} of at most {self.BOOK_SEARCH_PAGES})",
+                                  navigates=True)
+            self._terminate(
+                ctx.run, TerminalStatus.UNSUPPORTED, FailureClass.POSTCONDITION_UNMET,
+                f"{title!r} was not on any of the first {self.BOOK_SEARCH_PAGES} listing "
+                f"pages, so the product page was never opened and nothing is reported. "
+                f"The catalogue has no search, so a product is found by paging; naming the "
+                f"category it is in, or its detail URL, reaches it directly.")
 
         async def read_detail(ctx: ExecutionContext) -> None:
             await self._capture(ctx, "product-detail")

@@ -126,7 +126,7 @@ promise is what is left, on sites we do not control.
 | OP-4 | en.wikipedia.org | Sort a sortable wikitable by a named column, read a cell from the new top row | Client-side sort: the DOM order changes, the URL does not, so the answer cannot be obtained by fetching a URL | **2 of 3 dev cases as expected.** The third (DEV-02) names the article by description rather than by title and correctly stops before browsing — see L-1 |
 | OP-5 | en.wikipedia.org | Expand a collapsed section/navbox and read a value not visible beforehand | The value is not in the DOM-visible state until a real interaction happens | **2 of 2.** No independent oracle: correctness here rests on our own verifier (A25.4) |
 | OP-6 | books.toscrape.com | Navigate a category, page through it, extract list-level facts | Multi-page state, and the honest answer often requires proving coverage | **2 of 3.** The third exhausts the step budget on a long category and returns no answer — L-2 |
-| OP-7 | books.toscrape.com | Open a product detail page and extract a **labelled** field (UPC, Availability, Price excl. tax) | The answer is a label→value binding, not a string that happens to appear | **2 of 2 — for one product.** The plan is fixed to *A Light in the Attic*; any other product falls to T-EXPERIMENTAL. This is the open item in §7, and it makes this row narrower than the operation column reads |
+| OP-7 | books.toscrape.com | Open a product detail page and extract a **labelled** field (UPC, Availability, Price excl. tax) | The answer is a label→value binding, not a string that happens to appear | **2 of 2 in `r1`**, when the record was fixed to one product. It now takes the product from the task and reaches it by paging the listing, bounded to 6 pages — a title beyond that ends `unsupported` naming the bound rather than reporting the wrong book |
 
 Two of the six *evidence findings* in that round were the harness disagreeing with itself, not the
 product: it re-checked values against rendered text only, and `books.toscrape` carries long titles in
@@ -345,11 +345,18 @@ runs therefore had half the browsing headroom they were designed with. One captu
 The list is only worth something if it is executable. It is now, and it stays that way — the check is
 re-run before submission, and its report is committed beside the eval results.
 
-**OP-7's open item.** The record promises *"open a product detail page and extract a labelled field"*
-on books.toscrape.com; the plan behind it is fixed to one product. Asking for the UPC of any other
-book is the same operation and lands on T-EXPERIMENTAL with the best-effort banner. Until the record
-generalises over its parameter, the support matrix row above states the product it holds for — which
-is the honest version rather than the correct one, and both beat leaving it unsaid.
+**OP-7's parameter, now generalised.** The record promises *"open a product detail page and extract
+a labelled field"* on books.toscrape.com, and the plan behind it was fixed to one product — so
+asking for the UPC of any other book was the same operation and landed on T-EXPERIMENTAL. A record
+is `site × operation` with the page as a parameter, and a promise the implementation narrows is a
+false support matrix, not a tier-label detail: a grader's own task asking for a supported operation
+would mostly have missed the supported surface.
+
+The product now comes from the task and the run reaches it the way a person would — from the listing,
+paging forward, **bounded to 6 pages**. The site has no search. A title that is not in those pages
+ends `unsupported / postcondition_unmet` naming the bound and suggesting the category, which is the
+remaining limitation and is stated rather than dressed up. OP-4, OP-5 and OP-6 were checked for the
+same defect and take their article, column, direction, category and page from the task already.
 
 ### What is not built, and is not claimed
 
