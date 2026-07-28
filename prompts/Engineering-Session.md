@@ -2238,3 +2238,55 @@ exporter 的修之後補（也該補，不然這是一次性搶救），但 bund
 花費 0.1515 / 8.00，不是限制。做完 1–2 再推，推完回報我做最後一次通讀。
 
 ==========
+通讀完了，順便打了線上煙霧測試：/healthz ok:true、SHA 6f3ec87a354d、
+/ /support /coverage 全 200 且 <1s、/api/eval-bundles 六輪都在、
+r4 manifest 線上讀得到而且第一個欄位就是 rescued-by-hand/1.0。
+文件我沒有再找到不實的句子。r4 的搶救做得好，manifest 自承來歷是對的。
+
+但還有一件沒做，而且是最後一個真的洞。
+
+═══ 1. eval/test-set.md 和 eval/validation-set.md 不在 repo 裡
+
+eval/holdout-manifest.md:13 有預先 commit 的雜湊、
+test-deploy-e82cacb9e809-r4.json 寫著 "eval_set_file": "test-set.md" ——
+但那個檔案不存在於 repo。現在的狀態是：
+
+  - 雜湊指向一個讀者拿不到的東西，驗不了
+  - r4 的 provenance 指名一個 repo 裡沒有的檔案
+  - 「這八題是 owner 寫的、ENG 沒看過」不可否證
+  - 整份提交最強的那個發現（八取五沒開始瀏覽、三筆撞自己的 robots）
+    grader 無法自己檢查
+
+A14.5 本來就寫著：提交時公布，雜湊先 commit。現在就是提交時。
+你為了對 case id 已經讀過 volume 上那份，直接從那裡搬進 repo，
+然後跑一次雜湊比對 —— 必須對上 43ee8ce5…，對不上就是搬錯了。
+holdout-manifest.md 的「in repo」欄跟著更新。
+
+validation 也一起公布，旁邊寫「從未執行」。
+那份檔案是「我們真的把它扣住了」這個紀律宣稱的唯一物證；
+不公布的話，README §6 那段話跟沒說一樣。
+
+═══ 2. 一處會被讀成矛盾的句子
+
+README §6 experimental 段：verified 3/10 之後緊接著
+「The pass count is unchanged from r1 at 4 of 10」。
+verified 和 pass 是兩個不同的分母，中間沒有一句話解釋差別，
+讀者會直接讀成前後打架。補一個從屬子句就好 ——
+哪一筆是「狀態符合宣告但沒有 verified」而算進 pass 的。
+
+═══ 3. 裁決：EXP-05 不要修
+
+failed / internal_error 分類錯了、你記了、選擇不在凍結內修 —— 那是對的，
+而且現在也不要修。現在改會讓部署的 build 在一個「結果檔有報導的分類」上
+與計分 build 不同，那比留著一個誠實記錄的錯誤分類更糟。
+留著，§6 已經寫明白了。
+
+═══ 順序
+
+1 → 2 → push 一次（純文件與資料，無 code）。
+推完跟我說，operator 會去點一筆 r4 的失敗 bundle 確認 grader
+第一個會做的動作是通的。然後就交。
+
+明天是死線，這輪之後不要再開新東西。
+
+==========
