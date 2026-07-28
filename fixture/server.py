@@ -303,6 +303,27 @@ def soft_moved(seed: str = Query("none")) -> HTMLResponse:
     return HTMLResponse(doc)
 
 
+@app.get("/rate-limited", response_class=HTMLResponse)
+def rate_limited() -> HTMLResponse:
+    """An obstacle met *during* a run rather than a task we refuse in advance (A-14b).
+
+    The distinction is the whole point: `unsupported` is *we do not do this kind of
+    thing*, `blocked` is *something stopped us*. Without a page that answers this way,
+    the run would end `locator_not_found` — blaming the page for a value the site
+    declined to serve, and quietly inflating the refusal rate with the wrong reason."""
+    return HTMLResponse("<h1>Slow down</h1><p>Too many requests.</p>", status_code=429)
+
+
+@app.get("/members", response_class=HTMLResponse)
+def members(seed: str = Query("none")) -> HTMLResponse:
+    """A login wall standing where the content was expected, answering 200 as they do."""
+    body = """<h1>Members only</h1>
+<form method="post" action="/members"><label>Email <input type="email" name="email"></label>
+<label>Password <input type="password" name="password"></label>
+<button type="submit">Sign in</button></form>"""
+    return page("Members only", body, seed)
+
+
 @app.get("/robots.txt", response_class=Response)
 def robots() -> Response:
     """The test hook is Disallowed, so a run that reads it is a robots violation as well

@@ -1167,7 +1167,44 @@ class Executor:
         ("#noarticletext", "Wikipedia has no article with this exact title"),
     )
 
+    #: A navigation the site answered with a refusal rather than a page (A-14b). The status
+    #: is on the response, so this costs nothing and needs no heuristic.
+    OBSTACLE_STATUSES: dict[int, str] = {
+        401: "the site answered 401 — the page requires authentication",
+        403: "the site answered 403 — access to the page is forbidden",
+        429: "the site answered 429 — the page is rate-limiting us",
+    }
+
     async def _landed_somewhere_real(self, ctx: ExecutionContext, run: Run, nav) -> bool:
+        # `unsupported` is *we do not do this kind of thing*, decided before browsing;
+        # `blocked` is *something stopped us*, met during it. Without this, an obstacle met
+        # mid-run ends as `locator_not_found` or `postcondition_unmet` — the answer was not
+        # missing, it was behind a wall, and the difference is what the refusal rate is
+        # made of.
+        status = nav.detail.get("status")
+        if why := self.OBSTACLE_STATUSES.get(status or 0):
+            self._finish_step(run, nav, ok=False, error=why)
+            self._terminate(
+                run, TerminalStatus.BLOCKED, FailureClass.SITE_UNAVAILABLE,
+                f"{why} ({ctx.page.url}). The task is not unsupported — an obstacle was "
+                f"met during the run, and reporting it as a missing element would blame "
+                f"the page for something the site refused.")
+            return False
+        try:
+            walled = await ctx.page.locator('input[type="password"]:visible').count()
+        except Exception:  # noqa: BLE001 - a selector that cannot run is not a finding
+            walled = 0
+        if walled:
+            self._finish_step(run, nav, ok=False, error="a login form stands on the page")
+            self._terminate(
+                run, TerminalStatus.BLOCKED, FailureClass.SITE_UNAVAILABLE,
+                f"A visible login form is standing where the content was expected "
+                f"({ctx.page.url}). This is the minimal detection A-14b requires: a "
+                f"visible password field. A page that offers a login *beside* its content "
+                f"is read as a wall by this rule, and recognising a paywall by how it "
+                f"looks is not attempted at all — that bound is a declared limitation "
+                f"rather than a silent misclassification.")
+            return False
         for selector, why in self.ABSENT_PAGE_MARKERS:
             try:
                 if await ctx.page.locator(selector).count():

@@ -582,6 +582,33 @@ def _navigate_for_real(executor, path: str) -> Run:
     return run
 
 
+@pytest.mark.parametrize("path,expected", [
+    ("/rate-limited", "429"),
+    ("/members", "login form"),
+])
+def test_an_obstacle_met_during_a_run_is_blocked_not_a_missing_element(executor, path,
+                                                                      expected):
+    """A-14b, which A24.5 split out of A-14 and required a minimal detection for.
+
+    `unsupported` is *we do not do this kind of thing*, decided before browsing.
+    `blocked` is *something stopped us*, met during it. Left undetected, a wall met
+    mid-run ends as `locator_not_found` — which blames the page for a value the site
+    declined to serve, and puts the wrong reason into the refusal rate."""
+    run = _navigate_for_real(executor, path)
+
+    assert run.terminal_status is TerminalStatus.BLOCKED
+    assert run.failure_class is FailureClass.SITE_UNAVAILABLE
+    assert expected in run.explanation
+
+
+def test_an_ordinary_page_is_not_read_as_a_wall(executor):
+    """The false-positive side. The detection is one visible password field, so the pages
+    the product actually promises must be unaffected by it."""
+    run = _navigate_for_real(executor, "/product/WF-1013")
+
+    assert run.terminal_status is None, run.explanation
+
+
 def _verdict_for(executor, run: Run, *, plan_target: str, artifact_source: str):
     """Run the real gate over a real navigation record."""
     from app.postcondition import ClaimSpec, Postcondition, Relation

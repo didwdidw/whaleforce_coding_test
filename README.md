@@ -434,10 +434,14 @@ rather than discovered as a gap. Amendment 25 is where each one was made.
   their own figure meant three figures that went stale on the same day. It is under a tenth of a
   dollar. The ceiling, the ledger and the credential topology are done and were over-done relative
   to a bill that size.
-- **Runtime `blocked` detection (login walls, 401/403/429 mid-run) is not built.** Pre-browse refusal
-  of authentication and payment tasks *is* — those end `unsupported / policy_refused` before any
-  navigation. What is missing is recognising an obstacle met *during* a run, which currently lands in
-  `locator_not_found` or `postcondition_unmet` and therefore misclassifies rather than mismeasures.
+- **Runtime `blocked` detection is built to its minimum and no further.** Pre-browse refusal of
+  authentication and payment tasks ends `unsupported / policy_refused` before any navigation — *we
+  do not do this kind of thing*. An obstacle met **during** a run now ends `blocked` — *something
+  stopped us* — on HTTP 401/403/429 and on a visible password field standing where the content was
+  expected. That is the whole detection. A page offering a login *beside* its content is read as a
+  wall by that rule, and recognising a paywall by how it looks is not attempted at all. Both bounds
+  are stated here rather than discovered: the reason the minimum exists is that without it these
+  runs ended as `locator_not_found`, blaming the page for a value the site declined to serve.
 
 ---
 
