@@ -1204,3 +1204,7 @@ PROVIDER_SPEND_CEILING_USD_PER_DAY 預設 $1.00，ledger 跟公開 demo 共用�
 還有記憶體：計分時 app 跟 scored 各開一個 Chrome，各 550-800 MiB，機器只有 4 GB。這個你量過嗎？如果沒有，跑之前先講一下最壞情況，我才知道跑到一半服務掛掉是預期內還是 bug
 
 ==========
+
+我要 push 了，起 watcher
+
+==========
