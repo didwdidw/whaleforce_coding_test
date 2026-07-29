@@ -2290,3 +2290,59 @@ failed / internal_error 分類錯了、你記了、選擇不在凍結內修 —�
 明天是死線，這輪之後不要再開新東西。
 
 ==========
+那個錯是我的 —— 我上一輪明確指示把三筆 robots 寫成「我們的直覺比政策寬」，
+而我是看著 failure class 表格下的判斷，沒要任何人去開 trace。
+你去點了，所以它被抓到；抓到它的機制是一小時前才搶救出來的那批證據。
+這條因果鏈留在 report 裡，不要客氣。
+
+修正做得對。但有兩句話在證據被抽走之後留了下來 —— 同一族的第十一次。
+
+═══ P-1 結論的支柱被拆了，結論還站著
+
+  "This system's bottleneck is what it accepts, not what it gets right."
+
+這句是在「八筆有五筆卡在准入」的前提下寫的。現在那五筆有三筆是網路逾時。
+扣掉逾時，剩下五筆是：2 筆准入（entry-point）、2 筆能力（budget、postcondition）、
+1 筆成功。那不是「瓶頸在准入」，那是 n=5 上的對半分。
+
+這句話現在沒有數據支撐。砍掉，或降級成「在剩下的五筆上，准入與能力各佔一半 ——
+n 太小，說不了誰是瓶頸」。
+tier routing 那個發現不受影響，那條站得住，繼續留著。
+
+═══ P-2 這句現在自我矛盾
+
+  "What the histogram says about why, without opening a single case:"
+
+底下第一顆 bullet 就是「我們沒開 case、從 histogram 推出了錯的結論」。
+「不用打開任何一筆」這個修辭正是 defect 10 的犯罪現場
+留著等於讓 README 自己打自己。
+
+改成相反的框：「histogram 對於為什麼說了什麼 —— 以及
+同樣的內容，正確的教訓。
+
+═══ 建議加一句（給 grader）
+
+graders 明天會對我們承諾的站跑任務，同樣的逾時會再發
+
+  若你看到 books.toscrape.com 上的 robots_disallowed
+  robots.source：unfetchable 代表我們取不到規則（fail
+  rule 代表站方確實禁止。那個站不發布 robots.txt，所
+
+把一個很可能發生的困惑，變成我們自己誠實度的證據。§6
+
+═══ 裁決：不改任何 product code
+
+拒絕行為正確、trace 說了實話、robots_disallowed 一個
+已記成 defect 10 並說明不修 —— 理由跟 8、9 一致。
+不加 retry：「要多努力才算爭取到許可」是個真的設計問題，
+在死線前一天用直覺回答它，比留著這個缺陷更糟。你這個
+
+雜湊我親自驗過，兩筆都對上 manifest。holdout-manifest.md 給讀者那段
+shasum 指令寫得好 —— 分數、檔案、早於它的雜湊三者閉環
+
+═══ 收尾
+
+改完 P-1、P-2、加那句 grader 提示，推最後一次。
+那之後就交，不要再開任何東西。
+
+==========
