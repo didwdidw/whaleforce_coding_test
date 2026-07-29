@@ -272,7 +272,7 @@ derivation of the right answer.
 | Record | What independently checks it | What that leaves unchecked |
 |---|---|---|
 | **OP-4** — sort a table, read the top row | **An independent derivation, since A25.4.** The harness fetches the article itself, finds the table carrying the named column, decides numerically-vs-lexicographically from that column's own values, sorts and compares the top row. It is the one check here that can say a *verified* run is wrong about the world | Whether the article changed between the run and the check. A fetch that cannot be attributed is reported `not_comparable`, never as a failure |
-| **OP-5** — expand a collapsed box, read a value | Same: derived values, `independently_checked` **0** | **Everything — and more than we knew when this row was written.** Correctness rests entirely on the product's own verifier, with no independent ground truth of any kind; an independent reviewer then found that on the two canonical cases the verifier was not checking the value at all, because the planner never compiled a claim for it (Amendment 28, §5.4 family 16). The `2 of 2` in the README measures the state transition |
+| **OP-5** — expand a collapsed box, read a value | Same: derived values, `independently_checked` **0** | **Everything — and more than we knew when this row was written.** Correctness rests entirely on the product's own verifier, with no independent ground truth of any kind; an independent reviewer then found that on the two canonical cases the verifier was not checking the value at all, because the planner never compiled a claim for it (Amendment 28, §5.4 defect 21). The `2 of 2` measured the state transition. The claim is compiled now, and both cases then fail to bind it: on `r5` they end `unsupported / postcondition_unmet` and `failed / budget_exhausted`. **This record currently demonstrates a state transition and refuses to report a value it cannot bind — that is the whole of it** |
 | **OP-6** — category listing, list-level facts | Enumerations are re-derived **member by member** against the stored artifact — the strongest check in the set, and the one absence rests on | Whether the enumeration is complete for a multi-page category (this is L-3, and it abstains rather than guessing) |
 | **OP-7** — labelled field on a product page | The value is a scalar and is re-located in the artifact through the label anchor | Whether the label anchor is the one a human would pick. And the record is fixed to one product (§6) |
 | Refusals (robots, policy) | The matched rule is quoted and re-checkable against the live `robots.txt` | Nothing material |
@@ -403,16 +403,16 @@ round rather than by anything in the system, which is the same shape as every ot
 ### 5.4 Verifying the verifier
 
 A system whose central claim is "our checks are real" has to expect the checks themselves to be
-wrong. **Twenty-one** were found, seventeen of them fixed. Ten are one species — **a check that reported
+wrong. **Twenty-five** were found, twenty-two of them fixed. Ten are one species — **a check that reported
 on a coincidence**, a check that could not fire at all, or a label too coarse to carry the
 conclusion drawn from it. Two are that species' mirror image — not a check reporting something
 untrue but **no check at all** — and they are the two halves of one hole, in the same page, found a
-day apart. The last eight are a third kind, all found by two independent reviews of the deployed
-system in the last two days: **pages describing us in our own words**, where nothing was checking
-that the words still matched. That is now the largest group in the table, and it is the one that
-took the longest to become visible, because reading the repository cannot find any of them. The
-twenty-first is on its own and is the worst of the set: **a check that was correct, tested, and wired
-to one of the places that needed it.** The
+day apart. Eleven are a third kind, all found by independent review of the deployed
+system in the last three days: **pages describing us in our own words**, where nothing was checking
+that the words still matched. That is now the largest group in the table by some distance, and it is
+the one that took the longest to become visible, because reading the repository cannot find any of
+them. Number 21 is on its own and is the worst of the set: **a check that was correct, tested, and
+wired to one of the places that needed it.** The
 first five were found during development:
 
 | | The defect |
@@ -455,7 +455,15 @@ in an appendix because the pattern is the finding rather than the count:
 | 18 | `/coverage` told the reader *"this counts this deployment since its last restart"* and *"a redeploy resets this table"*. Both are the opposite of true: the ledger is on the mounted volume and accumulates across deployments. Believing the page, a long never-produced list reads as *we restarted recently* rather than as *this path has never once been driven here* — which inverts the only conclusion the page exists to support. **Found in the same review, and fixed** by rendering the sentence from the store's own `persistent` flag |
 | 19 | L-1's remediated phrasing published `failed / budget_exhausted`; it ends `failed / verification_mismatch`. The label mattered less than what it exposed: `eval/limitations_check` had re-run all seven entries and reported all seven reproducing, because for a remedy it compared **terminal status only**. A check looser than the claim it stands behind, on the honesty surface, reporting coverage it did not have. **Found in the same review, and fixed** — the class is compared now, and an entry that declines to pin one has to say so |
 | 20 | The run page rendered `does not count as success` when a run did not, and **nothing at all** when it did. The guides tell a reader to trust that field over the status word, so its absence had to mean two different things at once: *succeeded*, and *has not finished*. **Found in the same review, and fixed** by rendering both halves |
-| 21 | **The one that reached a wrong answer rather than a wrong sentence.** A25.3 — *a task with n asked-for parts produces n claims or the run is `partial`* — was written after a live run verified a UPC, dropped the availability that was asked for alongside it, and returned `succeeded_verified`. The rule was implemented, parameterised over eleven task shapes, and tested. It was wired to `_plan_generic` and **no other planner was ever audited against it**. OP-5's planner builds its value claim only when a regex matches a *named* row group; both canonical OP-5 cases name an *ordinal* one, so the postcondition froze as *"box 1 is no longer collapsed"*, the asked-for value vanished with no record that it had been asked for, and both runs returned `succeeded_verified`. The verifier cannot catch this — it compares claims against artifacts and never sees the task. **Found by the second independent review, by running the two cases the spec calls canonical; not yet fixed** (Amendment 28, A-84). The published OP-5 `2 of 2` measures the state transition |
+| 21 | **The one that reached a wrong answer rather than a wrong sentence.** A25.3 — *a task with n asked-for parts produces n claims or the run is `partial`* — was written after a live run verified a UPC, dropped the availability that was asked for alongside it, and returned `succeeded_verified`. The rule was implemented, parameterised over eleven task shapes, and tested. It was wired to `_plan_generic` and **no other planner was ever audited against it**. OP-5's planner builds its value claim only when a regex matches a *named* row group; both canonical OP-5 cases name an *ordinal* one, so the postcondition froze as *"box 1 is no longer collapsed"*, the asked-for value vanished with no record that it had been asked for, and both runs returned `succeeded_verified`. The verifier cannot catch this — it compares claims against artifacts and never sees the task. **Found by the second independent review, by running the two cases the spec calls canonical, and fixed** (Amendment 28, A-84): every plan now passes one reconciliation on its way out of the planner, and an asked-for part with nothing to answer it gets the generic located-label claim, so the run has something it can fail. The published OP-5 `2 of 2` measured the state transition; re-scored on the build carrying the fix (`r5`, `eval/results/dev-deploy-0d1fbd94ecf2-r5.json`) the two cases end `unsupported / postcondition_unmet` and `failed / budget_exhausted`, and the dev headline is **8 of 11** against `r3`'s 10 of 11. **Nothing here makes OP-5 answer those two questions.** What changed is that it can no longer be scored as though it had |
+
+| 22 | The demonstrations a grader is told to open first were **seeded once and pinned**, on whichever build first booted against the volume, while the page said they ran at startup. The one that opened `succeeded_verified` showed **four verification gates**; a current run shows six or seven plus an independent re-resolution count. So the rows offered as evidence of what this system checks were evidence of what an older one checked, with nothing on the page saying so — and three of the four example buttons no longer matched the demonstration rows they claimed to be, because round one's de-duplication fix edited the demo strings and not the sentence about them. **Found by the second independent review, and fixed** by re-seeding whenever the build or the demo list changes, and by rendering both claims from the rows themselves |
+
+| 23 | The `inspect` link — the first thing both guides tell a reader to click — sat **100px past the right edge** of the runs table at the default window width, with no scroll affordance in the dark theme, and the task column truncated at about 40 characters while guide step 8 asks for a task-string comparison. Measured, not inferred: container 922px, table 1022px, `scrollLeft` 0 on load. **Found in the same review, and fixed**: the column is pinned, the whole row opens the run, and the full task text is in a `title` attribute |
+
+| 24 | A run in flight showed **two step counts that disagreed** — `Step 11` in the heading and `Steps 2 of 25` in the budget panel — with nothing marking either as live; `No claim was produced.` while it was still going, which reads as a verdict and means *not yet*; `Step 11: Snapshot captured: step-2`, which is two different meanings of "step" in one sentence; and `Waiting…`, which covered a queue slot, a browser context and a model call alike. A run that ended `budget_exhausted` never once signalled the cap it was approaching — the fail-closed budget being the most distinctive behaviour in the system. **Found in the same review, and fixed** |
+
+| 25 | The public demo's session allowance was **10 lifetime runs behind a cookie that lives a day**, and the grader guide alone asks for six. Two amplifiers: a run refused for a full queue was written before admission and counted against the allowance anyway, and the refusal named no way to continue. The cap does no monetary work — that is the daily billed ceiling — and no capacity work — that is concurrency 2 and depth 2 — so the only thing it was doing at 10 was stopping a reader halfway through the guide. **Found by the product owner reading the guide against the code, and fixed**: 50, counted over admitted runs only, with a next step in the message and the number on `/healthz` |
 
 Number 10 is the one to read if you only read one, and the chain of events is the point rather than
 the defect.
@@ -485,7 +493,7 @@ Numbers 8, 9 and 10 arrived after the build was frozen, which is the only reason
 open, and how that was handled is part of the finding. Correcting any of them would have meant a code change between the
 round that measured the system and the round that scores the held-out split — so the choice was
 between tidier code and two rounds that describe the same build. The code lost. It is
-written here, in the table with the other seventeen, rather than repaired quietly afterwards and
+written here, in the table with the other twenty-two, rather than repaired quietly afterwards and
 presented as though the rounds had always agreed. Number 8 is the same species as A-14b: a loud, correct refusal
 filed under the wrong party. Number 9 is the species this whole section is named for — an
 instruction to look for evidence that the code cannot produce — and it cost a real operator a real
@@ -565,6 +573,21 @@ to 20 build a store, render the page and compare what came out with what that st
 why 17's endpoint is asserted to be *longer than the table it justifies* rather than merely present,
 and why 19's checker now fails against the text we published before it passes against the text we
 replaced it with.
+
+**Numbers 21 to 24 are the third run of the same method, and 21 is a different animal from the rest
+of the group.** Numbers 22 to 24 are more pages describing themselves wrongly, and they are handled
+the way 16 to 20 were: the demonstration rows now say which build produced them and whether the
+buttons above re-run them, both read off the rows; the in-flight page has one step count, from the
+setting the executor enforces. Number 21 is not a sentence — it is the rule that would have caught a
+whole class of silent success, correctly written and pointed at one of its four callers. So this
+round's rule is the next one along, and it is about where a rule is *installed* rather than how it is
+tested: **when a rule is written down, enumerate its callers.** The audit A25.3 needed was never
+"does the parser work" — it is parameterised over eleven task shapes and every one of them passes —
+but "who compiles a postcondition, and does each of them obey this". Nothing in the repository
+answered the second question and nothing asked it, for the two cases the spec itself calls canonical,
+until an outside reader typed them in. The test that lands with the fix is therefore the corpus one:
+every route that compiles a postcondition, checked against `asked_for_parts`, so a planner added
+later fails here rather than on a deployment.
 
 Number 7 is the one worth reading twice, and it took two goes.
 

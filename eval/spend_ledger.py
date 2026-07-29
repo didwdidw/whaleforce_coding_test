@@ -57,8 +57,20 @@ def _opening(provenance: dict[str, Any]) -> tuple[float, int] | None:
     return (float(usd), int(calls)) if usd is not None else None
 
 
+#: Rounds run against the public app rather than the scored service. Their opening balance
+#: is a different service's book, and subtracting one from the other produces a number that
+#: describes nothing — `r5` opened at 0.000000 on the public app and would otherwise have
+#: been reported as costing the gap to the scored service's first round.
+PUBLIC_APP_HOST = "wf-agent.zeabur.app"
+
+
 def scored_splits() -> list[dict[str, Any]]:
-    """Every committed round result that carries an opening balance, in scoring order."""
+    """Every committed round result that carries an opening balance, in scoring order.
+
+    One ledger only. A round scored against the public URL is excluded and named below the
+    table instead, because the delta between splits is only a cost when both readings come
+    from the same book.
+    """
     out = []
     for path in sorted((ROOT / "eval" / "results").glob("*-deploy-*.json")):
         try:
@@ -67,7 +79,7 @@ def scored_splits() -> list[dict[str, Any]]:
             continue
         provenance = report.get("provenance") or {}
         opening = _opening(provenance)
-        if opening is None:
+        if opening is None or PUBLIC_APP_HOST in (provenance.get("base_url") or ""):
             continue
         started = provenance.get("started_at") or ""
         out.append({"file": path.name, "split": provenance.get("split", "?"),
@@ -151,6 +163,11 @@ def render() -> str:
         "the gap to the next opening balance. The last split's cost is the gap to the reading",
         "above, which also contains anything spent since — startup credential validations, and",
         "the part of a split that was interrupted before it could write a result.",
+        "",
+        "**Rounds scored against the public app are not in this table.** They run on the app",
+        "service's own ledger, and a delta taken across two services' books is not a cost.",
+        "What they spent is in the per-service rows above. `r5` (dev, Amendment 28) is one:",
+        "it opened at 0.000000 billed and ran on the free tier.",
         "",
         "| Split | Round | Build | Opened at (USD / calls) | Cost of this split |",
         "|---|---|---|---|---|",

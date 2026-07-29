@@ -4,7 +4,7 @@
   {
    "service": "scored",
    "taken_at": "2026-07-29T03:25:00Z",
-   "read_from": "provider_spend on the scored service's volume, read over ssh from the host filesystem (the service is loopback-bound and publishes no domain), after round r4 \u2014 the final round",
+   "read_from": "provider_spend on the scored service's volume, read over ssh from the host filesystem (the service is loopback-bound and publishes no domain), after round r4 — the final round",
    "rows": [
     {
      "day": "2026-07-28",
@@ -32,9 +32,23 @@
      "calls": 57
     }
    ]
+  },
+  {
+   "service": "public app",
+   "taken_at": "2026-07-29T18:47:00Z",
+   "read_from": "provider_spend on https://wf-agent.zeabur.app/healthz, after the r5 dev round. Read from the public endpoint rather than off the volume: the app publishes its own ledger, and the earlier readings needed ssh only because the scored service does not",
+   "rows": [
+    {
+     "day": "2026-07-29",
+     "tier": "free",
+     "usd": 0.089822,
+     "calls": 78
+    }
+   ]
   }
  ],
  "unledgered": [
-  "Local development ran on the free tier against ephemeral stores (`tiers_usable_under_policy: [\"free\"]` in every dev-local provenance block), so those calls were never charged and no surviving ledger totals them. They are absent from the notional figure, which is therefore a floor rather than a total."
+  "Local development ran on the free tier against ephemeral stores (`tiers_usable_under_policy: [\"free\"]` in every dev-local provenance block), so those calls were never charged and no surviving ledger totals them. They are absent from the notional figure, which is therefore a floor rather than a total.",
+  "The public app's per-day rows we hold sum to 0.134762 notional against a published cumulative of 0.135131 — a gap of 0.000369 on a day nobody took a reading for. It is notional, so nothing was charged either way; it is recorded rather than rounded away because a total that does not reconcile with its own rows is a total nobody can check."
  ]
 }

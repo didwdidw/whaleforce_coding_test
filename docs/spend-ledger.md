@@ -11,7 +11,7 @@ on a different day.
 | | USD | Calls |
 |---|---|---|
 | **Billed — money actually charged** | **0.1515** | 176 |
-| Notional — free-tier calls priced at the same published rates, never charged | 0.0449 | 68 |
+| Notional — free-tier calls priced at the same published rates, never charged | 0.1348 | 146 |
 
 Against a cumulative development ceiling of **USD 8.00** (a hard stop), a system ceiling of **USD 2.00/day** split between the scored workload and the public app, and the owner's real limit of **USD 10.00**.
 
@@ -26,11 +26,13 @@ enforcing against the sum of the two is how the public demo came to be on course
 | scored | 2026-07-28 | paid | 0.151541 | 176 |
 | public app | 2026-07-27 | free | 0.001015 | 11 |
 | public app | 2026-07-28 | free | 0.043925 | 57 |
+| public app | 2026-07-29 | free | 0.089822 | 78 |
 
 Readings taken by hand and recorded with their source:
 
 - **scored**, 2026-07-29T03:25:00Z — provider_spend on the scored service's volume, read over ssh from the host filesystem (the service is loopback-bound and publishes no domain), after round r4 — the final round
 - **public app**, 2026-07-29T03:25:00Z — provider_spend on the app service's volume, same method
+- **public app**, 2026-07-29T18:47:00Z — provider_spend on https://wf-agent.zeabur.app/healthz, after the r5 dev round. Read from the public endpoint rather than off the volume: the app publishes its own ledger, and the earlier readings needed ssh only because the scored service does not
 
 ## By split
 
@@ -38,6 +40,11 @@ Each split's provenance records the balance it **opened** with, so a split's cos
 the gap to the next opening balance. The last split's cost is the gap to the reading
 above, which also contains anything spent since — startup credential validations, and
 the part of a split that was interrupted before it could write a result.
+
+**Rounds scored against the public app are not in this table.** They run on the app
+service's own ledger, and a delta taken across two services' books is not a cost.
+What they spent is in the per-service rows above. `r5` (dev, Amendment 28) is one:
+it opened at 0.000000 billed and ran on the free tier.
 
 | Split | Round | Build | Opened at (USD / calls) | Cost of this split |
 |---|---|---|---|---|
@@ -51,6 +58,7 @@ the part of a split that was interrupted before it could write a result.
 ## Not in these numbers
 
 - Local development ran on the free tier against ephemeral stores (`tiers_usable_under_policy: ["free"]` in every dev-local provenance block), so those calls were never charged and no surviving ledger totals them. They are absent from the notional figure, which is therefore a floor rather than a total.
+- The public app's per-day rows we hold sum to 0.134762 notional against a published cumulative of 0.135131 — a gap of 0.000369 on a day nobody took a reading for. It is notional, so nothing was charged either way; it is recorded rather than rounded away because a total that does not reconcile with its own rows is a total nobody can check.
 
 ## Updating it
 

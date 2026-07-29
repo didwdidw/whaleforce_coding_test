@@ -75,7 +75,7 @@ APP_ROLE=fixture PORT=8801 ./entrypoint.sh &   # fixture 是獨立行程，先�
 ### 測試與評估
 
 ```bash
-pytest                                    # 638 tests，約 20 秒（tests/test_m2_integration.py 會開真實瀏覽器）
+pytest                                    # 673 tests，約 20 秒（tests/test_m2_integration.py 會開真實瀏覽器）
 python -m eval.harness --split dev
 python -m eval.harness --split experimental
 ```
@@ -165,18 +165,22 @@ python -m eval.harness --split experimental
 
 | | `r1` | `r2` | **`r3`** |
 |---|---|---|---|
-| 是什麼 | 對部署的第一輪 | 在修正後的 harness 上重評 dev | **凍結 build，兩個 split** |
-| Commit | `e1d13cae4926` | `aa1ee6c5d5eb` | **`e82cacb9e809`** |
-| 模型 | `gemini-3.1-flash-lite` | 同左 | 同左 |
-| Credential tier | paid | paid | paid |
-| Dev split 檔 | `8f584218…` | `9c1a0dee…` | `9c1a0dee…` |
-| Experimental split 檔 | `790d9440…` | *中斷 — 分析報告 §5.5* | `790d9440…` |
-| 執行時間 (UTC) | 2026-07-28 14:26–14:31 | 2026-07-28 17:05–17:07 | 2026-07-28 18:58–19:04 |
-| Dev 頭條 | 6/11 | 9/11 | **10/11** |
+| 是什麼 | 對部署的第一輪 | 在修正後的 harness 上重評 dev | **凍結 build，兩個 split** | Amendment 28 之後重評 dev |
+| Commit | `e1d13cae4926` | `aa1ee6c5d5eb` | **`e82cacb9e809`** | `0d1fbd94ecf2` |
+| 模型 | `gemini-3.1-flash-lite` | 同左 | 同左 | 同左 |
+| Credential tier | paid | paid | paid | free（公開站） |
+| Dev split 檔 | `8f584218…` | `9c1a0dee…` | `9c1a0dee…` | `9c1a0dee…` |
+| Experimental split 檔 | `790d9440…` | *中斷 — 分析報告 §5.5* | `790d9440…` | 未重跑 |
+| 執行時間 (UTC) | 2026-07-28 14:26–14:31 | 2026-07-28 17:05–17:07 | 2026-07-28 18:58–19:04 | 2026-07-29 18:41–18:44 |
+| Dev 頭條 | 6/11 | 9/11 | **10/11** | **8/11** |
+
+`r5` 不是計分輪：它跑在公開站、用免費憑證，所以它是兩個案例的能力重新量測，不是 `r3` 的替代。它在這裡是因為 **`r3` 的頭條現在已知包含兩筆什麼都沒回答的執行**。
 
 **Dev split — 15 案，14 案為 declared。** 14 案中有 13 案結束於該案宣告可接受的狀態。唯一沒有的是產品選擇拒答而非猜測：DEV-08 在長分類翻頁時耗盡 step budget、不給答案（L-2），每一輪皆如此。
 
 **頭條通過率 10/11**，比狀態計數低，因為要通過必須狀態符合預期*且* harness 能在儲存的 artifact 中重新定位每個已驗證的值。全 split 仍有兩個 evidence finding，都是 tier 分歧（DEV-02、DEV-13），與數值無關。
+
+**那 10 題裡有 2 題不是答案。** DEV-04 / DEV-05 問的是摺疊區塊展開後才看得到的值，`r3` 驗的是「那個 box 打開了」然後記成成功。在帶 Amendment 28 的 build 上，這兩題分別結束於 `unsupported / postcondition_unmet` 與 `failed / budget_exhausted`，其餘十三題逐題不變（`r5`）。**原本靜默的錯現在是大聲的錯，這就是這次修正的全部內容**——它沒有讓 OP-5 答出那兩題。
 
 **輪次之間的變化不是一個故事。** `r1` 的 6/11 主要是*我們的評分器*有錯：五個 miss 中有四個是 harness 只搜 rendered text。`r2` 的 9/11 修好了這點，但**不是單一變因**：該 build 同時帶進 OP-7 參數化、n-claim postcondition 與 locator memory（分析報告 §5.3.1 直說）。真正把量測缺陷與產品改動分開的是 artifact replay：用 r1 自己儲存的 bytes、在修正後的 corpus 下重檢，恰好解釋了 r1 五個 miss 中的四個。
 

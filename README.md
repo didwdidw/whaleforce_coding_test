@@ -112,7 +112,7 @@ the free tier. `/healthz` reports which policy is in force and which tiers are u
 ### Tests and evaluation
 
 ```bash
-pytest                                    # 638 tests, ~20 s (a real browser runs
+pytest                                    # 673 tests, ~20 s (a real browser runs
                                           # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
@@ -143,7 +143,7 @@ promise is what is left, on sites we do not control.
 | ID | Site | Operation | Why it is hard | Status | From |
 |---|---|---|---|---|---|
 | OP-4 | en.wikipedia.org | Sort a sortable wikitable by a named column, read a cell from the new top row | Client-side sort: the DOM order changes, the URL does not, so the answer cannot be obtained by fetching a URL | **2 of 3 dev cases as expected.** DEV-01 carries an independently derived top row that **agreed across all 8 cells**; DEV-03's column is not one the oracle can find on that page, so it is reported as un-derived rather than as checked. The third (DEV-02) names the article by description rather than by title and correctly stops before browsing — see L-1 | `r3` |
-| OP-5 | en.wikipedia.org | Expand a collapsed section/navbox and read a value not visible beforehand | The value is not in the DOM-visible state until a real interaction happens | **2 of 2 — and that number measures the state transition only, not the value.** An independent reviewer ran the two canonical cases against the deployment and found that both freeze a postcondition claiming only *"box 1 is no longer collapsed"*: the planner's value claim is conditional on a regex that matches a **named** row group, both cases name an **ordinal** one, and the asked-for value was dropped in silence while the run returned `succeeded_verified`. Amendment 28 rules it a violation of A25.3, which already forbade exactly this and had been wired to one caller. Fixing it is A-84; **this row keeps the number and says what it measured** rather than reporting a value result we did not measure. Also true of the earlier history: DEV-04 spent `r2` failing on the artifact-source gate, Amendment 26 rebuilt it, the case passed again on the weakest of that gate's three routes (§5.4). No independent oracle either way (A25.4) | `r3` |
+| OP-5 | en.wikipedia.org | Expand a collapsed section/navbox and read a value not visible beforehand | The value is not in the DOM-visible state until a real interaction happens | **2 of 2 — and that number measures the state transition only, not the value.** An independent reviewer ran the two canonical cases against the deployment and found that both freeze a postcondition claiming only *"box 1 is no longer collapsed"*: the planner's value claim is conditional on a regex that matches a **named** row group, both cases name an **ordinal** one, and the asked-for value was dropped in silence while the run returned `succeeded_verified`. Amendment 28 rules it a violation of A25.3, which already forbade exactly this and had been wired to one caller. **Fixed (A-84)**: every planner now reconciles its claims against what the task asked for, and an asked-for part with no claim gets the generic located-label binding. Re-scored on the build carrying the fix (`r5`), the two cases end `unsupported / postcondition_unmet` and `failed / budget_exhausted` — so this record demonstrates the state transition and now refuses to report a value it cannot bind, rather than scoring the refusal as a success. Also true of the earlier history: DEV-04 spent `r2` failing on the artifact-source gate, Amendment 26 rebuilt it, the case passed again on the weakest of that gate's three routes (§5.4). No independent oracle either way (A25.4) | `r3` |
 | OP-6 | books.toscrape.com | Navigate a category, page through it, extract list-level facts | Multi-page state, and the honest answer often requires proving coverage | **2 of 3.** The third exhausts the step budget on a long category and returns no answer — L-2. It has done this in all three rounds | `r3` |
 | OP-7 | books.toscrape.com | Open a product detail page and extract a **labelled** field (UPC, Availability, Price excl. tax) | The answer is a label→value binding, not a string that happens to appear | **2 of 2**, and this is the first round scoring it *after* the product became a parameter: it takes the title from the task and reaches it by paging the listing, bounded to 6 pages. A title beyond that ends `unsupported` naming the bound rather than reporting the wrong book | `r3` |
 
@@ -336,6 +336,15 @@ and the evidence bundles are in `eval/results/` and `docs/analysis-report.md`.
 rounds were run; all three are committed, because a number that only survives because the rounds
 that disagreed with it were deleted is not a measurement.
 
+**`r3`'s 10 of 11 included two cases that answered nothing, and the fix costs two of them.** An
+independent review found that OP-5 returned `succeeded_verified` for DEV-04 and DEV-05 while
+verifying only that a box had opened — the value each task asked for was never compiled into a claim
+(Amendment 28, analysis report §5.4 defect 21). Every planner now reconciles its claims against what
+the task asked for, so those two cases can no longer pass by having nothing to fail. Re-scored on the
+build carrying the fix: **`r5`, 8 of 11**, on the same split file, the same model, the same fifteen
+cases — and the only two that moved are DEV-04 and DEV-05. That is the measurement working: the
+number went down because it was measuring something it should not have counted.
+
 **The live deployment is not necessarily the commit these rounds scored, and this file does not
 claim it is.** Every push to `master` redeploys. Most commits after `e82cacb9e809` are results,
 evidence and prose; the ones that are code are the fixes for defects 11–15 in the analysis report's
@@ -347,16 +356,20 @@ provenance block, not the running container: check `git_sha` in `eval/results/*-
 `*-r4.json` against `/healthz` if you want to see the distance. Scoring more rounds to close it would
 mean scoring a held-out split twice, which is the one thing that cannot be done.
 
-| | `r1` | `r2` | **`r3`** |
-|---|---|---|---|
-| What it is | first round against the deployment | dev re-scored on the corrected harness | **the frozen build, both splits** |
-| Commit | `e1d13cae4926` | `aa1ee6c5d5eb` | **`e82cacb9e809`** |
-| Model | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` |
-| Credential tier | paid | paid | paid |
-| Dev split file | `8f584218…` | `9c1a0dee…` | `9c1a0dee…` |
-| Experimental split file | `790d9440…` | *interrupted — analysis report §5.5* | `790d9440…` |
-| Ran (UTC) | 2026-07-28 14:26–14:31 | 2026-07-28 17:05–17:07 | 2026-07-28 18:58–19:04 |
-| Dev headline | 6 of 11 | 9 of 11 | **10 of 11** |
+| | `r1` | `r2` | **`r3`** | `r5` |
+|---|---|---|---|---|
+| What it is | first round against the deployment | dev re-scored on the corrected harness | **the frozen build, both splits** | dev re-scored after Amendment 28 |
+| Commit | `e1d13cae4926` | `aa1ee6c5d5eb` | **`e82cacb9e809`** | `0d1fbd94ecf2` |
+| Model | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` | `gemini-3.1-flash-lite` |
+| Credential tier | paid | paid | paid | free (public demo) |
+| Dev split file | `8f584218…` | `9c1a0dee…` | `9c1a0dee…` | `9c1a0dee…` |
+| Experimental split file | `790d9440…` | *interrupted — analysis report §5.5* | `790d9440…` | not re-run |
+| Ran (UTC) | 2026-07-28 14:26–14:31 | 2026-07-28 17:05–17:07 | 2026-07-28 18:58–19:04 | 2026-07-29 18:41–18:44 |
+| Dev headline | 6 of 11 | 9 of 11 | **10 of 11** | **8 of 11** |
+
+`r5` is not a scored round: it ran against the public URL on the free credential, so it is a
+capability re-measurement of two cases and not a replacement for `r3`'s provenance. It is here
+because `r3`'s headline is now known to have counted two runs that answered nothing.
 
 **Dev split — 15 cases, 14 declared.** Thirteen of the fourteen ended in a status the case declared
 acceptable. The one that did not is the product refusing rather than guessing: DEV-08 exhausts its
@@ -366,6 +379,14 @@ The **headline pass rate is 10 of 11**, lower than the status count because a ca
 the status is as expected *and* the harness can re-locate every verified value in the stored
 artifact. Two evidence findings remain across the whole split, and both are tier disagreements
 (DEV-02, DEV-13) rather than anything about a value.
+
+**Two of those ten were not answers, and `r5` is what that looks like once the postcondition demands
+one.** DEV-04 and DEV-05 ask for a value inside a collapsed box; `r3` verified that the box opened
+and called it a success. On the build carrying Amendment 28 they end `unsupported /
+postcondition_unmet` and `failed / budget_exhausted` — the run abstains or runs out of steps rather
+than reporting a state transition as an answer. Every other case is unchanged, including DEV-08's
+budget exhaustion. **The pair that was silently wrong is now loudly wrong, and that is the whole
+change**: nothing here makes OP-5 answer those two questions, and §5.4 defect 21 says so.
 
 **What moved between the rounds, and why it is not one story.** `r1` at 6 of 11 was mostly *our
 scorer* being wrong: four of its five misses were the harness searching rendered text only, while

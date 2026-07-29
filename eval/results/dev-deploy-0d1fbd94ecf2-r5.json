@@ -1,0 +1,1679 @@
+{
+ "provenance": {
+  "harness_version": "harness/1.3",
+  "split": "dev",
+  "base_url": "https://wf-agent.zeabur.app",
+  "git_sha": "0d1fbd94ecf2",
+  "model_pinned": "gemini-3.1-flash-lite",
+  "eval_set_sha256": "9c1a0deedd020af491c125e2211d2dd3d62adeedf3b5f3d6888e130607162661",
+  "eval_set_file": "dev-set.md",
+  "planner_available": true,
+  "credentials": {
+   "configured": true,
+   "tiers_present": [
+    "free",
+    "paid"
+   ],
+   "tiers_usable_under_policy": [
+    "free",
+    "paid"
+   ],
+   "policy": "public_demo_funded",
+   "search_path": "/etc/wf"
+  },
+  "budgets": {
+   "wall_clock_seconds": 180,
+   "max_steps": 25,
+   "max_llm_calls": 12,
+   "exploration_calls": 8,
+   "recovery_calls": 4,
+   "max_input_tokens_per_call": 8000,
+   "max_input_tokens_per_run": 60000,
+   "max_output_tokens_per_call": 2048,
+   "max_output_tokens_per_run": 16000
+  },
+  "prices_usd_per_1m": {
+   "input": 0.25,
+   "output": 1.5
+  },
+  "spend": {
+   "day": "2026-07-29",
+   "today_billed_usd": 0,
+   "today_billed_calls": 0,
+   "today_notional_usd": 0.050788,
+   "today_notional_calls": 50,
+   "cumulative_billed_usd": 0,
+   "cumulative_billed_calls": 0,
+   "cumulative_notional_usd": 0.096096,
+   "cumulative_notional_calls": 122,
+   "by_tier_usd": {
+    "free": 0.096096
+   },
+   "billed_tiers": [
+    "paid"
+   ],
+   "meaning": {
+    "billed": "money actually charged, on a paid credential. Ceilings enforce against this and cost figures are reported from it.",
+    "notional": "free-tier calls priced at the same published rates. Cost that was not charged; never enforced against (A23.1, A23.2)."
+   },
+   "ceiling_usd": 2.0,
+   "ceiling_usd_per_day": 0.5,
+   "enforced_against": "billed",
+   "billed_spend_authorised": true,
+   "credential_policy": "public_demo_funded",
+   "share_of_system": 0.25,
+   "system_ceiling_usd_per_day": 2.0,
+   "system_split": {
+    "scored": 0.75,
+    "public_demo": 0.25,
+    "public_demo_funded": 0.25
+   },
+   "enforced": true,
+   "note": "Checked before every call, against billed dollars only. Exceeding it is a refusal, not a warning. This process's own spend is what appears above; the system total is the sum across the split, and no process can read the other's ledger."
+  },
+  "session_policy": "one session per case",
+  "started_at": "2026-07-29T18:41:03Z",
+  "case_schema": "browser_task",
+  "finished_at": "2026-07-29T18:44:41Z"
+ },
+ "aggregate": {
+  "headline_declared": {
+   "cases": 11,
+   "passed": 8,
+   "rate": 0.7273
+  },
+  "experimental_reported_separately": {
+   "cases": 3,
+   "passed": 1,
+   "rate": 0.3333
+  },
+  "all_cases": {
+   "cases": 15,
+   "passed": 10,
+   "rate": 0.6667
+  },
+  "suite_errors": {
+   "cases": 0,
+   "detail": []
+  },
+  "failure_class_histogram": {
+   "budget_exhausted": 2,
+   "none": 9,
+   "policy_refused": 2,
+   "postcondition_unmet": 1,
+   "robots_disallowed": 1
+  },
+  "evidence_findings": 2,
+  "tier_disagreements": [
+   {
+    "case": "DEV-02",
+    "declared": "T-DECLARED",
+    "reported": "T-EXPERIMENTAL"
+   },
+   {
+    "case": "DEV-13",
+    "declared": "T-REFUSED",
+    "reported": "T-EXPERIMENTAL"
+   }
+  ],
+  "experimental_breadth": {
+   "cases": 3,
+   "excluded_suite_errors": 0,
+   "attempted": {
+    "count": 1,
+    "rate": 0.3333,
+    "interval_95": [
+     0.0615,
+     0.7923
+    ]
+   },
+   "verified": {
+    "count": 1,
+    "rate": 0.3333,
+    "interval_95": [
+     0.0615,
+     0.7923
+    ]
+   },
+   "abstained_after_looking": {
+    "count": 0,
+    "rate": 0.0,
+    "interval_95": [
+     0.0,
+     0.5615
+    ]
+   },
+   "refused_by_policy": {
+    "count": 2,
+    "rate": 0.6667,
+    "interval_95": [
+     0.2077,
+     0.9385
+    ]
+   },
+   "failed_or_blocked": {
+    "count": 0,
+    "rate": 0.0,
+    "interval_95": [
+     0.0,
+     0.5615
+    ]
+   }
+  },
+  "shortcut_refusals": 0,
+  "latency": {
+   "all": {
+    "n": 15,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 15,
+     "median": 5.94,
+     "p90": 16.91,
+     "min": 0.02,
+     "max": 34.25
+    },
+    "time_to_first_result_seconds": {
+     "n": 12,
+     "median": 6.17,
+     "p90": 11.7,
+     "min": 2.46,
+     "max": 12.0
+    },
+    "queue_wait_seconds": {
+     "n": 15,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 15,
+     "median": 2.2,
+     "p90": 4.63,
+     "min": 0.0,
+     "max": 19.48
+    }
+   },
+   "T-DECLARED": {
+    "n": 11,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 11,
+     "median": 11.81,
+     "p90": 16.91,
+     "min": 2.49,
+     "max": 34.25
+    },
+    "time_to_first_result_seconds": {
+     "n": 11,
+     "median": 5.89,
+     "p90": 11.7,
+     "min": 2.46,
+     "max": 12.0
+    },
+    "queue_wait_seconds": {
+     "n": 11,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 11,
+     "median": 2.42,
+     "p90": 4.63,
+     "min": 1.06,
+     "max": 19.48
+    }
+   },
+   "T-EXPERIMENTAL": {
+    "n": 3,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 3,
+     "median": 0.14,
+     "p90": 0.14,
+     "min": 0.03,
+     "max": 11.68
+    },
+    "time_to_first_result_seconds": {
+     "n": 1,
+     "median": 11.64,
+     "p90": 11.64,
+     "min": 11.64,
+     "max": 11.64
+    },
+    "queue_wait_seconds": {
+     "n": 3,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 3,
+     "median": 0.0,
+     "p90": 0.0,
+     "min": 0.0,
+     "max": 3.67
+    }
+   },
+   "model_driven": {
+    "n": 12,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 12,
+     "median": 11.75,
+     "p90": 16.91,
+     "min": 2.49,
+     "max": 34.25
+    },
+    "time_to_first_result_seconds": {
+     "n": 12,
+     "median": 6.17,
+     "p90": 11.7,
+     "min": 2.46,
+     "max": 12.0
+    },
+    "queue_wait_seconds": {
+     "n": 12,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 12,
+     "median": 2.78,
+     "p90": 4.63,
+     "min": 1.06,
+     "max": 19.48
+    }
+   },
+   "scripted": {
+    "n": 1,
+    "excluded_unreportable": 0,
+    "run_seconds": {
+     "n": 1,
+     "median": 0.14,
+     "p90": 0.14,
+     "min": 0.14,
+     "max": 0.14
+    },
+    "time_to_first_result_seconds": {
+     "n": 0
+    },
+    "queue_wait_seconds": {
+     "n": 1,
+     "median": 0.01,
+     "p90": 0.01,
+     "min": 0.01,
+     "max": 0.01
+    },
+    "model_seconds": {
+     "n": 1,
+     "median": 0.0,
+     "p90": 0.0,
+     "min": 0.0,
+     "max": 0.0
+    }
+   }
+  }
+ },
+ "cases": [
+  {
+   "case": "DEV-01",
+   "record": "OP-4",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+     "evaluated_path": "/wiki/List_of_S%26P_500_companies",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_5b3e9ec36247",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 2,
+    "verified_claims": 2,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "sort_state: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "top_row: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 11.81,
+   "latency": {
+    "queue_wait_seconds": 0.008,
+    "run_seconds": 11.811,
+    "total_seconds": 11.82,
+    "time_to_first_result_seconds": 11.698,
+    "steps_measured": 15,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 13,
+     "p90": 1510,
+     "max": 1873
+    },
+    "slowest_step": {
+     "seq": 10,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 2",
+     "ms": 1873
+    },
+    "model_seconds": 2.42,
+    "model_calls": 2,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 15,
+    "llm_calls_exploration": 2,
+    "llm_calls_recovery": 0,
+    "input_tokens": 10341,
+    "output_tokens": 298,
+    "usd": 0.003032,
+    "started_at": 1785350465.1322942,
+    "ended_at": 1785350476.943443,
+    "elapsed_seconds": 11.81,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "op4",
+    "url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+    "comparable": true,
+    "agrees": true,
+    "cells_compared": 8,
+    "not_in_expected_row": [],
+    "expected_top_row": [
+     "HONA",
+     "Honeywell Aerospace",
+     "Industrials",
+     "Aerospace & Defense",
+     "Phoenix, Arizona",
+     "2026-06-29",
+     "0002089271",
+     "1914"
+    ],
+    "sort_key": "lexicographic"
+   },
+   "passed": true
+  },
+  {
+   "case": "DEV-02",
+   "record": "OP-4",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": false,
+   "precondition": {
+    "url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
+     "evaluated_path": "/wiki/List_of_S%26P_500_companies",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_70128a2f65c7",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": null,
+   "terminal_status": "unsupported",
+   "failure_class": "policy_refused",
+   "counts_as_success": false,
+   "outcome_kind": "refused_by_policy",
+   "attempted": false,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [
+     "declared tier T-DECLARED but the run reports T-EXPERIMENTAL"
+    ],
+    "notes": []
+   },
+   "duration_seconds": 0.02,
+   "latency": {
+    "queue_wait_seconds": 0.006,
+    "run_seconds": 0.025,
+    "total_seconds": 0.031,
+    "time_to_first_result_seconds": null,
+    "steps_measured": 2,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 4,
+     "p90": 5,
+     "max": 5
+    },
+    "slowest_step": {
+     "seq": 1,
+     "kind": "policy_check",
+     "summary": "SSRF guard enabled",
+     "ms": 5
+    },
+    "model_seconds": 0,
+    "model_calls": 0,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 2,
+    "llm_calls_exploration": 0,
+    "llm_calls_recovery": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "usd": 0.0,
+    "started_at": 1785350485.3256228,
+    "ended_at": 1785350485.3504562,
+    "elapsed_seconds": 0.02,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "op4",
+    "comparable": false,
+    "why": "the run froze no article, column and direction to check against"
+   },
+   "passed": false
+  },
+  {
+   "case": "DEV-03",
+   "record": "OP-4",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)",
+     "evaluated_path": "/wiki/List_of_countries_by_GDP_(nominal)",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_1f6b52db2029",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 2,
+    "verified_claims": 2,
+    "independently_checked": 0,
+    "not_reproducible_here": [
+     "sort_state: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "top_row: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 5.94,
+   "latency": {
+    "queue_wait_seconds": 0.006,
+    "run_seconds": 5.944,
+    "total_seconds": 5.95,
+    "time_to_first_result_seconds": 5.889,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 10,
+     "p90": 1230,
+     "max": 2500
+    },
+    "slowest_step": {
+     "seq": 5,
+     "kind": "navigate",
+     "summary": "Navigate to https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)",
+     "ms": 2500
+    },
+    "model_seconds": 1.219,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 5309,
+    "output_tokens": 193,
+    "usd": 0.001617,
+    "started_at": 1785350487.3238559,
+    "ended_at": 1785350493.2679675,
+    "elapsed_seconds": 5.94,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "op4",
+    "url": "https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)",
+    "comparable": false,
+    "why": "no wikitable on the page has a 'country' column"
+   },
+   "passed": true
+  },
+  {
+   "case": "DEV-04",
+   "record": "OP-5",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+     "evaluated_path": "/wiki/Apple_Inc.",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_1b637764dcff",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "unsupported",
+   "failure_class": "postcondition_unmet",
+   "counts_as_success": false,
+   "outcome_kind": "abstained_after_looking",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 23.4,
+   "latency": {
+    "queue_wait_seconds": 0.01,
+    "run_seconds": 23.4,
+    "total_seconds": 23.409,
+    "time_to_first_result_seconds": 6.453,
+    "steps_measured": 24,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 6,
+     "p90": 1260,
+     "max": 4965
+    },
+    "slowest_step": {
+     "seq": 17,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 3",
+     "ms": 4965
+    },
+    "model_seconds": 8.276,
+    "model_calls": 4,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 24,
+    "llm_calls_exploration": 4,
+    "llm_calls_recovery": 0,
+    "input_tokens": 14774,
+    "output_tokens": 1858,
+    "usd": 0.006481,
+    "started_at": 1785350501.9410126,
+    "ended_at": 1785350525.3407428,
+    "elapsed_seconds": 23.4,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": false
+  },
+  {
+   "case": "DEV-05",
+   "record": "OP-5",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://en.wikipedia.org/wiki/Apple_Inc.",
+     "evaluated_path": "/wiki/Apple_Inc.",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_51f8de25e5c3",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "failed",
+   "failure_class": "budget_exhausted",
+   "counts_as_success": false,
+   "outcome_kind": "failed_or_blocked",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 34.25,
+   "latency": {
+    "queue_wait_seconds": 0.007,
+    "run_seconds": 34.254,
+    "total_seconds": 34.261,
+    "time_to_first_result_seconds": 6.725,
+    "steps_measured": 25,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 6,
+     "p90": 3307,
+     "max": 8365
+    },
+    "slowest_step": {
+     "seq": 22,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 4",
+     "ms": 8365
+    },
+    "model_seconds": 19.478,
+    "model_calls": 4,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 25,
+    "llm_calls_exploration": 4,
+    "llm_calls_recovery": 0,
+    "input_tokens": 15604,
+    "output_tokens": 4462,
+    "usd": 0.010594,
+    "started_at": 1785350529.174451,
+    "ended_at": 1785350563.4287782,
+    "elapsed_seconds": 34.25,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": false
+  },
+  {
+   "case": "DEV-06",
+   "record": "OP-6",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://books.toscrape.com/",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": null,
+     "rule": "no robots.txt published (HTTP 404): the origin declares no restrictions",
+     "source": "no_robots_txt",
+     "evaluated_url": "https://books.toscrape.com/",
+     "evaluated_path": "/",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_1f11b6354055",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 1,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "pager: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "duration_seconds": 3.87,
+   "latency": {
+    "queue_wait_seconds": 0.007,
+    "run_seconds": 3.868,
+    "total_seconds": 3.874,
+    "time_to_first_result_seconds": 3.824,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 7,
+     "p90": 549,
+     "max": 2218
+    },
+    "slowest_step": {
+     "seq": 7,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 1",
+     "ms": 2218
+    },
+    "model_seconds": 2.203,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 3135,
+    "output_tokens": 145,
+    "usd": 0.001001,
+    "started_at": 1785350568.1786852,
+    "ended_at": 1785350572.04637,
+    "elapsed_seconds": 3.87,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  },
+  {
+   "case": "DEV-07",
+   "record": "OP-6",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": null,
+     "rule": "no robots.txt published (HTTP 404): the origin declares no restrictions",
+     "source": "no_robots_txt",
+     "evaluated_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html",
+     "evaluated_path": "/catalogue/category/books/fiction_10/index.html",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_fe16113a4bfc",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 1,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "pager: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "duration_seconds": 12.05,
+   "latency": {
+    "queue_wait_seconds": 0.008,
+    "run_seconds": 12.052,
+    "total_seconds": 12.059,
+    "time_to_first_result_seconds": 12.004,
+    "steps_measured": 18,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 12,
+     "p90": 3659,
+     "max": 4023
+    },
+    "slowest_step": {
+     "seq": 10,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 2",
+     "ms": 4023
+    },
+    "model_seconds": 3.205,
+    "model_calls": 3,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 18,
+    "llm_calls_exploration": 3,
+    "llm_calls_recovery": 0,
+    "input_tokens": 8908,
+    "output_tokens": 474,
+    "usd": 0.002938,
+    "started_at": 1785350577.2960453,
+    "ended_at": 1785350589.3476243,
+    "elapsed_seconds": 12.05,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  },
+  {
+   "case": "DEV-08",
+   "record": "OP-6",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": null,
+     "rule": "no robots.txt published (HTTP 404): the origin declares no restrictions",
+     "source": "no_robots_txt",
+     "evaluated_url": "https://books.toscrape.com/catalogue/category/books/nonfiction_13/index.html",
+     "evaluated_path": "/catalogue/category/books/nonfiction_13/index.html",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_922975ffe527",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "failed",
+   "failure_class": "budget_exhausted",
+   "counts_as_success": false,
+   "outcome_kind": "failed_or_blocked",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": false,
+   "evidence": {
+    "claims": 0,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 16.91,
+   "latency": {
+    "queue_wait_seconds": 0.008,
+    "run_seconds": 16.911,
+    "total_seconds": 16.919,
+    "time_to_first_result_seconds": 2.975,
+    "steps_measured": 25,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 55,
+     "p90": 3668,
+     "max": 3832
+    },
+    "slowest_step": {
+     "seq": 22,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 4",
+     "ms": 3832
+    },
+    "model_seconds": 4.63,
+    "model_calls": 4,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 25,
+    "llm_calls_exploration": 4,
+    "llm_calls_recovery": 0,
+    "input_tokens": 12896,
+    "output_tokens": 630,
+    "usd": 0.004169,
+    "started_at": 1785350597.1114626,
+    "ended_at": 1785350614.0227313,
+    "elapsed_seconds": 16.91,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": false
+  },
+  {
+   "case": "DEV-09",
+   "record": "OP-7",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": null,
+     "rule": "no robots.txt published (HTTP 404): the origin declares no restrictions",
+     "source": "no_robots_txt",
+     "evaluated_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html",
+     "evaluated_path": "/catalogue/category/books/poetry_23/index.html",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_782bfe5226d4",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 3,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 2.49,
+   "latency": {
+    "queue_wait_seconds": 0.006,
+    "run_seconds": 2.494,
+    "total_seconds": 2.5,
+    "time_to_first_result_seconds": 2.463,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 6,
+     "p90": 440,
+     "max": 1072
+    },
+    "slowest_step": {
+     "seq": 7,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 1",
+     "ms": 1072
+    },
+    "model_seconds": 1.06,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 2772,
+    "output_tokens": 150,
+    "usd": 0.000918,
+    "started_at": 1785350618.762953,
+    "ended_at": 1785350621.256938,
+    "elapsed_seconds": 2.49,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  },
+  {
+   "case": "DEV-10",
+   "record": "OP-7",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": null,
+     "rule": "no robots.txt published (HTTP 404): the origin declares no restrictions",
+     "source": "no_robots_txt",
+     "evaluated_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html",
+     "evaluated_path": "/catalogue/category/books/poetry_23/index.html",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_1cf4a1c9f030",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 3,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 2.8,
+   "latency": {
+    "queue_wait_seconds": 0.013,
+    "run_seconds": 2.801,
+    "total_seconds": 2.813,
+    "time_to_first_result_seconds": 2.771,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 6,
+     "p90": 436,
+     "max": 1410
+    },
+    "slowest_step": {
+     "seq": 7,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 1",
+     "ms": 1410
+    },
+    "model_seconds": 1.399,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 2772,
+    "output_tokens": 150,
+    "usd": 0.000918,
+    "started_at": 1785350626.643507,
+    "ended_at": 1785350629.4443653,
+    "elapsed_seconds": 2.8,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  },
+  {
+   "case": "DEV-11",
+   "record": "XB-1 (Mode B)",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": null,
+     "rule": "no robots.txt published (HTTP 404): the origin declares no restrictions",
+     "source": "no_robots_txt",
+     "evaluated_url": "https://books.toscrape.com/catalogue/category/books/poetry_23/index.html",
+     "evaluated_path": "/catalogue/category/books/poetry_23/index.html",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_7ade76150784",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "no_result_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "no_result_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 2,
+    "verified_claims": 2,
+    "independently_checked": 1,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "items: label anchor 'every product entry in the listing' is a rule, not page text"
+    ]
+   },
+   "duration_seconds": 2.77,
+   "latency": {
+    "queue_wait_seconds": 0.009,
+    "run_seconds": 2.775,
+    "total_seconds": 2.784,
+    "time_to_first_result_seconds": 2.735,
+    "steps_measured": 12,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 8,
+     "p90": 535,
+     "max": 1128
+    },
+    "slowest_step": {
+     "seq": 7,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 1",
+     "ms": 1128
+    },
+    "model_seconds": 1.111,
+    "model_calls": 1,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 12,
+    "llm_calls_exploration": 1,
+    "llm_calls_recovery": 0,
+    "input_tokens": 3142,
+    "output_tokens": 137,
+    "usd": 0.000991,
+    "started_at": 1785350634.451676,
+    "ended_at": 1785350637.2266545,
+    "elapsed_seconds": 2.77,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  },
+  {
+   "case": "DEV-12",
+   "record": "XB-4",
+   "declared_tier": "T-DECLARED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": null,
+     "rule": "no robots.txt published (HTTP 404): the origin declares no restrictions",
+     "source": "no_robots_txt",
+     "evaluated_url": "https://books.toscrape.com/catalogue/category/books/fiction_10/index.html",
+     "evaluated_path": "/catalogue/category/books/fiction_10/index.html",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_2b1213579f99",
+   "tier": "T-DECLARED",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "failed",
+    "succeeded_verified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 3,
+    "verified_claims": 3,
+    "independently_checked": 1,
+    "not_reproducible_here": [
+     "result_counter: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison",
+     "pager: derived value (dict), which this scorer cannot re-derive from the artifact by string comparison"
+    ],
+    "findings": [],
+    "notes": [
+     "result_counter: label anchor 'n results - showing x to y' is a rule, not page text",
+     "pager: label anchor 'page n of m' is a rule, not page text",
+     "items: label anchor 'product listing entries' is a rule, not page text"
+    ]
+   },
+   "duration_seconds": 11.86,
+   "latency": {
+    "queue_wait_seconds": 0.01,
+    "run_seconds": 11.861,
+    "total_seconds": 11.871,
+    "time_to_first_result_seconds": 11.81,
+    "steps_measured": 18,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 12,
+     "p90": 3813,
+     "max": 3904
+    },
+    "slowest_step": {
+     "seq": 13,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 3",
+     "ms": 3904
+    },
+    "model_seconds": 3.147,
+    "model_calls": 3,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 18,
+    "llm_calls_exploration": 3,
+    "llm_calls_recovery": 0,
+    "input_tokens": 8908,
+    "output_tokens": 474,
+    "usd": 0.002938,
+    "started_at": 1785350642.4318044,
+    "ended_at": 1785350654.2929807,
+    "elapsed_seconds": 11.86,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  },
+  {
+   "case": "DEV-13",
+   "record": "XB-5",
+   "declared_tier": "T-REFUSED",
+   "tier_as_declared": false,
+   "precondition": {
+    "url": null,
+    "checked": false,
+    "ok": true,
+    "reason": "the case declares no reachable entry point, so there is nothing to assert before running it"
+   },
+   "suite_error": false,
+   "run_id": "run_e2410aead113",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "scripted",
+   "terminal_status": "blocked",
+   "failure_class": "robots_disallowed",
+   "counts_as_success": false,
+   "outcome_kind": "refused_by_policy",
+   "attempted": false,
+   "expected": [
+    "blocked"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 0,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [
+     "declared tier T-REFUSED but the run reports T-EXPERIMENTAL"
+    ],
+    "notes": []
+   },
+   "duration_seconds": 0.14,
+   "latency": {
+    "queue_wait_seconds": 0.007,
+    "run_seconds": 0.141,
+    "total_seconds": 0.147,
+    "time_to_first_result_seconds": null,
+    "steps_measured": 4,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 5,
+     "p90": 16,
+     "max": 16
+    },
+    "slowest_step": {
+     "seq": 4,
+     "kind": "policy_check",
+     "summary": "Policy check for https://en.wikipedia.org/wiki/Special:Search?search=convertible%20arbitrage",
+     "ms": 16
+    },
+    "model_seconds": 0,
+    "model_calls": 0,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 4,
+    "llm_calls_exploration": 0,
+    "llm_calls_recovery": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "usd": 0.0,
+    "started_at": 1785350661.4239213,
+    "ended_at": 1785350661.5646515,
+    "elapsed_seconds": 0.14,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": false
+  },
+  {
+   "case": "DEV-14",
+   "record": "XB-5",
+   "declared_tier": "T-REFUSED",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": null,
+    "checked": false,
+    "ok": true,
+    "reason": "the case declares no reachable entry point, so there is nothing to assert before running it"
+   },
+   "suite_error": false,
+   "run_id": "run_dddbee555bfd",
+   "tier": "T-REFUSED",
+   "execution_path": null,
+   "terminal_status": "unsupported",
+   "failure_class": "policy_refused",
+   "counts_as_success": false,
+   "outcome_kind": "refused_by_policy",
+   "attempted": false,
+   "expected": [
+    "unsupported"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 0,
+    "verified_claims": 0,
+    "independently_checked": 0,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 0.02,
+   "latency": {
+    "queue_wait_seconds": 0.007,
+    "run_seconds": 0.023,
+    "total_seconds": 0.03,
+    "time_to_first_result_seconds": null,
+    "steps_measured": 2,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 5,
+     "p90": 5,
+     "max": 5
+    },
+    "slowest_step": {
+     "seq": 2,
+     "kind": "policy_check",
+     "summary": "Refused before browsing: private or personal data",
+     "ms": 5
+    },
+    "model_seconds": 0,
+    "model_calls": 0,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 2,
+    "llm_calls_exploration": 0,
+    "llm_calls_recovery": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "usd": 0.0,
+    "started_at": 1785350662.7046635,
+    "ended_at": 1785350662.7277155,
+    "elapsed_seconds": 0.02,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  },
+  {
+   "case": "DEV-15",
+   "record": "XB-5",
+   "declared_tier": "T-EXPERIMENTAL",
+   "tier_as_declared": true,
+   "precondition": {
+    "url": "https://www.gutenberg.org/",
+    "checked": true,
+    "ok": true,
+    "reason": "HTTP 200",
+    "http_status": 200,
+    "robots": {
+     "allowed": true,
+     "directive": null,
+     "pattern": null,
+     "group_user_agent": "*",
+     "rule": "no rule matched",
+     "source": "matched",
+     "evaluated_url": "https://www.gutenberg.org/",
+     "evaluated_path": "/",
+     "evaluated_as": "whaleforcecodingtest-task1"
+    }
+   },
+   "suite_error": false,
+   "run_id": "run_03627c2536c4",
+   "tier": "T-EXPERIMENTAL",
+   "execution_path": "model_driven",
+   "terminal_status": "succeeded_verified",
+   "failure_class": null,
+   "counts_as_success": true,
+   "outcome_kind": "verified",
+   "attempted": true,
+   "expected": [
+    "blocked",
+    "succeeded_verified",
+    "unsupported",
+    "unverified"
+   ],
+   "status_as_expected": true,
+   "evidence": {
+    "claims": 1,
+    "verified_claims": 1,
+    "independently_checked": 1,
+    "not_reproducible_here": [],
+    "findings": [],
+    "notes": []
+   },
+   "duration_seconds": 11.68,
+   "latency": {
+    "queue_wait_seconds": 0.006,
+    "run_seconds": 11.683,
+    "total_seconds": 11.689,
+    "time_to_first_result_seconds": 11.643,
+    "steps_measured": 16,
+    "steps_unmeasured": 0,
+    "step_ms": {
+     "median": 8,
+     "p90": 3780,
+     "max": 3854
+    },
+    "slowest_step": {
+     "seq": 13,
+     "kind": "note",
+     "summary": "Model call (exploration) for step 3",
+     "ms": 3854
+    },
+    "model_seconds": 3.668,
+    "model_calls": 3,
+    "model_calls_cached": 0,
+    "reportable": true
+   },
+   "budget": {
+    "steps": 16,
+    "llm_calls_exploration": 3,
+    "llm_calls_recovery": 0,
+    "input_tokens": 10847,
+    "output_tokens": 484,
+    "usd": 0.003438,
+    "started_at": 1785350664.979482,
+    "ended_at": 1785350676.662281,
+    "elapsed_seconds": 11.68,
+    "output_cap_per_call": 2048,
+    "output_cap_per_run": 16000
+   },
+   "timed_out_waiting": false,
+   "oracle": {
+    "kind": "evidence re-check only",
+    "why": "no independent derivation of the answer exists for this record"
+   },
+   "passed": true
+  }
+ ]
+}
