@@ -99,7 +99,7 @@ python -m eval.harness --split experimental
 | ID | 站點 | 操作 | 狀態（`r3`） |
 |---|---|---|---|
 | OP-4 | en.wikipedia.org | 依指定欄位排序 wikitable，讀新的首列 | **3 個 dev 案中 2 個符合預期。** DEV-01 有獨立推導的首列，**8 個 cell 全部一致**；DEV-03 的欄位 oracle 在該頁找不到，報告為「未推導」而非「已檢查」；DEV-02 以描述而非標題指名文章，正確地在瀏覽前停止（見 L-1） |
-| OP-5 | en.wikipedia.org | 展開摺疊區塊/navbox 並讀出原本看不到的值 | **2/2。** DEV-04 在 `r2` 是被 artifact-source gate 判失敗而非操作失敗；Amendment 26 重建該 gate 後通過，且是走三條路徑中**最弱的一條**（分析報告 §5.4 有說明）。**無獨立 oracle**，正確性只靠我們自己的 verifier（A25.4） |
+| OP-5 | en.wikipedia.org | 展開摺疊區塊/navbox 並讀出原本看不到的值 | **2/2——而這個數字量的是狀態轉換，不是值。** 獨立審查者把兩個標準案例對線上部署跑了一遍：兩筆凍結下來的條件都只宣稱「box 1 不再是摺疊的」。planner 的值宣稱只在正規表達式匹配到**具名**row group 時才建立，而兩個案例問的都是**序數**的，於是被問的值被無聲丟掉，執行卻回傳 `succeeded_verified`。Amendment 28 裁定這違反 A25.3——那條規則早就禁止這件事，而且只被接到一個呼叫端。修法是 A-84；**這一行保留數字並說清楚它量了什麼**，而不是報告一個我們沒量過的值結果。先前的歷史也仍然成立：DEV-04 在 `r2` 是被 artifact-source gate 判失敗而非操作失敗，Amendment 26 重建該 gate 後通過，且是走三條路徑中最弱的一條（§5.4）。兩種情況都沒有獨立 oracle（A25.4） |
 | OP-6 | books.toscrape.com | 走訪分類、翻頁、抽取清單層級事實 | **2/3。** 第三個在長分類上耗盡 step budget、不給答案（L-2），三輪皆如此 |
 | OP-7 | books.toscrape.com | 開產品詳細頁抽取**帶 label** 的欄位（UPC、Availability、Price excl. tax） | **2/2**，且是產品參數化之後第一次計分：從任務取書名、翻列表頁抵達，上限 6 頁。超出上限會以 `unsupported` 結束並說明界線，而不是回報錯誤的書 |
 
@@ -303,7 +303,7 @@ python -m eval.harness --split experimental
 | `app/` | 系統本體。`postcondition.py` 凍結、`executor.py` 瀏覽、`verifier.py` 是 gate、`suspicion.py` 稽核安靜的結果、`memory.py` 是 locator memory、`robots.py` + `egress.py` 是政策邊界 |
 | `fixture/` | 我們自建的站點：POST-only 搜尋、JS 分頁、阻擋式覆蓋層、injection 頁面 |
 | `eval/` | harness、dev 與 experimental split、結果、provenance、`oracles.py`（OP-4 的獨立推導）、`spend_ledger.py` |
-| `docs/task1-spec.md` | 凍結的工程 spec 與其修訂（27 條）。**推理軌跡在這裡** |
+| `docs/task1-spec.md` | 凍結的工程 spec 與其修訂（28 條）。**推理軌跡在這裡** |
 | `docs/task1-discovery.md` | 最初的探索推理，刻意不更新 |
 | `docs/analysis-report.md` | 效能、成本、可擴展性，以及正確性如何驗證 |
 | `docs/task2-seam.md` | Task 2 的契約——已設計、刻意未建（Amendment 25） |

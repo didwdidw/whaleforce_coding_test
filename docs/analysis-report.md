@@ -272,7 +272,7 @@ derivation of the right answer.
 | Record | What independently checks it | What that leaves unchecked |
 |---|---|---|
 | **OP-4** — sort a table, read the top row | **An independent derivation, since A25.4.** The harness fetches the article itself, finds the table carrying the named column, decides numerically-vs-lexicographically from that column's own values, sorts and compares the top row. It is the one check here that can say a *verified* run is wrong about the world | Whether the article changed between the run and the check. A fetch that cannot be attributed is reported `not_comparable`, never as a failure |
-| **OP-5** — expand a collapsed box, read a value | Same: derived values, `independently_checked` **0** | **Everything.** Correctness here rests entirely on the product's own verifier, with no independent ground truth of any kind |
+| **OP-5** — expand a collapsed box, read a value | Same: derived values, `independently_checked` **0** | **Everything — and more than we knew when this row was written.** Correctness rests entirely on the product's own verifier, with no independent ground truth of any kind; an independent reviewer then found that on the two canonical cases the verifier was not checking the value at all, because the planner never compiled a claim for it (Amendment 28, §5.4 family 16). The `2 of 2` in the README measures the state transition |
 | **OP-6** — category listing, list-level facts | Enumerations are re-derived **member by member** against the stored artifact — the strongest check in the set, and the one absence rests on | Whether the enumeration is complete for a multi-page category (this is L-3, and it abstains rather than guessing) |
 | **OP-7** — labelled field on a product page | The value is a scalar and is re-located in the artifact through the label anchor | Whether the label anchor is the one a human would pick. And the record is fixed to one product (§6) |
 | Refusals (robots, policy) | The matched rule is quoted and re-checkable against the live `robots.txt` | Nothing material |
@@ -403,7 +403,7 @@ round rather than by anything in the system, which is the same shape as every ot
 ### 5.4 Verifying the verifier
 
 A system whose central claim is "our checks are real" has to expect the checks themselves to be
-wrong. **Twenty** were found, seventeen of them fixed. Ten are one species — **a check that reported
+wrong. **Twenty-one** were found, seventeen of them fixed. Ten are one species — **a check that reported
 on a coincidence**, a check that could not fire at all, or a label too coarse to carry the
 conclusion drawn from it. Two are that species' mirror image — not a check reporting something
 untrue but **no check at all** — and they are the two halves of one hole, in the same page, found a
@@ -411,6 +411,8 @@ day apart. The last eight are a third kind, all found by two independent reviews
 system in the last two days: **pages describing us in our own words**, where nothing was checking
 that the words still matched. That is now the largest group in the table, and it is the one that
 took the longest to become visible, because reading the repository cannot find any of them. The
+twenty-first is on its own and is the worst of the set: **a check that was correct, tested, and wired
+to one of the places that needed it.** The
 first five were found during development:
 
 | | The defect |
@@ -453,6 +455,7 @@ in an appendix because the pattern is the finding rather than the count:
 | 18 | `/coverage` told the reader *"this counts this deployment since its last restart"* and *"a redeploy resets this table"*. Both are the opposite of true: the ledger is on the mounted volume and accumulates across deployments. Believing the page, a long never-produced list reads as *we restarted recently* rather than as *this path has never once been driven here* — which inverts the only conclusion the page exists to support. **Found in the same review, and fixed** by rendering the sentence from the store's own `persistent` flag |
 | 19 | L-1's remediated phrasing published `failed / budget_exhausted`; it ends `failed / verification_mismatch`. The label mattered less than what it exposed: `eval/limitations_check` had re-run all seven entries and reported all seven reproducing, because for a remedy it compared **terminal status only**. A check looser than the claim it stands behind, on the honesty surface, reporting coverage it did not have. **Found in the same review, and fixed** — the class is compared now, and an entry that declines to pin one has to say so |
 | 20 | The run page rendered `does not count as success` when a run did not, and **nothing at all** when it did. The guides tell a reader to trust that field over the status word, so its absence had to mean two different things at once: *succeeded*, and *has not finished*. **Found in the same review, and fixed** by rendering both halves |
+| 21 | **The one that reached a wrong answer rather than a wrong sentence.** A25.3 — *a task with n asked-for parts produces n claims or the run is `partial`* — was written after a live run verified a UPC, dropped the availability that was asked for alongside it, and returned `succeeded_verified`. The rule was implemented, parameterised over eleven task shapes, and tested. It was wired to `_plan_generic` and **no other planner was ever audited against it**. OP-5's planner builds its value claim only when a regex matches a *named* row group; both canonical OP-5 cases name an *ordinal* one, so the postcondition froze as *"box 1 is no longer collapsed"*, the asked-for value vanished with no record that it had been asked for, and both runs returned `succeeded_verified`. The verifier cannot catch this — it compares claims against artifacts and never sees the task. **Found by the second independent review, by running the two cases the spec calls canonical; not yet fixed** (Amendment 28, A-84). The published OP-5 `2 of 2` measures the state transition |
 
 Number 10 is the one to read if you only read one, and the chain of events is the point rather than
 the defect.

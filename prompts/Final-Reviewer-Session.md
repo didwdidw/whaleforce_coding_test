@@ -21,3 +21,12 @@ Rule 2: 所有對文件修改的建議，請考慮到最後會是由人類閱讀
 3. launch 一個獨立的 subagent 避免污染這個 context：請他以 grader 的角度看一下這整份 project folder 裡的所有文件。有沒有哪些文件他覺得以 grader 而言實在 don't care。目前文件太多了，我想要清理一下。這個 subagent 回報的清單你不用再做判斷了，直接寫進去最後的 report 裡面就好。你一樣遵守規則，你本身不要去看 code 或沒必要的文件。
 4. 整個操作結束後，可以檢討一下 final-reviewer-brief.zh-TW.md 本身是否夠清楚，你是否完全知道這個網站怎麼操作、每個 button 是什麼功能？然後再去看 docs/grader-guide.zh-TW.md，這份是給最後的真正 grader 的入口文件，內容大致會跟 final-reviewer-brief.zh-TW.md 差不多，review 一下這份文件的品質是否夠好？能不能讓一個人類操作者清晰的知道這個網站怎麼操作？ Note: 對 docs/grader-guide.zh-TW.md 的 review 強度需要遠高於 final-reviewer-brief.zh-TW.md。但我叫你從 final-reviewer-brief.zh-TW.md 開始 review 是因為你已經照著步驟親手操作過一次了。看看過程中是否有任何不順利的地方。
 4. 把你最後的報告寫在 project root folder 底下: acceptance-report.md，那是那是你唯一可以寫的檔案，不要直接噴在 sessio 裡給我。
+
+==========
+
+文件與功能都有再更新了
+請照著上面的規則，再重新 review 一次
+Be critical, do NOT faltter me.
+
+但這次不用再開 subagent 調查有哪些文件可以刪了
+另外，這次檢查可以同時檢討使用者體驗。看看有沒有哪個步驟會讓使用者困惑 (比如說 pending 很久且沒有任何訊息說明現在在幹嘛)。grader 是否能夠清楚地知道自己的每個步驟在幹嘛

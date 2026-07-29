@@ -1,6 +1,6 @@
 # Prompt records — where the decisions are
 
-Two logs, both verbatim and in order, because that rule is what makes them evidence rather than a
+Three logs, all verbatim and in order, because that rule is what makes them evidence rather than a
 highlight reel: **every** prompt is here, including the dull ones and the ones that turned out to be
 wrong. Nothing was edited after the fact.
 
@@ -11,10 +11,13 @@ where the substantive decisions happen.
 |---|---|---|
 | `PM-Session.md` | Product owner / acceptance | Scoping, the spec, the acceptance criteria, and every ruling. Never wrote product code |
 | `Engineering-Session.md` | Engineering | Implementation from the frozen spec. Never decided what "correct" meant |
+| `Final-Reviewer-Session.md` | Independent review | Two rounds against the deployed site, read-only, without reading any product code. Never fixed anything it found. Its output is `acceptance-report.md` |
 
 The separation is the point, and it is the same idea as the product's own design: a session that both
 defines success and reports success will report success, exactly as an agent that both answers and
-verifies will verify itself. `docs/task1-spec.md` §16 is the durable output — twenty-seven numbered
+verifies will verify itself. The third session exists because the first two share a premise — both
+had read the spec — and the defect that mattered most was one only a reader without that premise
+could see (Amendment 28). `docs/task1-spec.md` §16 is the durable output — twenty-eight numbered
 amendments appended to frozen text, each naming the defect that caused it.
 
 ## The decisions worth reading

@@ -2546,3 +2546,51 @@ before every call regardless of tier (A15.3), and A15.4's disclosure now applies
 - [ ] **A-83** The funded public-demo policy falls back free→paid, carries a non-zero cumulative
   allowance and a share that still totals the system promise, and leaves `public_demo` unchanged;
   the credential policy does not move the SSRF guard, which reads `APP_ENV` (A27.1).
+
+### Amendment 28 — A25.3 was written for one caller and never applied to the rest (2026-07-30)
+
+Extends **A25.3**. Found by the second round of independent review, on the promised tier, on the one
+run the grader guide singles out as worth running.
+
+**A28.1 The rule was already binding and the declared planners were never audited against it.**
+A25.3 says a task with *n* asked-for parts produces *n* claims or the run is `partial`. It was
+implemented in `_plan_generic` — `asked_for_parts` exists, is parameterised over eleven task shapes
+and is tested — and **no caller outside that one function was ever checked against it**. `_plan_wiki_expand`
+is the one declared planner whose claim set can shrink: its value claim is conditional on a regex that
+matches a *named* row group (`the 'Hardware' group`). Both canonical OP-5 cases name an *ordinal* one
+(`its first row group`), so the regex misses, the value claim is never constructed, the postcondition
+freezes as *"expand box 1 and report that it is no longer collapsed"*, and the run reaches
+`succeeded_verified` having answered nothing that was asked. The verifier cannot catch this: it
+compares claims to artifacts and never sees the task text. **The instrument that would have caught it
+was built, tested, and pointed at one caller.**
+
+**A28.2 The remedy is the rule, applied.** Every planner that compiles a postcondition from the task
+MUST reconcile its claim set against `asked_for_parts`, and any asked-for part with no claim of its
+own MUST become a claim — the generic `LOCATED_LABEL` binding is sufficient and already carries the
+weaker-binding semantics A13.2.3 allows. A part that then fails to bind produces `partial`, which is
+loud and is not counted as success. Silently narrowing the postcondition to the half the planner
+happens to parse is prohibited on every tier, not only the experimental one.
+
+**A28.3 The published OP-5 number measures less than it claims.** §4 promises OP-5 as *"extract a
+value that is not in the DOM-visible state beforehand"*, output *"verified value"*. What r3's `2 of 2`
+actually measured on DEV-04/DEV-05 is the **state transition alone**. Until A28.2 lands, every place
+that publishes an OP-5 result MUST say which of the two it measured. The promise is not narrowed to
+match the implementation — narrowing it would leave A25.3 violated either way, since the task still
+asked for a value and the run still dropped it in silence.
+
+**A28.4 What this says about the defect family.** §5.4 of the analysis report names the family as *a
+check that reports on a coincidence*. This is a new member: **a check that is correct, tested, and
+wired to one of its callers.** The audit A25.3 needed was never "does the parser work" — it was
+"who compiles postconditions, and does each of them obey this". Nothing in the repo answered the
+second question, and nothing asked it until an outside reader ran the two cases the spec itself
+declares canonical.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-84** Every planner that compiles a postcondition from task text reconciles its claims
+  against `asked_for_parts`; an asked-for part with no claim becomes a `LOCATED_LABEL` claim rather
+  than being dropped. A test drives the two canonical OP-5 tasks and asserts the frozen postcondition
+  carries a value claim, and that a run binding only the state transition terminates `partial`,
+  never `succeeded_verified` (A28.2).
+- [ ] **A-85** No published document states an OP-5 result without saying whether it measured the
+  state transition or the value (A28.3).

@@ -1002,3 +1002,22 @@ final reviwer brief 不要刪，你這邊改完我會請他再 loop 一次。所
 3. 兩件 brief 沒料到的實測結果：中文承諾層任務實際跑出 T-DECLARED + succeeded_verified（三份文件三種說法，而實際能力是最好的那種）；/support L-1 補救版公告 budget_exhausted、實測 verification_mismatch（已知問題 3 說七條全部重現，這條沒有）。
 
 grader-guide 的評語、改寫建議（引原句）、以及 subagent 的文件清理清單都在報告裡。
+
+==========
+
+第二輪報告已寫進 acceptance-report.md（第二輪在前，第一輪原文保留在後，未改動——所以 grader-guide 說「原樣收錄」的那句仍然成立，但 §9 現在需要補第二輪）。
+
+最重要的一件事：修 N3 的過程暴露了一個比 N3 嚴重得多的缺陷。
+
+OP-5 承諾「取出展開前看不到的值」。我照 eval/dev-set.md DEV-04 / DEV-05 原文各送一次：
+
+- 任務問「它的標題和第一個 row group 的標籤」→ 凍結的 goal 變成「展開 box 1 並回報它不再是摺疊的」，唯一宣稱是 still_collapsed，結果 succeeded_verified + counts as success。
+- 任務問「第一個 row group 有幾筆」→ 同樣只有 still_collapsed，同樣成功。
+
+兩題問的東西一個都沒答，而答案就在存檔位元組裡（我抓了那份 2.5 MB 的 Apple 條目 DOM，navbox-group 是 Products / Hardware / Mac…）。這不是讀不到，是凍結條件時把問題後半段丟了。
+
+/support、README（還寫「2 of 2」）、analysis-report、dev-set.md 四處都承諾「值」；只有 grader-guide L174 講了真相，而它就在自己那張承諾表下面兩段。這正是指南步驟 2 拿來當教訓的那個 Amendment 17 缺陷——同一個病，還活著，而且落在計入公布成功率的承諾層、以及這一輪才被加進指南、被標註「特別值得跑一次」的那一筆。
+
+其餘：第一輪十一項修好十項（N10 未修），修法比我建議的更徹底。新發現另外五項中低——首頁「fixture 按鈕就是示範用的同一批任務」4 筆有 3 筆不符、示範其實不是每次開機重跑且來自三天前一個只有 4 道閘門的舊版本、Runs 表格預設把 inspect 整欄切在畫面外（容器 922px / 表格 1022px）、grader-guide 內部三處自相矛盾（含「/coverage 那兩句錯的自述」其實已修）。
+
+UX 部分：執行中頁面首次載入的資訊其實夠好，但只有標題那一行會動，會出現標題 Step 11 而下方 Budget 仍寫 Steps 2 of 25；No claim was produced. 在執行中讀起來像結論；Step 11: Snapshot captured: step-2 一行兩個 step 意思不同；25 步預算沒搬到進度行，跑到 budget_exhausted 全程沒預警。細節與建議都在報告 C 節。
