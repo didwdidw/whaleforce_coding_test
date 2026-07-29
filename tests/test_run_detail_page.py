@@ -67,6 +67,32 @@ def test_the_detail_page_renders_for_a_run_that_has_not_finished(client):
     assert "EventSource" in response.text
 
 
+def test_the_progress_stream_has_a_fallback_and_a_bound(client):
+    """A stream with no `onerror` fails silently: the page keeps its last progress line and
+    looks busy while the run has already finished — our own UI doing the thing this whole
+    system is built to stop. `test_..._not_finished` above only proves the stream is
+    mounted, which is what let this through.
+
+    A test process cannot run the browser's event loop, so this asserts the page ships the
+    fallback paths rather than that they fire. That is a weaker claim and is stated as one:
+    the behaviour itself is checked by hand against the deployment."""
+    run_id = _saved(client, state=RunState.RUNNING)
+    page = client.get(f"/runs/{run_id}").text
+
+    assert "es.onmessage" in page, "the live path is gone"
+    assert "es.onerror" in page, (
+        "an interrupted stream would leave the page spinning on a finished run")
+    assert f"/api/runs/' + runId" in page or f"/api/runs/{run_id}" in page, (
+        "the fallback has to read the run from somewhere")
+    assert "setInterval" in page, "the fallback has to keep asking"
+    assert "300000" in page, (
+        "an unbounded 'live' page that has stopped being live still claims to be live")
+    # The switch is announced. A page that silently degrades is telling the reader it is
+    # watching a stream when it is not.
+    assert 'id="progress-transport"' in page
+    assert "Live updates are off" in page
+
+
 def test_the_detail_page_renders_a_run_carrying_trace_artifacts_and_a_verdict(client):
     """The panels that only appear when there is something to show."""
     from app import server

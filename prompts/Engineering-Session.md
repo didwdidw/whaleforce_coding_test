@@ -2379,3 +2379,42 @@ P1 的 chip（app/demo.py:39）照舊。
 docs/grader-guide.zh-TW.md 已完成（428 行），詞彙檢查乾淨——零個 amendment 編號、章節號、驗收項、記錄／案例／輪次代號。它也刻意沒有把 navbox 那顆 chip 寫進範例，理由是「那正是第 2 步教讀者要避免的形狀」——判斷正確。
 
 ==========
+
+最後一件 —— python -m eval.limitations_check --base-url https://wf-agent.zeabur.app
+對現在線上的 371ba697fa35 跑一次，報告 commit 進 eval/results/。
+README §7 承諾了它，而 grader-guide 的附錄 D 現在把這條指令直接給了 grader。
+某條不重現的話，defect 是那個條目，不是系統 —— 改條目，不改 code。
+
+==========
+
+🔴 run 詳情頁的進度指示會永久卡住，而 run 其實已經成功。
+
+實例：run_b99d78d84a67 —— succeeded_verified、13.12 秒完成，
+     使用者的頁面轉了兩分鐘以上還在轉。
+
+根因：app/templates/run.html:314-327 只有 es.onmessage，
+     沒有 es.onerror、沒有 timeout、沒有 polling 後備。
+     EventSource 在重連拿到 HTTP 錯誤時會永久放棄並觸發 onerror ——
+     部署換容器（12–23 秒 outage）正是這個形狀。
+     沒有人接住，頁面就停在最後一則進度文字上，永遠轉。
+
+為什麼這不是 polish：
+  「顯示執行進度」是作業評分項，而這個壞法是靜默的 ——
+  頁面看起來還在工作，實際上 run 已經成功。
+  這就是我們整份提交在反對的失敗形狀，只是這次發生在我們自己的 UI 對自己的執行狀態上。
+
+修：加 es.onerror —— 關掉串流，改成每 3 秒 poll /api/runs/{id}，
+    state 變 done 就 reload。並在畫面上說明「即時串流中斷，改為輪詢」，
+    不要無聲切換 —— 使用者要知道他看到的是哪一種。
+    順便給一個上限（例如 5 分鐘）後顯示「請重新整理」而不是無限轉。
+
+測試：斷言未完成的 run 頁面同時具備 onmessage 與 onerror 後備路徑。
+     這一頁昨天才因為「從來沒有過測試」壞了三天，
+     現在補的測試只涵蓋渲染，不涵蓋它活著的那段行為。第 11 筆的教訓還沒學完。
+
+要不要寫進 §5.4 第 12 筆由你判斷 —— 我認為要，理由是它和第 11 筆是同一個空洞的兩半：
+第 11 筆是那一頁沒被請求過，第 12 筆是那一頁動起來之後沒被看過。
+
+順帶：eval.limitations_check 還是沒重跑。那條承諾還掛著。
+
+==========

@@ -50,6 +50,7 @@
   {% if run.effective_state.value != 'done' %}
   <p class="sub" id="progress">Waiting…
     {% if position is not none %}Queued at position {{ position }}.{% endif %}</p>
+  <p class="sub" id="progress-transport"></p>
   {% endif %}
 </div>
 
@@ -313,17 +314,88 @@
 
 {% if run.effective_state.value != 'done' %}
 <script>
-var es = new EventSource('/api/runs/{{ run.id }}/events');
-es.onmessage = function (e) {
-  var d = JSON.parse(e.data);
-  var p = document.getElementById('progress');
-  if (p) {
-    p.textContent = d.queue_position !== null && d.state === 'queued'
-      ? 'Queued at position ' + d.queue_position + ' — waiting for a browser context.'
-      : (d.last ? 'Step ' + d.steps + ': ' + d.last : 'Starting…');
+// The stream is the fast path, not the only one. An EventSource that loses its connection
+// — which is exactly what a container swap looks like from here — gives up permanently and
+// fires `onerror`; with nothing catching that, the page sits on its last progress line
+// looking busy while the run has already finished. That is a silent failure in our own UI
+// about our own execution state, so the transport is announced rather than switched
+// quietly, and the page stops claiming to be live once it has stopped being live.
+(function () {
+  var runId = {{ run.id | tojson }};
+  var progress = document.getElementById('progress');
+  var transport = document.getElementById('progress-transport');
+  var deadline = Date.now() + 300000;
+  var es = null, poller = null, watchdog = null;
+
+  function say(text) { if (progress) { progress.textContent = text; } }
+  function note(text) { if (transport) { transport.textContent = text; } }
+
+  function stop() {
+    if (es) { es.close(); es = null; }
+    if (poller) { clearInterval(poller); poller = null; }
+    if (watchdog) { clearTimeout(watchdog); watchdog = null; }
   }
-  if (d.state === 'done') { es.close(); window.location.reload(); }
-};
+
+  function giveUp() {
+    stop();
+    note('This page stopped updating itself after five minutes. Reload it to see where the '
+       + 'run actually is — it may well have finished.');
+  }
+
+  // `state` is the run's effective state, so a run carrying a terminal status reads as done
+  // here at the same instant it does on the API.
+  function render(state, steps, last, position) {
+    if (state === 'done') { stop(); window.location.reload(); return; }
+    say(state === 'queued' && position !== null && position !== undefined
+      ? 'Queued at position ' + position + ' — waiting for a browser context.'
+      : (last ? 'Step ' + steps + ': ' + last : 'Starting…'));
+  }
+
+  function pollOnce() {
+    if (Date.now() > deadline) { giveUp(); return; }
+    fetch('/api/runs/' + runId, {headers: {'Accept': 'application/json'}})
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (d) {
+        var trace = d.trace || [];
+        render(d.state, trace.length,
+               trace.length ? trace[trace.length - 1].summary : null, d.queue_position);
+      })
+      .catch(function () {
+        note('Polling ' + runId + ' failed — the deployment may be restarting. Still trying.');
+      });
+  }
+
+  function fallBack(why) {
+    if (poller) { return; }
+    stop();
+    note(why + ' Live updates are off; this page now polls /api/runs/' + runId
+       + ' every 3 seconds instead.');
+    poller = setInterval(pollOnce, 3000);
+    pollOnce();
+  }
+
+  // A stream that stalls without erroring looks identical to a healthy one from here, and
+  // the point of this whole change is that the two must not look identical.
+  function armWatchdog() {
+    if (watchdog) { clearTimeout(watchdog); }
+    watchdog = setTimeout(function () {
+      fallBack('The progress stream went quiet for 20 seconds.');
+    }, 20000);
+  }
+
+  es = new EventSource('/api/runs/' + runId + '/events');
+  es.onmessage = function (e) {
+    if (Date.now() > deadline) { giveUp(); return; }
+    armWatchdog();
+    var d = JSON.parse(e.data);
+    render(d.state, d.steps, d.last, d.queue_position);
+  };
+  es.onerror = function () {
+    fallBack('The live progress stream was interrupted.');
+  };
+  armWatchdog();
+  setTimeout(giveUp, 300000);
+})();
 </script>
 {% endif %}
 {% endblock %}

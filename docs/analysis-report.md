@@ -403,10 +403,11 @@ round rather than by anything in the system, which is the same shape as every ot
 ### 5.4 Verifying the verifier
 
 A system whose central claim is "our checks are real" has to expect the checks themselves to be
-wrong. **Eleven** were found, eight of them fixed. Ten are one species — **a check that reported on
-a coincidence**, a check that could not fire at all, or a label too coarse to carry the conclusion
-drawn from it. The eleventh is that species' mirror image and is the last entry here. The first five
-were found during development:
+wrong. **Twelve** were found, nine of them fixed. Ten are one species — **a check that reported on a
+coincidence**, a check that could not fire at all, or a label too coarse to carry the conclusion
+drawn from it. The last two are that species' mirror image — not a check reporting something untrue
+but **no check at all** — and they are the two halves of one hole, in the same page, found a day
+apart. The first five were found during development:
 
 | | The defect |
 |---|---|
@@ -436,6 +437,8 @@ in an appendix because the pattern is the finding rather than the count:
 
 | 11 | `/runs/{id}` — the page every claim in this report about inspectability points at — returned **500 for three days**, through `r2`, `r3` and `r4`. The commit that added locator memory added a template block reading `build.locator_memory` and did not add `build` to that route's context; Jinja2's `Undefined` prints, iterates and is falsey without complaint, and raises only on attribute access, so the failure was invisible to every page that did not touch it. No test had ever fetched the page. **Found on submission day and fixed** |
 
+| 12 | The same page's progress indicator span forever on runs that had already **succeeded**. The `EventSource` had an `onmessage` and no `onerror`, so a dropped connection — which is what our own 12–23 s deploy window looks like from the browser — left the page holding its last progress line, looking busy, about a run that finished in 13 seconds. Observed on `run_b99d78d84a67`. The test written for 11 a day earlier asserts the page *renders*; it does not watch it move. **Found the day after 11, and fixed** |
+
 Number 10 is the one to read if you only read one, and the chain of events is the point rather than
 the defect.
 
@@ -464,7 +467,7 @@ Numbers 8, 9 and 10 arrived after the build was frozen, which is the only reason
 open, and how that was handled is part of the finding. Correcting any of them would have meant a code change between the
 round that measured the system and the round that scores the held-out split — so the choice was
 between tidier code and two rounds that describe the same build. The code lost. It is
-written here, in the table with the other eight, rather than repaired quietly afterwards and
+written here, in the table with the other nine, rather than repaired quietly afterwards and
 presented as though the rounds had always agreed. Number 8 is the same species as A-14b: a loud, correct refusal
 filed under the wrong party. Number 9 is the species this whole section is named for — an
 instruction to look for evidence that the code cannot produce — and it cost a real operator a real
@@ -499,6 +502,26 @@ terminal status, fetch the page, require 200 — because the defect was never th
 refusal probes. This one *was* repaired despite the freeze, on the grounds that a 500 on the primary
 evidence surface is not a difference between two builds' measurements: no round's numbers move, and
 the alternative was submitting a system whose inspectability could not be inspected.
+
+**Number 12 arrived the next day, in the same page, and it is why 11's lesson was only half
+learned.** The test written for 11 opens the page in every terminal status and requires 200. It says
+nothing about the page once it is *moving*, and the moving part had the same hole: the progress
+`EventSource` had an `onmessage` and no `onerror`. A dropped stream — the shape of our own 12–23 s
+deploy window (§2.2) — makes the browser give up permanently, and nothing was there to catch it, so
+the page kept its last progress line and went on looking busy about a run that had finished
+`succeeded_verified` in 13.12 seconds. **Our own UI, producing a plausible and wrong account of our
+own execution state**, which is the exact failure this system exists to refuse, one level up.
+
+The fix is a fallback that announces itself: on error or on twenty seconds of silence the stream is
+closed, the page says in words that live updates are off and that it is polling instead, and it
+polls `/api/runs/{id}` every three seconds; after five minutes it stops and says so rather than
+spinning forever. **Degrading silently would have been the same defect in a quieter costume** — a
+reader has to be able to tell which transport they are watching.
+
+The pair is worth stating as one finding, because the second half is what the first half's fix
+missed: **11 is a page nobody ever requested; 12 is a page nobody ever watched.** A rendering test
+answers "does it come back", never "does it keep telling the truth while it runs", and the second
+question is where an interface is most able to lie without anyone writing a false sentence.
 
 Number 7 is the one worth reading twice, and it took two goes.
 

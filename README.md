@@ -94,7 +94,7 @@ What needs a key is the model-driven path, which is everything on a site we did 
 ### Tests and evaluation
 
 ```bash
-pytest                                    # 610 tests, ~20 s (a real browser runs
+pytest                                    # 611 tests, ~20 s (a real browser runs
                                           # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
@@ -261,6 +261,15 @@ when something asks it for an attribute, so nothing else broke and the suite sta
 the three above, this was an ordinary bug rather than a false claim — it survived because **no test
 had ever fetched the page**, not because anyone reasoned about it wrongly. It is defect 11 in the
 analysis report's §5.4; the fix ships with a test that opens the page once per terminal status.
+
+**And a fifth, the next day, in the same page — which is how we know the fourth's lesson was half
+learned.** That new test proves the page *renders*; it says nothing about the page once it is
+moving, and the moving part had the same hole. The progress `EventSource` had no `onerror`, so a
+dropped stream — the shape of our own 12–23 s deploy window — left the page spinning on its last
+progress line about a run that had already finished `succeeded_verified` in 13 seconds: **our own
+interface stating a plausible and wrong account of our own execution state.** Fixed with a fallback
+that says out loud that it is polling rather than streaming, and that stops after five minutes
+instead of spinning. Defect 12. **11 is a page nobody requested; 12 is a page nobody watched.**
 
 **Where the human was load-bearing.** Deciding what to cut, refusing to accept point fixes where a
 requirement class was needed, and the calls that spent money or changed what we promised. Amendment
@@ -517,6 +526,12 @@ of seven entries did not reproduce as written**:
   happening is the same defect as a remedy published after it stopped working, so the entry moved to
   a page that does abstain (MDN's compatibility grid, whose label is an icon and a column position).
 - L-7's fixture search now **proves** absence via the empty-state element instead of abstaining.
+
+**Re-run against the deployment being submitted.** `eval/results/limitations-371ba697fa35.json`,
+taken 2026-07-29 after the run-page fixes: **7 of 7 reproduce as published**, remedies included,
+`do_not_reproduce` empty. Every entry above is a task you can paste in and watch fail in the way
+this table says it will — and if one of them ever stops doing that, the defect is the entry, not the
+system, so the entry is what changes.
 
 It also caught a regression in this repository that no test had: the accessibility snapshot added by
 Amendment 24 took its own trace entry, every trace entry charges the step budget, and capture-heavy
