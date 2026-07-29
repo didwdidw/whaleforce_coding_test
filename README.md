@@ -308,11 +308,15 @@ rounds were run; all three are committed, because a number that only survives be
 that disagreed with it were deleted is not a measurement.
 
 **The live deployment is not necessarily the commit these rounds scored, and this file does not
-claim it is.** Every push to `master` redeploys, and the commits after `e82cacb9e809` are results,
-evidence and prose — no code. The authority on what was scored is each result file's own provenance
-block, not the running container: check `git_sha` in `eval/results/*-r3.json` and `*-r4.json`
-against `/healthz` if you want to see the distance. Scoring more rounds to close it would mean
-scoring a held-out split twice, which is the one thing that cannot be done.
+claim it is.** Every push to `master` redeploys. Most commits after `e82cacb9e809` are results,
+evidence and prose; the ones that are code are the fixes for defects 11–15 in the analysis report's
+§5.4 — a run detail page that returned 500, its progress stream, a coverage page that showed a cut
+item as scheduled, a second copy of a version string that had drifted, and a credential policy — plus
+the tests those fixes were missing. **None of them touches a verifier, a gate, a plan or a scorer,
+so no committed round's numbers move.** The authority on what was scored is each result file's own
+provenance block, not the running container: check `git_sha` in `eval/results/*-r3.json` and
+`*-r4.json` against `/healthz` if you want to see the distance. Scoring more rounds to close it would
+mean scoring a held-out split twice, which is the one thing that cannot be done.
 
 | | `r1` | `r2` | **`r3`** |
 |---|---|---|---|

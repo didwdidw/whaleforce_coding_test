@@ -942,3 +942,47 @@ holdout-manifest.md 更新了「In repo」欄，並加了給讀者的指令。te
 901cc082339c 已部署。/ /support /coverage /healthz 全通，TST-03/run.json 都 200 —— grader 第一個動作會做的事是通的。
 
 600 tests passing，花費 USD 0.1515 / 8.00。沒有再開新東西。
+
+==========
+
+navbox 那個按下去然後按 run 會跳 internal server error
+
+另外，我需要你再另外出一份給 grader 看的報告
+readme 不夠好，因為他裡面用到大量我們 spec 裡面的編號跟術語
+你要想像 grader 並不會開我們的 spec 來看，只會關心最終的結果去對應到他原本的要求。
+這份報告同時也是使用說明書，講要怎麼去使用這個網站，每個按鈕是對應到什麼功能，應該怎麼依序操作
+另外，如果有做得很好的地方，我們具體是怎麼做的？那如果有沒有做好、有缺陷的地方，為什麼仍有缺陷？我們已經做過哪些嘗試了？搭配著使用說明的步驟一起講，藉由實際操作的workflow去一起解釋每個步驟是怎麼實驗的（講概念就好，沒有必要講到細節到連一些參數都一個一個列，這樣太冗長了）
+
+另外，我還會再請一個 final reviewer 來操作我們整體的網站。
+
+我也需要你把給 grader 的報告複製一份給 final reviewer session，只不過交給他的步驟並不是用手去按網頁，而是要講怎麼用 API 來操作這個網頁。
+其餘內容不變，一樣順著步驟講我們的實作方法概念。把這個 final reviewr session 想像成是 grader 就好
+
+==========
+
+修好、推上去、線上驗過了。（根因確認為 app/server.py:263 缺 "build": build_state()；新增 tests/test_run_detail_page.py 10 支；/runs/{id} 進 post-deploy checks；§5.4 第 11 筆；「十個缺陷修好七個」全數改為十一／八；測試數 600→610；線上 371ba697fa35 首頁 20 筆 run 全部 200。spec 的 Amendment 26、PM-Session.md 與 *.zh-TW.md 未 stage，留給 PM 一起提。）
+
+另外，給grader的使用說明裡面最下面
+也請順便加上整個project folder的結構、他可以參考哪些報告
+以 appendix 的方式呈現
+
+==========
+
+我倒是忘記你有操作網頁的能力了
+假設 final review agent 也是使用 opus 5 為model，他有辦法透過網頁操作來做最後驗證，而不是用api嗎？
+如果可以的話，就去改寫要給他看的 report
+Note: 請把它當成真的grader對待，也就是你最後要呈現給 grader 的 report, 都要在給 final reviewer agent 的報告裡提到，這樣他才能去逐條檢視報告內容是否正確、能不能寫得更好。不管是給真正的grader還是final reviewer agent，都各以一份報告為入口點就好，有其他想補充的報告都是把路徑放在appendix裡，grader想看的話再自己看，但單以操作來講應該要看入口點的那份報告就能完整操作整個頁面、知曉我們所有功能
+
+==========
+
+以下是 ENG 的最新進度（A27 public_demo_funded、四筆審查發現全修、§5.4 收第 13/14/15 筆、618 tests、203900af9ccb 上線；公開站仍在 public_demo，等 operator 兩步切換）
+
+請根據這些最新進度
+再次更新所有相關文件
+Note, 我們打算給 grader 看的所有報告（跟作業評分絕對有關的就好，grader沒必要看實作過程的報告浪費時間）請都在 grader-guide.zh-TW.md 裡面明確提到。
+同理，因為要把 final reviewer session 也當成 grader, 這些文件也都要在 final-reviewer-brief.zh-TW.md 明確提到。我會要求 reviewer 只去檢查這裡有明確提到的文件就好。所以如果想被檢查，記得放進來。
+
+把所有改動做最後的打包，commit & push，然後給我新增 key 的 steps （以及我是否還需要重新部署哪個 service）我就交給 reviewer 了。
+除非你現在還有掃描到什麼大錯誤，不然不用再修了，沒時間了。
+
+在你打包所有東西的過程中你也再次 review 了整個 task，請順便更新 task2-seam.md，這是我們跟 task 2 的協定。把他根據我們現在的實際狀況更新，我可以先開始做 task 2 了。
