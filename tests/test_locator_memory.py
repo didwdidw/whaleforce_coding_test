@@ -204,3 +204,27 @@ def test_the_health_endpoint_reports_counters_not_a_rate(mem):
                           "ttl_days", "written_from", "authority"}
     assert not any(k.endswith("_rate") for k in stats)
     assert stats["written_from"] == "succeeded_verified runs only"
+
+
+def test_the_counters_say_which_kind_of_zero_they_are(mem):
+    """`rows_stored: 6, uses: 0` is the healthy reading and reads like a dead mechanism.
+
+    We refuse a zero from an oracle that could not have logged the event; the same standard
+    applies to our own instrument, so the counters carry what would have to happen for them
+    to move, and the empty case and the never-consulted case do not get the same sentence.
+    """
+    empty = mem.stats()
+    assert empty["rows_stored"] == 0
+    assert "Nothing is stored yet" in empty["reading"]
+
+    mem.remember(origin=ORIGIN, operation="OP-6", role="link", identity=IDENTITY,
+                 run_id="run_1")
+    stored = mem.stats()
+    assert stored["uses"] == 0
+    assert "expected reading" in stored["reading"]
+    assert "write path is demonstrably live" in stored["reading"]
+
+    mem.used(ORIGIN, "OP-6", "link", worked=True)
+    used = mem.stats()
+    assert used["uses"] == 1
+    assert "consulted 1 times" in used["reading"]

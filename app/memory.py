@@ -121,12 +121,40 @@ class LocatorMemory:
     def stats(self) -> dict[str, Any]:
         """What /healthz reports. Counters, not a rate: a hit rate over a handful of rows
         reads as a measurement and is not one."""
-        return {**self._store.locator_stats(),
+        counters = self._store.locator_stats()
+        return {**counters,
                 "ttl_days": TTL_SECONDS // 86400,
                 "quarantine_after_consecutive_failures": QUARANTINE_AFTER,
                 "written_from": "succeeded_verified runs only",
+                "reading": _reading(counters),
                 "authority": ("a hint that is re-resolved and re-verified like any other "
                               "locator; it can save a model call and cannot make a claim")}
+
+
+def _reading(counters: dict[str, Any]) -> str:
+    """What the counters mean, said next to them.
+
+    Zeros here are the healthy reading — memory engages only where a locator has stopped
+    resolving — but a bare `uses: 0` reads as a mechanism that was built and is dead. We
+    hold our own oracle to the rule that a zero from an instrument that cannot log the event
+    is not a result; the same rule applies to us, so this says which kind of zero it is and
+    what would have to happen for the number to move.
+    """
+    stored, uses = counters["rows_stored"], counters["uses"]
+    if not stored:
+        return ("Nothing is stored yet. A locator is written back only by a run that ended "
+                "succeeded_verified, so these counters cannot move until one does.")
+    if not uses:
+        return (f"{stored} locators stored and none consulted. Memory is only reached for "
+                f"when a locator stops resolving, and nothing has stopped resolving on this "
+                f"deployment — so these zeros are the expected reading, not a dead "
+                f"mechanism. They are a measurement rather than a silence because the write "
+                f"path is demonstrably live: {stored} rows are there, put there by verified "
+                f"runs, so the instrument can record and has recorded nothing to record.")
+    return (f"{stored} stored, consulted {uses} times: {counters['hits']} resolved from "
+            f"memory and {counters['heals']} were healed after the remembered identity "
+            f"stopped resolving. Counters, not a rate — a hit rate over this many rows "
+            f"would read as a measurement and is not one.")
 
 
 def _from_row(row) -> Remembered:

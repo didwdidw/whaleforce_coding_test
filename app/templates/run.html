@@ -301,8 +301,13 @@
     ended <code>succeeded_verified</code>, never merely because a click worked. What is
     remembered is an element's identity and never a value, so nothing here can become an
     answer. And a remembered locator is re-resolved on the live page and re-verified like any
-    other: <strong>memory saves search effort, never proof</strong>. Counters are on
-    <a href="/healthz">/healthz</a>.</p>
+    other: <strong>memory saves search effort, never proof</strong>.</p>
+  <p class="sub">Counters are on <a href="/healthz">/healthz</a>, and on a healthy
+    deployment they read <strong>stored: some, used: zero</strong> — because using a
+    remembered locator requires one to have stopped resolving first, and none has here.
+    That zero is a measurement rather than a silence: the stored rows are proof the write
+    path runs, so the counter is one that can move and has had nothing to count. The
+    endpoint says which of the two it is rather than leaving a reader to assume.</p>
   {% else %}
   <p class="sub">Not in this build. When it is, each locator will be badged with whether it
     came from memory, was healed, or was freshly derived. This paragraph is rendered from

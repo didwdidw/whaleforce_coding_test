@@ -91,10 +91,19 @@ homepage runs take the deterministic path, which makes no model call at all — 
 key still gets a browser really driving a real page, with the evidence and the verifier's verdict.
 What needs a key is the model-driven path, which is everything on a site we did not write.
 
+**Which credential the public deployment uses, and what that means for your task text.** Scoring is
+finished, so the public site now runs **free tier first with automatic fallback to a paid key** when
+the free tier is rate-limited or exhausted (`CREDENTIAL_POLICY=public_demo_funded`, cumulative
+allowance USD 2.00, USD 0.50/day, enforced before every call). The model is the same pinned ID
+either way. What is worth stating plainly rather than leaving to be assumed: **free-tier requests
+are used by the provider to improve its products.** Page content we browse is public by policy, but
+the task text is written by whoever submits it — so anything you type into the demo may travel on
+the free tier. `/healthz` reports which policy is in force and which tiers are usable under it.
+
 ### Tests and evaluation
 
 ```bash
-pytest                                    # 611 tests, ~20 s (a real browser runs
+pytest                                    # 618 tests, ~20 s (a real browser runs
                                           # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
@@ -270,6 +279,16 @@ progress line about a run that had already finished `succeeded_verified` in 13 s
 interface stating a plausible and wrong account of our own execution state.** Fixed with a fallback
 that says out loud that it is polling rather than streaming, and that stops after five minutes
 instead of spinning. Defect 12. **11 is a page nobody requested; 12 is a page nobody watched.**
+
+**And three more from one final review, all of them sentences about ourselves.** `/coverage` — the
+page that exists to say which outcomes have never been produced — showed `injection_detected` as
+*due at M6, not due yet*, which is a schedule for work that was **cut**; the paragraph below claiming
+that page says otherwise was, until this fix, describing a page that did not exist. The same page
+carried a second hard-coded copy of the current milestone that had drifted a milestone behind the
+build. And the homepage located the pinned demonstrations by **position** — *"the first few"* — on a
+list sorted newest-first, so the reviewer looked at the top and found four ordinary runs. Defects 13,
+14 and 15. Each fix replaces a written claim with a derived one: a reason instead of a milestone, the
+build's own milestone instead of a copy, a badge instead of an ordinal.
 
 **Where the human was load-bearing.** Deciding what to cut, refusing to accept point fixes where a
 requirement class was needed, and the calls that spent money or changed what we promised. Amendment
@@ -597,7 +616,9 @@ built to a stated minimum and whose bounds are the entry.
 - **The safety suite is not built.** What exists — the egress guard, robots enforcement, the refusal
   taxonomy — is load-bearing and tested. What does not exist is a safety split or an injection
   detector, so `injection_detected` is a declared status no code path currently reaches, and
-  `/coverage` says so rather than leaving it to be assumed.
+  `/coverage` says so rather than leaving it to be assumed — as **not built, with no milestone**,
+  because a cut path shown as scheduled is a promise we are not keeping. That page said *"due at
+  M6"* until the day this was written; see defect 13.
 - **Spend controls stopped where they were.** Every spend total in this repository is generated into
   one file, [`docs/spend-ledger.md`](docs/spend-ledger.md), because three documents each carrying
   their own figure meant three figures that went stale on the same day — and a fourth written in

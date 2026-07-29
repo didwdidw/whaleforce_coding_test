@@ -13,7 +13,7 @@ import pathlib
 
 import pytest
 
-from app.coverage import FAILURE_DUE, STATUS_DUE, CoverageLedger
+from app.coverage import FAILURE_DUE, MILESTONES, NOT_BUILT, STATUS_DUE, CoverageLedger
 from app.models import (
     FailureClass, Run, StepKind, TerminalStatus, Tier, TraceEntry, new_id,
 )
@@ -164,8 +164,38 @@ def test_values_not_due_until_later_are_not_counted_against_m2(store):
     assert not any(r["overdue"] for r in later.values())
 
 
-def test_every_declared_value_has_a_milestone(store):
+def test_every_declared_value_has_a_milestone_or_a_reason_it_has_none(store):
     """A value in the closed set with no declared milestone is one nobody has decided how
-    to reach, which is the state that hides an unreachable path."""
+    to reach, which is the state that hides an unreachable path. A value that was cut needs
+    the same account of itself, and it must not be in both maps: "coming at M6" and "never
+    built" cannot both be true, and the page renders whichever it finds."""
     assert set(STATUS_DUE) == set(TerminalStatus)
-    assert set(FAILURE_DUE) == set(FailureClass)
+    assert set(FAILURE_DUE) | set(NOT_BUILT) == set(FailureClass)
+    assert not set(FAILURE_DUE) & set(NOT_BUILT)
+    assert all(reason.strip() for reason in NOT_BUILT.values())
+
+
+def test_a_cut_path_is_reported_as_cut_and_never_as_scheduled_or_overdue(store):
+    """The defect this separation fixes. `injection_detected` was declared due at M6 while
+    the safety suite had been dropped, so the page showed a schedule that did not exist —
+    optimistic, on the surface whose whole job is not to be — and leaked the milestone code
+    to a reader who has no reason to know our internal ones."""
+    report = CoverageLedger(store, "M5").report()
+    row = next(r for r in report["failure_class"] if r["value"] == "injection_detected")
+
+    assert row["not_built"]
+    assert row["due_at"] is None
+    assert row["due_now"] is False
+    assert row["overdue"] is False
+    assert "injection_detected" in report["not_built"]
+    assert not any(m in row["not_built"] for m in MILESTONES)
+
+
+def test_the_current_milestone_comes_from_the_build_and_not_from_a_second_copy(store):
+    """Two independent strings for one fact drift, and this pair had: the ledger was still
+    on M4 while the build said M5, which marked ten failure classes overdue and told the
+    page our own gate was failing on a page whose subject is exactly that."""
+    from app.buildstate import MILESTONE as build_milestone
+
+    assert CoverageLedger(store).current == build_milestone
+    assert CoverageLedger(store).report()["milestone"] == build_milestone

@@ -17,12 +17,18 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.buildstate import MILESTONE
 from app.models import FailureClass, TerminalStatus
 from app.store import Store
 
 #: Milestone at which each value first becomes producible. Ordered, so "due by now" is a
 #: comparison rather than a judgement call.
 MILESTONES: tuple[str, ...] = ("M1", "M2", "M3", "M4", "M5", "M6", "M7")
+
+if MILESTONE not in MILESTONES:
+    raise RuntimeError(
+        f"The build says it is at milestone {MILESTONE}, which is not one of {MILESTONES}. "
+        f"This ledger decides what is overdue by comparing the two.")
 
 STATUS_DUE: dict[TerminalStatus, str] = {
     TerminalStatus.UNSUPPORTED: "M1",
@@ -55,8 +61,18 @@ FAILURE_DUE: dict[FailureClass, str] = {
     # Our own per-call output cap, which the model's thinking tokens share (A17.8). It was
     # first produced by a live run at M4, wearing `internal_error`.
     FailureClass.OUTPUT_TRUNCATED: "M4",
-    # The injection defence is demonstrated at M6; the page it is demonstrated on exists now.
-    FailureClass.INJECTION_DETECTED: "M6",
+}
+
+#: Values whose code path was deliberately **not built**, with what is missing. Kept apart
+#: from the milestone map on purpose: a milestone is a statement that something is coming,
+#: and reading "due at M6 / not due yet" against a value that was cut says the schedule is
+#: intact when the work was dropped. That is optimistic in exactly the direction this page
+#: exists to prevent, and it happened here.
+NOT_BUILT: dict[FailureClass, str] = {
+    FailureClass.INJECTION_DETECTED:
+        "No injection detector was built and none is scheduled. The safety split was cut, "
+        "not deferred. The value stays declared because the taxonomy is closed by the "
+        "spec — what is reported here is that no code path reaches it.",
 }
 
 
@@ -64,7 +80,7 @@ class CoverageLedger:
     """Reads and writes the ledger. Recording is a side effect of terminating a run, so it
     cannot drift from what the product actually did."""
 
-    def __init__(self, store: Store, current_milestone: str = "M4") -> None:
+    def __init__(self, store: Store, current_milestone: str = MILESTONE) -> None:
         self._store = store
         self.current = current_milestone
 
@@ -85,27 +101,36 @@ class CoverageLedger:
             if row["failure_class"]:
                 by_failure.setdefault(row["failure_class"], []).append(row)
 
-        def rows(due_map, observed):
+        def rows(due_map, observed, not_built=None):
+            not_built = not_built or {}
+            # Declared values come from two places now: those with a milestone, and those
+            # with a reason they have none.
+            declared = list(due_map.items()) + [(v, None) for v in not_built]
             out = []
-            for value, milestone in due_map.items():
+            for value, milestone in declared:
                 hits = observed.get(value.value, [])
                 first = min(hits, key=lambda r: r["first_seen_at"]) if hits else None
+                due_now = self._due(milestone) if milestone else False
                 out.append({
                     "value": value.value,
                     "due_at": milestone,
-                    "due_now": self._due(milestone),
+                    "due_now": due_now,
+                    # A cut path carries no milestone at all. `not_built` is the reason it
+                    # will not arrive, so the page can say that instead of "not due yet".
+                    "not_built": not_built.get(value),
                     "observed": bool(hits),
                     "origin": first["origin"] if first else None,
                     "first_run_id": first["first_run_id"] if first else None,
                     "first_seen_at": first["first_seen_at"] if first else None,
                     "count": sum(r["n"] for r in hits),
-                    "overdue": self._due(milestone) and not hits,
+                    "overdue": due_now and not hits,
                 })
             return out
 
         statuses = rows(STATUS_DUE, by_status)
-        failures = rows(FAILURE_DUE, by_failure)
+        failures = rows(FAILURE_DUE, by_failure, NOT_BUILT)
         overdue = [r["value"] for r in statuses + failures if r["overdue"]]
+        not_built = [r["value"] for r in statuses + failures if r["not_built"]]
         # An empty ledger must not read as a passing gate: with nothing declared and
         # nothing observed there would be no overdue rows either (A11.7).
         observed = [r for r in statuses + failures if r["observed"]]
@@ -114,8 +139,11 @@ class CoverageLedger:
             "terminal_status": statuses,
             "failure_class": failures,
             "overdue": overdue,
+            "not_built": not_built,
             "gate_passes": bool(observed) and not overdue,
             "note": ("A value due at or before the current milestone and never observed is "
                      "an unreachable code path, which is how a gate passes without ever "
-                     "having been tested."),
+                     "having been tested. A value listed under not_built is one whose code "
+                     "path was dropped rather than scheduled; it has no milestone, and it "
+                     "is never counted as overdue."),
         }

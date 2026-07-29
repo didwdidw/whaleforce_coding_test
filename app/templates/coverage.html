@@ -5,10 +5,11 @@
 <div class="panel">
   <h2>Which outcomes this deployment has actually produced</h2>
   <p class="sub">
-    Both sets are closed by the spec, and every value is declared with the milestone at which
-    it becomes producible. A value that is due and has never been produced is not a gap in
-    testing — it is an <strong>unreachable code path</strong>, and an unreachable path is
-    indistinguishable from a working one until the day it is needed.
+    Both sets are closed by the spec, and every value is declared either with the milestone
+    at which it becomes producible or with the reason its code path was never built. A value
+    that is due and has never been produced is not a gap in testing — it is an
+    <strong>unreachable code path</strong>, and an unreachable path is indistinguishable from
+    a working one until the day it is needed.
   </p>
   <p class="sub">
     This page exists because of a specific mistake. At M1 the hard gate "no run is ever both
@@ -24,6 +25,15 @@
       <span class="badge b-warn">not yet produced here: {{ report.overdue | join(', ') }}</span>
     {% endif %}
   </p>
+  {% if report.not_built %}
+  <p class="sub">
+    <strong>Not every declared value has a milestone.</strong>
+    {{ report.not_built | join(', ') }} — the code path was
+    <strong>dropped, not scheduled</strong>, so the row carries no future milestone to wait
+    for. A cut path shown as "due later" reads as a plan that is still on track, which is
+    the optimistic direction, and this page is the wrong place to be optimistic in.
+  </p>
+  {% endif %}
   <p class="sub">
     This counts <strong>this deployment since its last restart</strong>, so the list above
     starts long and shortens as outcomes occur. Some of it can be provoked from the outside —
@@ -48,10 +58,12 @@
     <tbody>
       {% for r in rows %}
       <tr>
-        <td><code>{{ r.value }}</code></td>
-        <td>{{ r.due_at }}</td>
+        <td><code>{{ r.value }}</code>
+          {% if r.not_built %}<br><span class="sub">{{ r.not_built }}</span>{% endif %}</td>
+        <td>{% if r.not_built %}—{% else %}{{ r.due_at }}{% endif %}</td>
         <td>
           {% if r.observed %}<span class="badge b-ok">yes</span>
+          {% elif r.not_built %}<span class="badge b-warn">not built</span>
           {% elif r.due_now %}<span class="badge b-bad">overdue</span>
           {% else %}<span class="badge b-dim">not due yet</span>{% endif %}
         </td>

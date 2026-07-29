@@ -403,11 +403,13 @@ round rather than by anything in the system, which is the same shape as every ot
 ### 5.4 Verifying the verifier
 
 A system whose central claim is "our checks are real" has to expect the checks themselves to be
-wrong. **Twelve** were found, nine of them fixed. Ten are one species — **a check that reported on a
-coincidence**, a check that could not fire at all, or a label too coarse to carry the conclusion
-drawn from it. The last two are that species' mirror image — not a check reporting something untrue
-but **no check at all** — and they are the two halves of one hole, in the same page, found a day
-apart. The first five were found during development:
+wrong. **Fifteen** were found, twelve of them fixed. Ten are one species — **a check that reported on
+a coincidence**, a check that could not fire at all, or a label too coarse to carry the conclusion
+drawn from it. Two are that species' mirror image — not a check reporting something untrue but **no
+check at all** — and they are the two halves of one hole, in the same page, found a day apart. The
+last three are a third kind, all found by one independent review of the deployed system on the last
+day: **pages describing us in our own words**, where nothing was checking that the words still
+matched. The first five were found during development:
 
 | | The defect |
 |---|---|
@@ -439,6 +441,12 @@ in an appendix because the pattern is the finding rather than the count:
 
 | 12 | The same page's progress indicator span forever on runs that had already **succeeded**. The `EventSource` had an `onmessage` and no `onerror`, so a dropped connection — which is what our own 12–23 s deploy window looks like from the browser — left the page holding its last progress line, looking busy, about a run that finished in 13 seconds. Observed on `run_b99d78d84a67`. The test written for 11 a day earlier asserts the page *renders*; it does not watch it move. **Found the day after 11, and fixed** |
 
+| 13 | `/coverage` is the page that says which outcomes have never been produced, and it showed `injection_detected` as **due at M6, not due yet** — a schedule, for work that was **cut**. The safety split was dropped, not deferred; the README claimed this page said so, and it did not. Wrong in the optimistic direction, on the surface whose entire subject is not being optimistic, and it published an internal milestone code to a reader with no way to know what M6 means. **Found by an independent review of the deployed system, and fixed**: a cut path now carries a reason instead of a milestone |
+
+| 14 | The same page held a **second copy** of the current milestone, hard-coded, and it had drifted: the ledger said `M4` while the build said `M5`. Nothing produced a wrong verdict from it — no value is declared for `M5` — but a value ever declared there would have been silently marked not-due by a string nobody remembered to move. Two independent sources for one fact, which is the shape of §5.4 itself. **Found in the same review, and fixed** by reading it from the build |
+
+| 15 | The homepage said *"the first few are pre-executed at startup"*. The list is newest-first, so the demonstrations lead it on a fresh deployment and sink the moment anyone runs anything — and the reviewer, following the sentence, looked at the top and found four ordinary runs. A claim about **position** on a list that reorders itself, when the rows had carried a `pre-executed` badge all along. **Found in the same review, and fixed** by describing the badge instead of the position |
+
 Number 10 is the one to read if you only read one, and the chain of events is the point rather than
 the defect.
 
@@ -467,7 +475,7 @@ Numbers 8, 9 and 10 arrived after the build was frozen, which is the only reason
 open, and how that was handled is part of the finding. Correcting any of them would have meant a code change between the
 round that measured the system and the round that scores the held-out split — so the choice was
 between tidier code and two rounds that describe the same build. The code lost. It is
-written here, in the table with the other nine, rather than repaired quietly afterwards and
+written here, in the table with the other twelve, rather than repaired quietly afterwards and
 presented as though the rounds had always agreed. Number 8 is the same species as A-14b: a loud, correct refusal
 filed under the wrong party. Number 9 is the species this whole section is named for — an
 instruction to look for evidence that the code cannot produce — and it cost a real operator a real
@@ -522,6 +530,18 @@ The pair is worth stating as one finding, because the second half is what the fi
 missed: **11 is a page nobody ever requested; 12 is a page nobody ever watched.** A rendering test
 answers "does it come back", never "does it keep telling the truth while it runs", and the second
 question is where an interface is most able to lie without anyone writing a false sentence.
+
+**Numbers 13, 14 and 15 came from one review, in one afternoon, and they share a subject.** Every
+one of them is a page describing this project in prose, and every one had gone quietly out of date
+in the direction that flatters us: cut work shown as scheduled, a milestone that had stopped moving,
+a demonstration located by a position it no longer occupies. None of them touches a result. All
+three were caught by a reviewer *using the deployment* rather than reading the repository — the same
+method that found 10, 11 and 12, and by now the pattern is not subtle. The build-state derivation
+(A13.3) exists precisely because prose has no reason to change when code does; it covers the claims
+that can be read off code, and these three were the claims that could not. What replaced them is the
+same move each time: the page states the thing it can derive — a reason instead of a milestone, the
+build's own milestone instead of a copy, a badge instead of an ordinal — so the next change of fact
+carries the sentence with it.
 
 Number 7 is the one worth reading twice, and it took two goes.
 
