@@ -281,6 +281,13 @@ curl -X POST https://wf-agent.zeabur.app/api/runs \
 ```
 表單格式也接受：`curl -X POST https://wf-agent.zeabur.app/api/runs -d 'task=...'`
 
+**列出所有 run**（新的在前；首頁那張表是這份清單去重後的視圖，這裡是完整的）
+```bash
+curl -s 'https://wf-agent.zeabur.app/api/runs?limit=20' \
+  | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['total'], d['truncated']); [print(r['id'], r['terminal_status'], r['counts_as_success'], r['task'][:50]) for r in d['runs']]"
+```
+分頁用 `limit` 與 `offset`；被截斷時 body 會用 `truncated` 與 `next_offset` 明講。
+
 **查一筆 run**（狀態 + 結果 + claims + artifacts + queue_position）
 ```bash
 curl -s https://wf-agent.zeabur.app/api/runs/run_509bf9e62237 | python3 -m json.tool

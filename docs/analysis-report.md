@@ -403,13 +403,15 @@ round rather than by anything in the system, which is the same shape as every ot
 ### 5.4 Verifying the verifier
 
 A system whose central claim is "our checks are real" has to expect the checks themselves to be
-wrong. **Fifteen** were found, twelve of them fixed. Ten are one species — **a check that reported on
-a coincidence**, a check that could not fire at all, or a label too coarse to carry the conclusion
-drawn from it. Two are that species' mirror image — not a check reporting something untrue but **no
-check at all** — and they are the two halves of one hole, in the same page, found a day apart. The
-last three are a third kind, all found by one independent review of the deployed system on the last
-day: **pages describing us in our own words**, where nothing was checking that the words still
-matched. The first five were found during development:
+wrong. **Twenty** were found, seventeen of them fixed. Ten are one species — **a check that reported
+on a coincidence**, a check that could not fire at all, or a label too coarse to carry the
+conclusion drawn from it. Two are that species' mirror image — not a check reporting something
+untrue but **no check at all** — and they are the two halves of one hole, in the same page, found a
+day apart. The last eight are a third kind, all found by two independent reviews of the deployed
+system in the last two days: **pages describing us in our own words**, where nothing was checking
+that the words still matched. That is now the largest group in the table, and it is the one that
+took the longest to become visible, because reading the repository cannot find any of them. The
+first five were found during development:
 
 | | The defect |
 |---|---|
@@ -446,6 +448,11 @@ in an appendix because the pattern is the finding rather than the count:
 | 14 | The same page held a **second copy** of the current milestone, hard-coded, and it had drifted: the ledger said `M4` while the build said `M5`. Nothing produced a wrong verdict from it — no value is declared for `M5` — but a value ever declared there would have been silently marked not-due by a string nobody remembered to move. Two independent sources for one fact, which is the shape of §5.4 itself. **Found in the same review, and fixed** by reading it from the build |
 
 | 15 | The homepage said *"the first few are pre-executed at startup"*. The list is newest-first, so the demonstrations lead it on a fresh deployment and sink the moment anyone runs anything — and the reviewer, following the sentence, looked at the top and found four ordinary runs. A claim about **position** on a list that reorders itself, when the rows had carried a `pre-executed` badge all along. **Found in the same review, and fixed** by describing the badge instead of the position |
+| 16 | The fix for 15 replaced one stale sentence with another. The homepage promised a `pre-executed` badge and an evidence-capture date; **zero rows carried either**. The demonstrations were selected by being recent, and a deployment that has served seventy runs no longer has them anywhere near the window — so the badge the fix told readers to look for rendered on nothing. **Found by a second independent review, and fixed** by selecting those rows on the flag itself |
+| 17 | The paragraph that justifies de-duplicating the homepage table ends *"every run is still listed at `/api/runs`"*. **`GET /api/runs` was 405** — the route was POST-only, and no path in the product showed the full list. The justification for hiding rows was a promise nothing answered. **Found in the same review, and fixed** by writing the endpoint |
+| 18 | `/coverage` told the reader *"this counts this deployment since its last restart"* and *"a redeploy resets this table"*. Both are the opposite of true: the ledger is on the mounted volume and accumulates across deployments. Believing the page, a long never-produced list reads as *we restarted recently* rather than as *this path has never once been driven here* — which inverts the only conclusion the page exists to support. **Found in the same review, and fixed** by rendering the sentence from the store's own `persistent` flag |
+| 19 | L-1's remediated phrasing published `failed / budget_exhausted`; it ends `failed / verification_mismatch`. The label mattered less than what it exposed: `eval/limitations_check` had re-run all seven entries and reported all seven reproducing, because for a remedy it compared **terminal status only**. A check looser than the claim it stands behind, on the honesty surface, reporting coverage it did not have. **Found in the same review, and fixed** — the class is compared now, and an entry that declines to pin one has to say so |
+| 20 | The run page rendered `does not count as success` when a run did not, and **nothing at all** when it did. The guides tell a reader to trust that field over the status word, so its absence had to mean two different things at once: *succeeded*, and *has not finished*. **Found in the same review, and fixed** by rendering both halves |
 
 Number 10 is the one to read if you only read one, and the chain of events is the point rather than
 the defect.
@@ -475,7 +482,7 @@ Numbers 8, 9 and 10 arrived after the build was frozen, which is the only reason
 open, and how that was handled is part of the finding. Correcting any of them would have meant a code change between the
 round that measured the system and the round that scores the held-out split — so the choice was
 between tidier code and two rounds that describe the same build. The code lost. It is
-written here, in the table with the other twelve, rather than repaired quietly afterwards and
+written here, in the table with the other seventeen, rather than repaired quietly afterwards and
 presented as though the rounds had always agreed. Number 8 is the same species as A-14b: a loud, correct refusal
 filed under the wrong party. Number 9 is the species this whole section is named for — an
 instruction to look for evidence that the code cannot produce — and it cost a real operator a real
@@ -542,6 +549,19 @@ that can be read off code, and these three were the claims that could not. What 
 same move each time: the page states the thing it can derive — a reason instead of a milestone, the
 build's own milestone instead of a copy, a badge instead of an ordinal — so the next change of fact
 carries the sentence with it.
+
+**Numbers 16 to 20 are the same review method run a second time, and 16 is the one that hurts.** It
+is the fix for 15, one day old: the sentence about position was replaced with a sentence about a
+badge, and the badge rendered on no row on the deployment. *A stale claim was replaced by a claim
+that had never been true*, which is worse, because it is the second attempt. The cause is the same
+one every time — the test written alongside the fix asserted the paragraph, and a paragraph
+asserting itself checks nothing. So the rule for this group is now explicit and it is the only
+useful thing to take from them: **a test for a sentence about the product must assert the rendered
+page against a value the code derives**, never against the sentence. The five tests written for 16
+to 20 build a store, render the page and compare what came out with what that store says — which is
+why 17's endpoint is asserted to be *longer than the table it justifies* rather than merely present,
+and why 19's checker now fails against the text we published before it passes against the text we
+replaced it with.
 
 Number 7 is the one worth reading twice, and it took two goes.
 

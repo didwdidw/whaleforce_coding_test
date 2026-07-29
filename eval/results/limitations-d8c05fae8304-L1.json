@@ -1,0 +1,45 @@
+{
+ "tool": "limitations-check/1.1",
+ "base_url": "https://wf-agent.zeabur.app",
+ "git_sha": "d8c05fae8304",
+ "checked_at": "2026-07-29T17:10:14Z",
+ "entries": 1,
+ "reproduce": 1,
+ "do_not_reproduce": [],
+ "results": [
+  {
+   "id": "L-1",
+   "task": "In the S&P 500 constituents table on Wikipedia, sort by CIK ascending and tell me which company is first.",
+   "published": {
+    "terminal_status": "unsupported",
+    "failure_class": "policy_refused"
+   },
+   "observed": {
+    "terminal_status": "unsupported",
+    "failure_class": "policy_refused",
+    "explanation": "This task names no page or site to start from, and no promised operation recognises it, so there is nowhere to begin. Picking a starting page the task never named would answer a question nobody asked. Name a URL or a site — for example \"on example.org, …\" — and it will be attempted best-effort as an experimental run.",
+    "run_id": "run_532de92ef471",
+    "timed_out": false
+   },
+   "reproduces": true,
+   "discrepancy": "",
+   "remedy": {
+    "task": "In the List of S&P 500 companies article on Wikipedia, sort by CIK ascending and tell me which company is first.",
+    "published": {
+     "terminal_status": "failed",
+     "failure_class": "verification_mismatch"
+    },
+    "observed": {
+     "terminal_status": "failed",
+     "failure_class": "verification_mismatch",
+     "explanation": "sort_state: The plan froze a ascending sort on 'CIK', but the table states it is unsorted. One click too few or too many produces a perfectly reasonable ordering of the wrong kind, and the table's own statement is what settles it.",
+     "run_id": "run_43936a210ba2",
+     "timed_out": false
+    },
+    "reproduces": true,
+    "discrepancy": ""
+   }
+  }
+ ],
+ "note": "A-73. Every published limitation is executed against the deployed system before it is published and again before submission. An entry listed in `do_not_reproduce` is a defect in the list, not a caveat about it."
+}

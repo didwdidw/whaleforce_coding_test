@@ -75,7 +75,7 @@ APP_ROLE=fixture PORT=8801 ./entrypoint.sh &   # fixture 是獨立行程，先�
 ### 測試與評估
 
 ```bash
-pytest                                    # 618 tests，約 20 秒（tests/test_m2_integration.py 會開真實瀏覽器）
+pytest                                    # 638 tests，約 20 秒（tests/test_m2_integration.py 會開真實瀏覽器）
 python -m eval.harness --split dev
 python -m eval.harness --split experimental
 ```
@@ -250,7 +250,7 @@ python -m eval.harness --split experimental
 
 | | 任務 | 實際發生什麼 |
 |---|---|---|
-| **L-1** | *"In the S&P 500 constituents table on Wikipedia, sort by CIK ascending…"* | 瀏覽前停止：`unsupported / policy_refused`。文章是被描述而非指名。**指名了也沒完成**：改成 *"In the List of S&P 500 companies article on Wikipedia, …"* 能找到正確的表並排序，卻無法辨識排序已完成，把剩餘步數花在重新搜尋文章：`failed / budget_exhausted`。兩半都對線上部署執行過；本條的早期版本曾宣稱第二半成功 |
+| **L-1** | *"In the S&P 500 constituents table on Wikipedia, sort by CIK ascending…"* | 瀏覽前停止：`unsupported / policy_refused`。文章是被描述而非指名。**指名了也沒完成**：改成 *"In the List of S&P 500 companies article on Wikipedia, …"* 能找到正確的表並點下 CIK 欄位標題，而 verifier 讀到表格自述「未排序」因而拒絕該宣稱：`failed / verification_mismatch`。兩半都對線上部署執行過；本條的早期版本曾宣稱第二半成功 |
 | **L-2** | *"How many books are listed on the last page of the Nonfiction category on books.toscrape.com?"* | 翻頁時耗盡 step budget，**不給答案**（`failed / budget_exhausted`）。翻到「最後一頁」每頁要一次模型呼叫。budget 刻意 fail-closed |
 | **L-3** | *"Is there any book in the Fiction category on books.toscrape.com priced over £50?"* | 只讀到清單自報 65 本中的 20 本，回報覆蓋**未證明**（`unverified`）。不存在只從正面證據推得，而多頁分類跨多個 artifact、本 build 只對單一 artifact 驗證。單頁分類可以回答 |
 | **L-4** | *"Use Wikipedia's search page to find articles mentioning 'convertible arbitrage'."* | 導覽前拒絕（`blocked / robots_disallowed`）並引用規則。Wikipedia disallow `/wiki/Special:Search`。拒絕是正確的**同時**也是限制：一個沒有合法路徑的普通問題在這裡沒有答案 |

@@ -69,6 +69,7 @@ curl -X POST https://wf-agent.zeabur.app/api/runs \
   -H 'Content-Type: application/json' \
   -d '{"task": "On books.toscrape.com, open A Light in the Attic and tell me its UPC."}'
 
+curl https://wf-agent.zeabur.app/api/runs                   # every run this deployment has stored
 curl https://wf-agent.zeabur.app/api/runs/{run_id}          # status + result + evidence bundle
 curl https://wf-agent.zeabur.app/api/runs/{run_id}/events   # SSE progress stream
 ```
@@ -111,7 +112,7 @@ the free tier. `/healthz` reports which policy is in force and which tiers are u
 ### Tests and evaluation
 
 ```bash
-pytest                                    # 618 tests, ~20 s (a real browser runs
+pytest                                    # 638 tests, ~20 s (a real browser runs
                                           # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
@@ -304,6 +305,19 @@ build. And the homepage located the pinned demonstrations by **position** — *"
 list sorted newest-first, so the reviewer looked at the top and found four ordinary runs. Defects 13,
 14 and 15. Each fix replaces a written claim with a derived one: a reason instead of a milestone, the
 build's own milestone instead of a copy, a badge instead of an ordinal.
+
+**And five more the next day, from a second review — one of which was the fix above.** The badge
+that replaced *"the first few"* rendered on **no row at all**: the demonstrations were selected by
+being recent, and on a deployment that has served seventy runs they are not. A stale sentence had
+been replaced with one that was never true, because the test written with it asserted the paragraph
+rather than the page. With it: `GET /api/runs` — the full list the homepage offers as the reason
+de-duplicating hides nothing — answered **405**; `/coverage` said a redeploy resets its ledger while
+that ledger sits on a mounted volume and accumulates, which inverts how its never-produced list
+should be read; L-1's remedy published the wrong failure class, and the executable check that
+re-runs all seven limitations had compared **terminal status only**, so it could not see it; and the
+run page rendered *does not count as success* and nothing for the other half. Defects 16–20. The
+rule that came out of them is in §5.4 and it is short: **a test for a sentence about the product
+asserts the rendered page against a value the code derives, never against the sentence.**
 
 **Where the human was load-bearing.** Deciding what to cut, refusing to accept point fixes where a
 requirement class was needed, and the calls that spent money or changed what we promised. Amendment
