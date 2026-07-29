@@ -166,29 +166,42 @@ SYSTEM_SPEND_CEILING_USD_PER_DAY = _float("PROVIDER_SYSTEM_SPEND_CEILING_USD_PER
 #: placed on the limit it protects catches nothing.
 CUMULATIVE_DEVELOPMENT_CEILING_USD = _float("PROVIDER_CUMULATIVE_CEILING_USD", 8.00)
 
-#: Per policy. `public_demo` is zero and that is not an oversight: its cumulative allowance
-#: is decided at the A15 switchover, and until then the public path is authorised to spend
-#: no billed money — which is also exactly what A12.2's topology gives it, since that
-#: container holds no billing credential. Leaving it on the development number would let
-#: grader traffic, which the owner put outside this budget, consume the budget.
+#: A27.1 — the public demo's own cumulative allowance, authorised at the A15 switchover.
+#: Separate from the development number because grader traffic was put outside that budget.
+PUBLIC_DEMO_CEILING_USD = _float("PROVIDER_PUBLIC_DEMO_CEILING_USD", 2.00)
+
+#: Per policy. `public_demo` is zero and that is not an oversight: it is the pre-switchover
+#: policy, authorised to spend no billed money at all — which is also exactly what A12.2's
+#: topology gave it, since that container held no billing credential. `public_demo_funded`
+#: is the same site after scoring, and the two are kept as separate values so `/healthz` can
+#: name which one is in force instead of borrowing a policy that would misdescribe it.
 CUMULATIVE_CEILING_USD = {
     "scored": CUMULATIVE_DEVELOPMENT_CEILING_USD,
     "development": CUMULATIVE_DEVELOPMENT_CEILING_USD,
     "public_demo": 0.0,
+    "public_demo_funded": PUBLIC_DEMO_CEILING_USD,
 }
+
+#: The public demo runs under exactly one of these at a time (A27.1). They are alternatives,
+#: not two processes, which is what the share invariant below has to know.
+PUBLIC_DEMO_POLICIES = ("public_demo", "public_demo_funded")
 
 #: A22.2/A22.3 — how that total is divided, declared once. Neither deployed process can
 #: read the other's ledger, so two ceilings set independently would drift with nothing able
 #: to notice. Fractions rather than dollars, so the total moves in exactly one place.
 #: `development` is absent deliberately: it runs on a developer's machine against its own
 #: store and is not one of the two processes sharing the promise.
-DEPLOYED_CEILING_SHARE = {"scored": 0.75, "public_demo": 0.25}
+DEPLOYED_CEILING_SHARE = {"scored": 0.75, "public_demo": 0.25, "public_demo_funded": 0.25}
 
-if abs(sum(DEPLOYED_CEILING_SHARE.values()) - 1.0) > 1e-9:
-    raise RuntimeError(
-        f"The declared ceiling shares sum to {sum(DEPLOYED_CEILING_SHARE.values())}, not 1. "
-        f"The system's daily ceiling is what this project promises (A22.1); a split that "
-        f"does not add up to it is a raise nobody authorised.")
+_SHARED_BY_ALL = {k: v for k, v in DEPLOYED_CEILING_SHARE.items()
+                  if k not in PUBLIC_DEMO_POLICIES}
+for _demo_policy in PUBLIC_DEMO_POLICIES:
+    _total = sum(_SHARED_BY_ALL.values()) + DEPLOYED_CEILING_SHARE[_demo_policy]
+    if abs(_total - 1.0) > 1e-9:
+        raise RuntimeError(
+            f"With the public demo on '{_demo_policy}' the declared ceiling shares sum to "
+            f"{_total}, not 1. The system's daily ceiling is what this project promises "
+            f"(A22.1); a split that does not add up to it is a raise nobody authorised.")
 
 for _retired, _instead in (("PROVIDER_SPEND_CEILING_USD_PER_DAY",
                             "PROVIDER_SYSTEM_SPEND_CEILING_USD_PER_DAY"),

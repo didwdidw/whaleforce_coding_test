@@ -425,14 +425,20 @@ def test_the_two_ceilings_come_from_one_declaration_and_add_up_to_the_promise():
     other's ledger, so the drift is invisible — which is how USD 1/day quietly became 2."""
     from app import config
 
-    assert sum(config.DEPLOYED_CEILING_SHARE.values()) == pytest.approx(1.0)
     total = config.SYSTEM_SPEND_CEILING_USD_PER_DAY
-    per_process = [
-        dataclasses.replace(settings.provider, credential_policy=policy
-                            ).spend_ceiling_usd_per_day
-        for policy in config.DEPLOYED_CEILING_SHARE
-    ]
-    assert sum(per_process) == pytest.approx(total)
+    # The public demo runs under exactly one of its two policies at a time (A27.1), so the
+    # split adds up per alternative rather than across the dict — summing all of it would
+    # count the same process twice and read as a raise.
+    for demo_policy in config.PUBLIC_DEMO_POLICIES:
+        processes = [p for p in config.DEPLOYED_CEILING_SHARE
+                     if p not in config.PUBLIC_DEMO_POLICIES] + [demo_policy]
+        assert sum(config.DEPLOYED_CEILING_SHARE[p] for p in processes) == pytest.approx(1.0)
+        per_process = [
+            dataclasses.replace(settings.provider, credential_policy=p
+                                ).spend_ceiling_usd_per_day
+            for p in processes
+        ]
+        assert sum(per_process) == pytest.approx(total)
     assert total == pytest.approx(2.0)
 
 

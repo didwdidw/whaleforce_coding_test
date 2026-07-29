@@ -2418,3 +2418,55 @@ README §7 承諾了它，而 grader-guide 的附錄 D 現在把這條指令直�
 順帶：eval.limitations_check 還是沒重跑。那條承諾還掛著。
 
 ==========
+
+A15 切換：公開站需要一個誠實的政策值。
+
+現況：available_tiers() 對 public_demo 硬回 [FREE]，
+     CUMULATIVE_CEILING_USD["public_demo"] = 0.0，
+     provider.py:390 會在「額度 0 + 付費憑證搆得到」時拋 ProviderQuotaExhausted。
+     所以在政策換掉之前放 key，等於直接弄壞公開站。
+
+加一個政策值（名稱你定，語意要是「公開站，計分後」）：
+  - available_tiers() → [FREE, PAID]，免費優先、打滿 fallback
+  - CUMULATIVE_CEILING_USD → 2.00
+  - DEPLOYED_CEILING_SHARE → 0.25（每日 $0.50；計分工作負載已經跑完，不會再爭用）
+  - 不要用 scored 或 development 借位：/healthz 會因此說一句假話。
+
+理由寫進 §16 當 A27，一段就好：A15 的切換點到了，額度在此決定。
+順手確認 CREDENTIAL_POLICY 不影響 SSRF guard（那條看的是 APP_ENV），
+在 commit message 裡講一句，因為這是唯一會讓人擔心的耦合。
+
+一支測試：新政策值下 available_tiers 是 [FREE, PAID]、累計額度 > 0、
+        且 public_demo 的既有行為完全沒變。
+
+推上去之後通知 operator。
+
+最終審查 agent 實地跑出四筆，其中一筆是我們公布的假話。
+
+1. /coverage 對 injection_detected 顯示 due_at "M6" / not due yet，
+   而 README:599 宣稱該頁「明說沒有任何程式路徑到得了」。頁面沒這樣說。
+   安全測試組是被砍掉的，不是排程中的 —— 現在的顯示方向是樂觀的，
+   而且它長在我們的誠實面上。順帶把內部里程碑代號洩給 grader。
+   修頁面，不是修句子：把「刻意未實作」與「尚未輪到」在資料層分開，
+   前者不帶任何未來里程碑。
+
+2. app/coverage.py:67 硬編 current_milestone="M4"，
+   與 app/buildstate.py:55 是兩個獨立來源，已經漂開。
+   後果：status_coverage.gate_passes false、十個 failure class 標成 overdue。
+   我們的頁面在對 grader 說我們沒過自己的閘門，而原因只是一個停在 M4 的字串。
+   收成單一來源。
+
+3. locator memory 計數器全零（rows_stored 6 / uses 0 / hits 0 / heals 0）。
+   這是正確行為 —— 記憶體只在定位失效時啟用，正式環境沒失效過。
+   但頁面沒說，讀起來像「建了但是死的」。
+   加一句：這裡的零代表正式環境沒有任何定位失效過，那正是它存在的場景。
+   我們對自己的 oracle 講過「無法登錄事件的儀器產出的零不是結果」，
+   這條標準要一併用在自己身上。
+
+4. index.html 寫 "The first few are pre-executed at startup"，實際排在最後。
+   （排序本身不用改 —— 那是我們今天自己測試把它們擠下去的，
+     下次部署重開機就會回到最前面。改那句文字，並在部署後確認它們看得見。）
+
+不要開新東西。這四筆＋A27 做完就收。
+
+==========

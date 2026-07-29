@@ -59,9 +59,15 @@ class CredentialTier(str, enum.Enum):
 class CredentialPolicy(str, enum.Enum):
     """Which keys a run may use, decided by what the run is for (A8.8, A9.6)."""
 
-    #: The public demo. Free tier only — a visitor must never spend billed quota, and
-    #: exhaustion is an honest `blocked / provider_quota` rather than a silent upgrade.
+    #: The public demo before the A15 switchover. Free tier only — a visitor must never
+    #: spend billed quota, and exhaustion is an honest `blocked / provider_quota` rather
+    #: than a silent upgrade.
     PUBLIC_DEMO = "public_demo"
+    #: The public demo after scoring (A15.1, A27.1). Free first, automatic fallback to paid,
+    #: under a cumulative allowance of its own. A separate value rather than a reuse of
+    #: `development` or `scored`: `/healthz` publishes this string, and a public site
+    #: describing itself as a scored run would be a false statement on our own status page.
+    PUBLIC_DEMO_FUNDED = "public_demo_funded"
     #: Development. Free first, automatic fallback to paid.
     DEVELOPMENT = "development"
     #: Validation and test splits. Paid unconditionally (A9.6) — a held-out split cannot be
@@ -253,6 +259,8 @@ class Provider:
             # No fallback. A visitor's run must not spend billed quota, and exhaustion is
             # reported rather than papered over.
             return [CredentialTier.FREE]
+        # Including PUBLIC_DEMO_FUNDED: free first, then paid on any quota or rate-limit
+        # signal. The free daily allowance is spent before a billed call is made (A15.2).
         return [CredentialTier.FREE, CredentialTier.PAID]
 
     def configured(self) -> bool:
@@ -393,8 +401,9 @@ class Provider:
             # discovering it on an invoice.
             raise ProviderQuotaExhausted(
                 f"The {self.policy.value} policy has no authorised cumulative spend, and a "
-                f"paid credential is reachable from here. Its allowance is set at the A15 "
-                f"switchover; until then this policy may not spend billed money.",
+                f"paid credential is reachable from here. Spending under a policy requires "
+                f"an allowance declared for it in CUMULATIVE_CEILING_USD (A27.1); with none "
+                f"declared, refusing is cheaper than finding the charge on an invoice.",
                 detail={"ceiling": "cumulative", **spend})
         if cumulative > 0 and spend["cumulative_billed_usd"] >= cumulative:
             raise ProviderQuotaExhausted(

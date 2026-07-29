@@ -153,6 +153,35 @@ while `APP_ENV` is anything other than a development value, and prints why. An u
 misspelled `APP_ENV` is treated as production, so the unsafe combination cannot be reached
 by a typo.
 
+### Switching the public site to the funded policy (A27.1) — an operator action
+
+Two settings, in this order, both through Zeabur's config editor. Nothing in the repository
+places a key: the keys are not in git, are never printed, and never travel through a deploy.
+
+1. **Write the paid key** to `/etc/wf/gemini_paid_tier` on the `app` service. `/etc/wf` is
+   deliberately outside `/data`: `/data` is the root the evidence store serves over HTTP,
+   and a secret must not live in a tree that is served.
+2. **Set `CREDENTIAL_POLICY=public_demo_funded`** on the same service and redeploy.
+
+Order matters only in that the reverse is harmless: a key present under the old policy is
+unreachable — the tier list does not contain `paid` — so the site keeps running free-only
+until the policy moves. What is *not* harmless is a policy with a reachable paid key and no
+declared allowance; that is refused before the call rather than discovered on an invoice.
+
+```bash
+# Confirm the switch took, without printing anything about the key itself.
+curl -s $APP/healthz | jq '{policy: .credentials.policy,
+                            usable: .credentials.tiers_usable_under_policy,
+                            ceiling: .provider_spend.ceiling_usd,
+                            daily: .provider_spend.ceiling_usd_per_day,
+                            authorised: .provider_spend.billed_spend_authorised}'
+# Expect policy public_demo_funded, tiers ["free","paid"], ceiling 2.0, daily 0.5.
+```
+
+To roll back, set `CREDENTIAL_POLICY=public_demo` and redeploy: the paid key stops being
+reachable immediately and free-tier exhaustion goes back to an honest
+`blocked / provider_quota`.
+
 ## Post-deploy checks
 
 ```bash

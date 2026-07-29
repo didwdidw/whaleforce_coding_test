@@ -2422,3 +2422,127 @@ analysis report last, and they slipped every time. They move to the front, befor
   only one is verified (A25.3).
 - [ ] **A-76** The OP-4 oracle derives the expected top row independently of the run, and every other
   case's `oracle` field describes what the harness does (A25.4).
+
+### Amendment 26 — A gate decided by when a variable was read, and the amendment that was implemented before it was written (2026-07-29)
+
+Extends **§5**, **§7**, **A11.7**, **A19.2**, **A23**, **A24.5**, **A24.6**. Written on submission
+day, after the change it describes was already built, deployed and scored.
+
+**That ordering is itself the first defect, and it is the product owner's.** A26 was ruled in an
+acceptance review and named in the ruling; the engineering session then implemented it, and cited it
+in `app/verifier.py`, `app/executor.py`, three test files, `README.md`, `docs/analysis-report.md`
+and `docs/m4-fail-closed-inventory.md`. Nobody wrote it into §16. A numbered amendment referenced by
+two production modules and a test, absent from the document that governs them, is the same species
+as everything else in this file: a claim about the system that nobody checked — this time about the
+change discipline the submission advertises, committed by the person who owns that discipline. It
+was found by a session reading the repository against its own claims, three hours before submission.
+Recorded here rather than back-dated.
+
+#### A26.1 One frozen target compared against one recorded endpoint is not a gate
+
+`artifact_source_matches_plan` compared the postcondition's frozen `target_url` with a single URL
+recorded on the navigation step. Whenever anything moves the page — a 301, a canonical rewrite — the
+two are not equal, so a single comparison has exactly two available behaviours: pass every move or
+fail every move, and **which one it did was decided by which URL happened to be sampled**. DEV-04
+passed in `r1` and failed in `r2` on inputs that had not changed. Every earlier pass of that gate is
+worth what a coin toss is worth.
+
+#### A26.2 A fix whose premise was assumed rather than measured is not a fix
+
+The first repair recorded `response.url` on the reasoning that a response's URL is the end of the
+redirect chain and cannot be timing-dependent. Measured with a browser afterwards:
+`https://en.wikipedia.org/wiki/Apple_Inc` answers **200 with no redirect at all**, and the address
+bar becomes `/wiki/Apple_Inc.` about two seconds later from the site's own script. Pinning the gate
+to the response would have converted an intermittent failure into a permanent one. **A repair to a
+check MUST be validated against the case that produced it, by execution, before it is committed.**
+
+#### A26.3 Two assertions, over three recorded values
+
+The navigation step MUST record the plan's target, the full redirect chain with each hop's status,
+the response's final URL, and the page's URL afterwards. The gate is then two assertions, each able
+to fail alone:
+
+1. **`artifact_source_is_accounted_for_by_the_trace`** — the bytes a claim is verified against came
+   from a page this run's trace can account for having been on.
+2. **`landing_explained_from_the_plan_target`** — that page is reached from the plan's target by a
+   recorded route: the target itself, a redirect chain that begins at the target and ends at the
+   page with every hop before the last carrying a 3xx, or the canonical URL the document served at
+   the target declared for itself.
+
+Reaching the right page by a route nothing accounts for is a failure. The fixture MUST carry a case
+for each assertion, including a route that arrives at the correct final URL through a door the plan
+never opened.
+
+#### A26.4 A canonical URL is a claim, not an observation
+
+`rel=canonical` is the only recorded fact when a page moves the address bar from script after the
+response. It is admitted for that reason and bounded for the same one: it counts **only from the
+page the task itself named, and only same-origin**. A page may rename itself within its own origin
+and nowhere else. Where a run's landing is explained by a canonical rather than by a redirect chain,
+that is the weakest of the three routes and the analysis report MUST say so rather than let the
+number stand unqualified.
+
+#### A26.5 The vacuity defect, reintroduced inside the fix for another one
+
+The rewrite left a branch appending `artifact_source_matches_plan = True` with nothing compared —
+A11.7's defect, recreated by the change that removed A26.1's. Every scope MUST be either evaluated
+and recorded with its real outcome, or recorded as **not evaluated** with a stated reason and
+surfaced in `evidence_summary.unevaluated_checks` (A19.2). A check that cannot fail MUST NOT be
+counted as one that passed.
+
+#### A26.6 A-14b, at its minimum, and only as a reclassification
+
+A24.5 required detection of an obstacle met *during* a run; it was never built, and §7 described it
+as deliberately cut, which was false. It is now built to a stated minimum: HTTP 401/403/429
+terminate as `blocked / site_unavailable`, and a visible password field is **recorded, never acted
+on**. The presence of a login form is not proof that content was replaced by one, so it MAY only
+correct the class of a run that was already failing on `locator_not_found` or `postcondition_unmet`,
+and MUST NOT end a run that could still proceed. The original explanation is preserved in the
+reclassified one. Recognising a paywall by appearance is not attempted, and that bound is published.
+
+#### A26.7 One generated total, and prose counts as a total
+
+Three documents each carried a provider-spend figure; all three went stale on the same day and one —
+*"total provider spend across every scored round"* — was false rather than merely old. **No
+published document may state a spend total of its own.** Totals live in one generated file with a
+`--check` in the test suite. The check MUST also reject an amount written in words: the first
+version looked for digits, and *"under a tenth of a dollar"* walked past it.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-77** No hard gate's outcome depends on when a value was sampled; the navigation step
+  records target, redirect chain, final URL and page URL, and the fixture proves each assertion can
+  fail alone (A26.1, A26.3).
+- [ ] **A-78** A landing explained only by a declared canonical is same-origin and comes from the
+  page the task named, and the analysis report states that this is the weakest route (A26.4).
+- [ ] **A-79** No check is recorded as passed without having been evaluated; unevaluated checks are
+  named in `evidence_summary.unevaluated_checks` (A26.5).
+- [ ] **A-80** A login wall may only reclassify a run that was already failing, and never terminates
+  one that could proceed (A26.6).
+- [ ] **A-81** No published document states a spend total, and the check rejects amounts written in
+  words as well as in digits (A26.7).
+- [ ] **A-82** Every amendment cited in code, tests or published documents exists in §16. The
+  citation is not the amendment (this amendment's preamble).
+
+### Amendment 27 — The A15 switchover, and the allowance decided at it (2026-07-29)
+
+Extends **A15.1**, **A15.5**, **A22.2**, **A23.4**. The condition A15.5 waited on has been met: the
+test split's first run is complete, so the public path switches to free-first with automatic
+fallback.
+
+**A27.1 The switchover is a credential policy of its own.** `public_demo_funded` — free first, paid
+on any quota or rate-limit signal, a cumulative allowance of **USD 2.00**, and the same 0.25 share of
+the daily system ceiling (**USD 0.50/day**), which the scored workload no longer contends for. It is
+a new value rather than a reuse of `scored` or `development` because `/healthz` publishes the policy
+string: a public site describing itself as a scored run or a developer's machine would be a false
+statement on the page we point auditors at. The pre-switchover `public_demo` keeps its meaning
+exactly — free-only, zero billed allowance — so a deployment that has not switched behaves as
+before, and the two shares are alternatives that each add up to the promise rather than two processes
+that add up to more than it. The rest of A15 is unchanged and still binding: the ceiling is checked
+before every call regardless of tier (A15.3), and A15.4's disclosure now applies to live traffic.
+
+#### Acceptance additions (§14)
+
+- [ ] **A-83** The funded public-demo policy falls back free→paid, carries a non-zero cumulative
+  allowance and a share that still totals the system promise, and leaves `public_demo` unchanged;
+  the credential policy does not move the SSRF guard, which reads `APP_ENV` (A27.1).

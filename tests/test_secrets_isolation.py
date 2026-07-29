@@ -163,3 +163,70 @@ def test_the_public_demo_cannot_reach_a_paid_key_even_when_one_is_present(key_di
     assert "paid" in state["tiers_present"]
     assert state["tiers_usable_under_policy"] == ["free"]
     assert demo.available_tiers() == [CredentialTier.FREE]
+
+
+# --- A27: the switchover is a policy value, not a reuse of an existing one --------
+
+def test_the_funded_public_demo_may_fall_back_and_has_an_allowance_of_its_own(key_dir):
+    """A15.1/A27.1. Free stays first: the daily free allowance is spent before a billed
+    call is made, and the paid key is what stops a rate limit becoming a run outcome."""
+    (key_dir / "gemini_paid_tier").write_text("AIzaSy-paid-key-not-real", encoding="utf-8")
+    funded = Provider(policy=CredentialPolicy.PUBLIC_DEMO_FUNDED)
+    cumulative, daily = funded.ceilings()
+
+    assert funded.available_tiers() == [CredentialTier.FREE, CredentialTier.PAID]
+    assert funded.credential_state()["tiers_usable_under_policy"] == ["free", "paid"]
+    assert funded.credential_state()["policy"] == "public_demo_funded"
+    assert cumulative == pytest.approx(2.00)
+    assert daily == pytest.approx(0.50)
+
+
+def test_the_pre_switchover_policy_is_untouched_by_the_switchover(key_dir):
+    """The new value is only honest if the old one still means what it meant. Both remain
+    reachable, and a deployment that has not switched behaves exactly as before."""
+    (key_dir / "gemini_paid_tier").write_text("AIzaSy-paid-key-not-real", encoding="utf-8")
+    demo = Provider(policy=CredentialPolicy.PUBLIC_DEMO)
+    cumulative, daily = demo.ceilings()
+
+    assert demo.available_tiers() == [CredentialTier.FREE]
+    assert cumulative == 0.0
+    assert daily == pytest.approx(0.50)
+    assert demo.spend_state()["billed_spend_authorised"] is False
+
+
+def test_a_tier_list_that_can_spend_under_an_allowance_of_zero_refuses_before_the_call(
+        key_dir, store, monkeypatch):
+    """The second control, and it is worth being precise about which one does the work.
+
+    Under `public_demo` the paid tier is not in the tier list at all, so the zero allowance
+    never gets asked — the test above is what protects that deployment. This branch covers
+    the slip the switchover makes possible: a policy that *may* reach the paid key while its
+    allowance is missing or zero. Reached here by removing the allowance rather than by
+    patching the tier list, because that is the mistake with a plausible way of happening.
+    """
+    (key_dir / "gemini_paid_tier").write_text("AIzaSy-paid-key-not-real", encoding="utf-8")
+    from app import config
+    from app.provider import ProviderQuotaExhausted
+
+    funded = Provider(policy=CredentialPolicy.PUBLIC_DEMO_FUNDED, ledger=store)
+    funded._check_spend()  # with its declared allowance, nothing to refuse
+
+    monkeypatch.setitem(config.CUMULATIVE_CEILING_USD, "public_demo_funded", 0.0)
+    with pytest.raises(ProviderQuotaExhausted) as raised:
+        funded._check_spend()
+    assert "no authorised cumulative spend" in str(raised.value)
+
+
+def test_the_credential_policy_does_not_move_the_ssrf_guard():
+    """The one coupling worth being sure about. The guard reads APP_ENV and
+    ALLOW_PRIVATE_EGRESS; which credentials a run may use says nothing about where it may
+    connect, and switching the money must not quietly switch the network policy."""
+    import dataclasses
+
+    guard = {policy: dataclasses.replace(
+        settings, provider=dataclasses.replace(settings.provider,
+                                               credential_policy=policy)).egress_guard_state()
+        for policy in ("public_demo", "public_demo_funded", "scored")}
+
+    assert len({json.dumps(g, sort_keys=True) for g in guard.values()}) == 1
+    assert guard["public_demo_funded"]["ssrf_guard_enabled"] is True
