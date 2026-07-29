@@ -446,75 +446,30 @@ a small number and the interval is the file saying so.
 seen by the engineering session — which is exactly what makes them able to disagree with us, and
 they did.
 
-**Five of the eight never browsed** — and the two halves of that five are different in kind. Three
-were lost to a transient `robots.txt` fetch failure (below); two were refused because the task named
-no page or site to start from, which is L-1's entry-point limitation and is a real property of the
-system. So the honest reading of `r4` is that **it measured availability as much as capability**,
-and the number below is a floor rather than an estimate. It is still the score: the first run is the
-reported score (S-10.6), it is not re-run, and a round is not re-taken because it went badly.
-
-On the part that *is* about capability, the two sets were not measuring the same thing:
+**Five of the eight never browsed**, and the two halves of that five are different in kind: three
+were lost to a transient `robots.txt` fetch failure on a site that publishes none, and two were
+refused because the task named no page or site to start from, which is L-1's entry-point limitation
+and a real property of the system. So `r4` **measured availability as much as capability**, and 1 of
+8 is a floor rather than an estimate. It is still the score: the first run is the reported score
+(S-10.6), and a round is not re-taken because it went badly.
 
 > **Our own splits measure how well the system answers a task it accepts. The held-out split
 > measures how many reasonable tasks it *accepts* at all — and that second number is the one we
 > could not have produced ourselves, because every case we wrote was written by someone who already
 > knew what the router takes.**
 
-**What the remaining five cases say, and what they do not.** Setting the three timed-out cases
-aside, `r4` leaves five: two refused at admission (no page or site named), two that browsed and
-failed on capability (`budget_exhausted`, `postcondition_unmet`), and one verified. That is an even
-split between *not getting in* and *not getting it right*, on **n=5** — which is too few to name a
-bottleneck, and an earlier draft of this section named one anyway. The tier-routing finding above
-does not depend on it and stands on its own evidence.
+Three tier disagreements run the same way: two cases the owner declared `T-DECLARED` were routed to
+`T-EXPERIMENTAL`, so half the promised-tier cases never reached the promised surface. That is the
+same defect class as OP-7's fixed product parameter — a record promised per `site × operation` while
+the implementation recognises something narrower.
 
-What the histogram said about *why* — and, underneath it, the more useful lesson, which is what
-happens when you read a histogram this way:
-
-- **The three `robots_disallowed` are not a policy finding at all — they are one transient network
-  failure, and reading them as coverage was our own error, caught by clicking the evidence we had
-  just published.** All three are the same host and the same cause: `books.toscrape.com/robots.txt`
-  **could not be fetched** during the round (`urlopen error timed out`), and an unfetchable
-  `robots.txt` is refused by design. No `Disallow` matched anything. That site publishes **no
-  `robots.txt` at all** — it 404s, which our matcher reads as unrestricted, and it did exactly that
-  for seven cases in `r3` twenty minutes earlier and does it again now in 0.6 s. **Three of eight
-  held-out cases were lost to a ~78-second network event on a site we promise.**
-- **Three tier disagreements, and they run the wrong way.** Two cases the owner declared
-  `T-DECLARED` were routed to `T-EXPERIMENTAL` by the running system, and one declared `T-REFUSED`
-  also landed experimental. Half the promised-tier cases did not reach the promised surface. That is
-  the same defect class as OP-7's fixed product parameter — a record we promise per
-  `site × operation` while the implementation recognises something narrower — and the held-out set
-  found more of it than our own dev split could, because our dev cases were written by whoever knew
-  what the router accepts.
-> **If you are running your own tasks and you see `blocked / robots_disallowed`, open the trace
-> before concluding the site forbids it.** The step's `robots` record distinguishes two things this
-> failure class does not:
->
-> - `"source": "rule"` — the site's `robots.txt` really does disallow the path, and the matched rule
->   is quoted beside it.
-> - `"source": "unfetchable"` — **we could not read the policy**, so we refused rather than browse a
->   site whose rules we had not seen. That is fail-closed behaviour working, not the site saying no.
->
-> This is not hypothetical: it happened three times in our own held-out round, on
-> `books.toscrape.com` — a site that publishes **no `robots.txt` at all** (it 404s, which we read as
-> unrestricted) and which we browse successfully in every other round. If it happens to you, it is
-> the same transient fetch failure, and it is defect 10 in the analysis report rather than a
-> surprise.
-
-- **The one declared case that ran to an answer, passed.** Of the four declared cases, one produced
-  a verified answer, one exhausted its step budget, and two were mis-tiered before they got that far.
-
-**The round exported no evidence bundles, and they were recovered by hand.** Held-out results
-withhold per-case detail where the file is written (S-10.4), and the bundle exporter reads that same
-withheld structure — so the round with seven non-successes carried **zero** bundles, on precisely
-the split whose failures are most worth inspecting. Nothing was lost: the runs and artifacts were in
-the scored service's store, and `eval/results/bundles/test-e82cacb9e809-r4/` now holds **all eight
-cases with their full traces and all 24 artifacts**, hashes re-verified against what the store
-recorded. That directory says in its own manifest that it was not produced by the exporter, because
-a rescue that looks like a normal export is a worse artifact than a rescue that admits it.
-
-Five of the eight carry no artifacts. That is the outcome, not a gap in the rescue — those runs were
-refused before any navigation, so there was no page to capture, and for a refusal the evidence *is*
-the trace: the rule that matched, the URL it matched against, and where the run stopped.
+**Case-by-case detail, the histogram-reading error underneath it, and the evidence bundles that had
+to be rescued by hand are in the analysis report §5.3.2 and defect 10 of §5.4.** One thing belongs
+here because you may hit it yourself: **if you see `blocked / robots_disallowed`, open the trace
+before concluding the site forbids it.** The step's `robots` record separates `"source": "rule"` (the
+site really does disallow the path, with the matched rule quoted) from `"source": "unfetchable"` (we
+could not read the policy, so we refused rather than browse rules we had not seen). Those three
+held-out cases were the second kind.
 
 **Validation split — NOT RUN, deliberately.** Its purpose was to keep the engineering session honest
 *during* development by holding cases back from it. Development is over, so running it now buys a

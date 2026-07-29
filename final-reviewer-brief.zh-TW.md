@@ -1399,7 +1399,6 @@ wf-agent/
 |---|---|
 | **這個系統怎麼用**（給評分者的入口） | `docs/grader-guide.zh-TW.md` |
 | **這一份**（給最終審查者，含查證清單） | `final-reviewer-brief.zh-TW.md` |
-| 更長的網站操作手冊 | `docs/user-guide.zh-TW.md` |
 | **效能、成本、擴展性、正確性怎麼驗證** | `docs/analysis-report.md`（中文精簡版：`docs/analysis-report.zh-TW.md`） |
 | 系統完整說明、設計決策、AI 幫上什麼忙 | `README.md`（中文精簡版：`README.zh-TW.md`） |
 | **整個開發過程、遇到什麼困難、怎麼改的** | `docs/project-report.zh-TW.md` |

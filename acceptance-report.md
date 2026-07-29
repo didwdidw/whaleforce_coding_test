@@ -1,6 +1,180 @@
 # 獨立驗收報告
 
-本檔含兩輪審查。**第二輪在前（最新），第一輪原文保留在後、一字未改。**
+本檔含三輪審查。**最新的在最前面，前兩輪原文保留在後、一字未改。**
+
+---
+---
+
+# 第三輪審查（`git_sha` **a96808742813**）
+
+審查者：獨立 reviewer（read-only，使用者／評分者視角，未讀任何產品程式碼）
+方法：複驗第二輪六項、對線上系統實跑承諾層任務、逐位元組核對存檔、對三份 grader 入口文件做逐句核對
+花費：本輪送出 6 筆任務（5 筆模型執行），約 USD 0.014
+穩定性：本輪約 35 次請求，**0 次 502**；首頁首次載入 0.85 秒；部署 `git_sha` = 本機 HEAD
+
+## 摘要
+
+**第二輪六項全部修好，沒有一項復發，而且 R1 的修法是這三輪裡最值得看的一次。** 它沒有把承諾縮小去遷就實作，而是把 A25.3 套到所有 planner 上，然後**接受 dev 頭條從 10/11 掉到 8/11 並公開發表**。`eval/results/dev-deploy-0d1fbd94ecf2-r5.json` 裡 `headline_declared.passed = 8`，README §6、analysis-report §5.4 缺陷 21、grader-guide §9、數字一覽全部改寫成一致。一個修法讓自己的分數變低還主動publish，這件事本身比那兩題答不答得出來重要。
+
+**系統本身我這一輪找不到新的功能缺陷。** OP-5 現在真的取值了（實測見下），限制清單、覆蓋頁、健康頁、證據鏈全部經得起查。
+
+**但入口文件出現了新的過期，而且方向對自己不利、成因完全一樣：Amendment 28 改變了 OP-5 的行為，這個改變傳到了 README、analysis-report、spec、首頁，卻沒有傳到 `grader-guide` 步驟 3、`/support` 的限制清單、和 `user-guide` §4。** 這三處現在都還在說一個已經被自己推翻的故事，其中 grader-guide 步驟 3 會讓評分者花 23 秒和 0.005 美元去跑一個文件說會成功、實際會失敗的任務——**然後在同一份文件的三百行後讀到那正是本次最大的修正。**
+
+本輪新發現六項：三高、二中、一低。**三個高的全部只需要改文字，總共約六段。**
+
+---
+
+## A. 第二輪六項的複驗結果
+
+| 第二輪編號 | 現況 | 我看到什麼 |
+|---|---|---|
+| **R1** OP-5 靜默成功 | **已修，而且修得對** | 貼首頁第二顆按鈕的原文（`…expand the first collapsed box and tell me its **Hardware** group`）→ 凍結的 goal 變成「report the entries listed under its 'Hardware' group」，**凍結兩個宣稱**：`still_collapsed`（`element_absent`）＋ `group`（label `Hardware`，`table_row_cell`），兩個都 verified，12 步 7.0 秒 $0.001192。我把那份 2,523,585 bytes 的存檔抓下來自算 sha256 = `7f5474…` 與頁面相符，值確實在位元組裡。**序數講法（`its first row group`）則誠實失敗**：`unsupported / postcondition_unmet`（24 步）與 `failed / budget_exhausted`（25 步）。這正是修對了的樣子 |
+| **R2** 按鈕與示範任務字串不符 | **已修** | 四顆 fixture 按鈕與四列 pre-executed 的任務文字現在逐字相同；首頁明說「every pre-executed row below was submitted from one of these buttons, character for character」 |
+| **R3** 示範不是每次開機重跑、來自舊 build | **已修** | 首頁改成「seeded once and then kept — not re-run on every restart — and re-seeded when the build changes… **these were produced by a96808742813**」，且 Path 欄現在正確顯示 `scripted`。示範的閘門數與現行執行一致 |
+| **R4** `inspect` 欄被切在畫面外 | **已修** | 量到 `scrollWidth` 922 = `clientWidth` 922、`scrollLeft` 0 時 `inspect` 可見、`position: sticky`、`<tr data-href>` 整列可點（我點了一列，正確導航）、Task 欄有完整 `title` 屬性 |
+| **R5** 指南內部三處矛盾 | **已修** | `/coverage` 那句改成「曾經有兩句…現在已經改成從 `persistent` 旗標渲染」；prompts 三處都寫「三個工作階段」且 `prompts/README.md` 已列入 `Final-Reviewer-Session.md`；「第九節」改成明說是本指南第九節。另外 session 上限 50 在 `/healthz`、grader-guide、user-guide 三處一致 |
+| **R6** Run 按鈕第一次點擊沒反應 | **未複驗** | 本輪為了控制時序改用 API 送出，沒有新資料。仍建議有人用真的滑鼠點一次 |
+
+其他複驗，全部仍成立：673 個測試（`pytest --collect-only` 實數，與文件一致）、spec 28 條修訂、`/coverage` 七狀態全 produced（`partial` 3 次）、18 個 failure class、`injection_detected` 為 `not built`、`GET /api/runs` 回 200 且共 **108** 筆（確實比首頁那張表長）、optional 宣稱失敗現在標成 `optional — declared optional at plan time, so it does not decide the outcome`。
+
+---
+
+## B. 本輪新發現
+
+### S1 —— grader-guide 步驟 3 叫評分者貼一個現在會失敗的任務，並把已被移除的行為寫成賣點（高）
+
+**現象。** `docs/grader-guide.zh-TW.md` 步驟 3 寫「**四項都可以直接貼上去自己跑**」，然後給出：
+
+```
+On the Wikipedia article for Apple Inc., expand the first collapsed box at the foot of the page and tell me its title and the label of its first row group.
+```
+
+**這一句在當前 build 上是 `unsupported / postcondition_unmet`**（24 步、23.4 秒、約 USD 0.005）。首頁 Runs 表格上就有這一列，`/api/runs` 也查得到。
+
+**更嚴重的是下一段（L174）：**
+
+> 第二項（展開摺疊區塊）特別值得跑一次：它成功時會產生一個叫 `still_collapsed` 的宣稱，值是「展開後那個摺疊標記**不見了**」。**那是一個對「狀態真的變過」的檢查，不是對「值長得對」的檢查**
+
+**那正是 Amendment 28 判定為 A25.3 違反、並且花了一整輪工作移除掉的行為。** 同一份文件的第九節用十二段解釋為什麼那是這份提交裡最嚴重的缺陷、為什麼修它值得讓 dev 頭條從 10/11 掉到 8/11。**步驟 3 在推銷它，第九節在為它道歉。** 評分者先讀步驟 3、先動手，所以他先撞到的是舊的那個版本。
+
+**再下一段（L176）** 警告首頁那顆 `Expand the collapsed navbox on that article` 按鈕「一定會被拒」。**那顆按鈕已經不存在了**——現在第二顆是 `On the Wikipedia article for Apple Inc., expand the first collapsed box and tell me its Hardware group`，而它**會成功**。所以這段警告既指錯對象，描述的行為也不再發生。
+
+**為什麼是最高優先。** 這是評分者最可能執行的第一個承諾層任務，而文件說它會成功。他會得到一個失敗、花掉一次配額、然後在三百行後讀到那是刻意的——如果他讀得夠遠。**這份提交的核心宣稱是「我們不會給你一個看起來合理但是錯的說法」，而這裡給的正是那個。**
+
+**修法（三段文字）：** 把貼出的原文換成已實測會成功的 `…expand the first collapsed box and tell me its **Hardware** group`（12 步、7.0 秒、2/2 宣稱通過）；把「特別值得跑一次」那段改寫成「它現在會凍結兩個宣稱——狀態轉換 `still_collapsed` 加上綁到具名 group 的值——如果你把 `Hardware` 換成 `first row group`，它會誠實失敗，首頁上那兩列就是」；刪掉 L176 對不存在按鈕的警告。
+
+### S2 —— 本輪最重要的限制沒有進 `/support` 的限制清單，OP-5 那一列也沒有任何限定（高）
+
+**現象。** `/support` 全頁搜尋 `row group`、`ordinal`、`Hardware`、`first collapsed box` —— **命中 0 次**。限制清單仍是七條，沒有 L-8。OP-5 那一列仍是一句沒有限定的：
+
+> `OP-5 · en.wikipedia.org · Expand a collapsed box and extract a value not visible beforehand · **implemented (M5)**`
+
+**為什麼是問題。** 同一頁的限制面板自己寫著：「Every outcome below was observed on a live run, not predicted. **If one of them no longer behaves this way, this table is wrong** — which is the point of writing them as tasks rather than as cautions.」而 grader-guide 把 `/support` 列進「整份提交只有七項需要你花時間」，理由是**它是可執行、可被推翻的**。
+
+「序數講法會失敗、具名講法會成功」這條限制是：已知的、剛量過的、貼一次就能重現的、而且是這個 build 的頭條故事。**它沒有出現在那張唯一以「可被推翻」為賣點的表上。** 一個評分者若自己寫了序數講法，會以為 OP-5 壞了——而頁面上那句 `implemented (M5)` 會讓他覺得被誤導。
+
+**修法：** 加一條 L-8，兩句話，任務原文用 DEV-04 那句、結果寫 `unsupported / postcondition_unmet`、理由寫「值宣稱綁在具名 row group 上；序數的綁不上，所以拒絕回報而不是回報狀態轉換（Amendment 28）」。並在 OP-5 那一列的 Operation 後面補一個限定：「**值必須以名稱指定**（`its Hardware group`），序數指涉會被拒」。
+
+### S3 —— `docs/user-guide.zh-TW.md` 有四處已被推翻的敘述，而它今天才被改過（所以讀起來像是維護中的）（高）
+
+| 位置 | 文件說 | 實際 |
+|---|---|---|
+| L145 + L154 | 把序數版 OP-5 任務列進「(a) 應該成功的 — 四筆承諾記錄」，並寫「**這四句都在線上實測過，都拿到 `T-DECLARED` + `succeeded_verified` + `Counts as success: yes`**」 | 那一句現在是 `unsupported / postcondition_unmet` |
+| L156 | ⚠️ 首頁第二顆按鈕是 `Expand the collapsed navbox on that article and tell me its Energy group`，**一定會被拒絕** | 那顆按鈕不存在了；現在的第二顆會成功 |
+| L166 | L-1 補救講法 → `failed / **budget_exhausted**` | `/support` 兩個 build 之前就改成 `verification_mismatch` 了；user-guide 沒跟 |
+| L41–49 | 執行詳情頁的面板表列 7 塊，**沒有 Locator memory**；標題列只提 `does not count as success` | 實際 8 塊含 Locator memory；成功的執行現在也有 `counts as success` 徽章 |
+
+**這一份在 `0d1fbd9`（今天）被改過**——session 上限從 10 改成 50。所以它不是被遺忘的檔案，是**被選擇性維護的檔案**，而那比完全沒動更危險：它看起來是當前的。
+
+它被 grader-guide 附錄 B 列為「更長的網站操作手冊」，評分者很可能會打開。
+
+**建議二選一，不要拖：** 修掉上面四處；或者**把它從附錄 B 拿掉**。一份和主指南互相矛盾的第二本操作手冊，比沒有第二本更糟。
+
+### S4 —— grader-guide §八 的四族加起來是 24，標題寫二十五（中）
+
+> 「我們在自己的檢查機制裡找到**二十五個**缺陷」 → 十個 ＋ 兩個 ＋ 十一個 ＋ 一個 = **24**
+
+`docs/analysis-report.md` 的缺陷表確實有 25 列（編號 1–25），所以 25 是對的、某一族少算了一個。
+
+**為什麼值得修。** 這一段的整個力道來自「我們把自己的缺陷數清楚了，你可以自己數」。一個會加總的讀者（這份文件邀請的正是這種讀者）第一件事就是加總，然後發現對不起來。**在一份主張「數字要能被查」的文件裡，頭條數字對不起來的代價遠大於一個數字。**
+
+### S5 —— 指南說執行中的頁面會寫 `Step 11 / 25 · 8s`，實際沒有秒數（中）
+
+我在一筆 25 步的執行進行中，每 3 秒取一次頁面：
+
+```
+t=3s   T-DECLARED  running   Step 12 / 25 — waiting on the model
+t=6s   T-DECLARED  running   Step 17 / 25 — waiting on the model
+t=9s   T-DECLARED  running   Step 22 / 25 — waiting on the model
+t=12s  T-DECLARED  failed budget_exhausted
+```
+
+步數上限和等待原因都做到了（另有 `waiting for a browser context.` 與 `queued` 兩種），**但沒有經過秒數**。grader-guide §9 寫的是「會寫 `Step 11 / 25 · 8s`」。
+
+**這是第 21 到 25 筆同一族的第 26 個實例**：一句描述頁面的話，而沒有東西在檢查它。修法二選一：把 `· 8s` 從文件拿掉，或把計時器加上去（我會加，因為在等模型的那 4 秒裡，秒數是唯一告訴你「它沒有卡住」的東西）。
+
+### S6 —— OP-5 取到的值是正確的，但呈現成一串讀不了的三百字（低）
+
+`group` 宣稱的值：
+
+> `"Mac iMac Pro MacBook Air Neo Pro Mini Studio Pro Mac models by CPU type iPod Classic Mini Nano Shuffle Touch iPhone Hardware History iPhone models iPad Mini Air Pro Accessories iPad models Other Apple SIM AirPods Pro Max AirTag Beats Pill HomePod Mini Silicon TV Vision Pro Watch Force Touch"`
+
+**我去存檔裡查過了，範圍是對的**：那個 navbox 的 group 依序是 Products、**Hardware**、Mac、iPod、iPhone、iPad、Other、**Software**…，而抽出的字串停在 Software 之前——所以它抓的是 Hardware 那一格的完整內容，沒有溢出。
+
+問題是壓縮空白的扁平化把子結構弄丟了（`MacBook Air Neo Pro` 實際是 MacBook Air / Neo / Pro），所以**讀者既讀不懂這個答案，也無法從它本身判斷邊界抓對了**——我是去翻位元組才確認的，評分者不會。
+
+**這不是正確性缺陷，是答案品質。** 這個階段不建議動程式，補一句話就好：在指南步驟 3 說明「這一項回傳的是那一格的全文，不是逐項清單」。
+
+---
+
+## C. 使用者體驗複驗
+
+**第二輪提的四個困惑點全部修好，執行中的頁面現在是全站做得最好的一塊：**
+
+- `Step N / 25 — waiting on the model`：一個步數、帶上限、帶等待原因。第二輪的「兩套 step 編號」「不知道在等什麼」「不知道快撞上限了」三個問題一次解決。
+- `No claim yet — the run is still going.` 取代了原本讀起來像結論的 `No claim was produced.`
+- optional 宣稱失敗會標 `optional`，成功的執行上不再出現一條沒有解釋的紅線。
+- Runs 表格：`inspect` 釘住、整列可點、完整任務字串在 `title` 屬性裡。
+
+**還沒被處理、但都只值一行的（與第二輪相同，不再展開）：** `Runs this generation N` 沒有解釋；導覽列四個連結沒有標註（`Status coverage` 對第一次來的人不知道是什麼）；`/support` 把最有說服力的限制表壓在六段密集散文後面；首頁最上方的黃色橫幅講的是 M5 里程碑，那是開發者關心的事。
+
+**一個這一輪才出現、而且免費的機會。** 首頁現在同時有三列 OP-5：
+
+| 任務 | 結果 |
+|---|---|
+| `…expand the first collapsed box and tell me its **Hardware** group` | `succeeded_verified` |
+| `…expand the first collapsed box at the foot of the page and tell me its title and the label of its **first row group**` | `unsupported / postcondition_unmet` |
+| `…expand the second collapsed box and tell me how many entries are in its **first row group**` | `failed / budget_exhausted` |
+
+**這三列並排，是整個網站上關於「能力邊界在哪」最好的一份證據**——具名的成功、序數的兩種誠實失敗，同一個操作、同一個頁面、同一天。**現在沒有任何一處指出它。** 在步驟 3 加一句「首頁上這三列就是這條邊界」，比再寫兩段論證有用得多。
+
+---
+
+## D. 給 grader 的文件品質評語（最嚴格的一次）
+
+**先講可以直接送出去的部分。** `README.md` §4 的 OP-5 那一格、`docs/analysis-report.md` §5.4 缺陷 21、`grader-guide` §9 這三段，是我這三輪看過最好的技術寫作。它們做到了一件很少見的事：**把一個讓自己分數變低的修正，寫成這份提交最強的論點**，而且三份文件的數字互相對得上（`r3` 10/11 → `r5` 8/11，結果檔 `dev-deploy-0d1fbd94ecf2-r5.json` 裡 `headline_declared.passed = 8`，我開了檔案核對過）。缺陷 21 那一列點出的教訓——**「一條規則被寫下來時，要枚舉它的呼叫端」**——是整份提交裡最可遷移的一句話。
+
+**現在講問題，而且要講重。**
+
+**一、風險完全集中，而且只在三個檔案裡。** S1、S2、S3 是同一個根因的三個出口：Amendment 28 改了 OP-5 的行為，改動傳到了 README、analysis-report、spec、首頁、`/api`，**沒有傳到 grader-guide 步驟 3、`/support` 限制清單、user-guide §4**。修完是六段文字。**不修，評分者的第一個承諾層動作就會撞上一句被自己推翻的話**，而那是這份提交唯一不能發生的事。
+
+**二、這已經是第三次同一種缺陷了，而修法一直沒有升級。** 第一輪八個、第二輪四個、這一輪三個，全部是「文件描述頁面，而沒有東西檢查」。§9 自己寫下了通則：「測試要拿渲染出來的頁面去比對程式碼推導出來的值。」**但那條規則只被套到頁面上，沒有被套到文件上**——這正好是缺陷 21 的形狀（規則對、只接到一個呼叫端）。**在死線前我不建議動程式，但建議在指南裡誠實補一句**：文件裡貼出的每一段任務原文，除了 `/support` 那七條之外，沒有任何自動化在確認它們仍然照寫的方式運作。那句話會讓上面三個發現從「他們沒發現」變成「他們知道邊界在哪」。
+
+**三、長度還在往上長，而最該被看見的東西被稀釋。** 599 → 620 行；README 686 → 736；analysis-report 739 → 785。每一輪審查都往上加，三輪沒有一次往下砍。現在「還有缺陷的地方」第八＋第九節約 40 段，占 grader-guide 三分之一，而**評分標準的四個 A 級條件（評測深度、分層取捨、成本分析、失敗模式）加起來比它短。** 一個評分者讀完會記得「他們很誠實」——誠實不是評分項。**如果只能砍一處：第八節只留四族分類與那句「一個前提沒有被量過的修法不是修法」，所有實例併進第九節，可以省下十幾段而不掉任何一個論點。**
+
+**四、操作與論證仍然交錯，這是第二輪就提過而沒有動的。** 這份文件同時是操作手冊和說明報告，而兩種讀者的速度差十倍。**最省事的做法不是重寫，是在最前面加一張表：九步、每步一個動作、每步一句預期結果、每步標免費或約 0.002 美元。** 三分鐘可以操完，論證留在原地給想讀的人。以現在的結構，一個只想動手的評分者要跳過大段論證才能找到下一個動作——而 S1 正好證明了跳著讀的代價：他會照步驟 3 貼那句話，而不會讀到三百行後的更正。
+
+---
+
+## E. 對照作業評分標準的結論（第三輪）
+
+三輪下來，這個系統的評分面我認為是紮實的，而且每一輪都能被獨立查證：證據鏈我三次各自逐位元組驗過（雜湊自算相符、標籤被 HTML 標籤切開而值仍在、排序狀態可從 `headerSortDown` 獨立讀出、Hardware group 的邊界停在 Software 之前）；七狀態十八原因封閉集合；`/coverage` 主動列出十項從未產生的失敗原因；限制清單這輪確實被更新過；`/api/runs` 108 筆全開放。
+
+**評測深度**這一項，我要特別記一筆：`r3` → `r5` 的重跑是一次**主動降低自己頭條數字並公開發表**的行為，理由寫得清楚（「那兩題本來就沒答出來，修正只是讓它不能再被記成成功」），結果檔、split 雜湊、模型、憑證層級全部列出。**這比任何一個好看的成功率都更能證明「他們知道自己在量什麼」。**
+
+**扣分現在只剩一處，而且不在系統。** 是入口文件在一個它自己剛剛修好的地方過期了。它的嚴重性不在於數量（三處），在於位置：**它落在評分者會執行的第一個動作上**，而這份提交整套論證的地基就是「一個看起來合理、實際上錯的說法，比一次大聲的失敗嚴重得多」。
+
+**一句話總評（第三輪）**：系統這一輪沒有新的功能缺陷，而且它剛示範了一次教科書等級的修法——把規則套上去、接受分數下降、公開發表；**現在唯一擋在它前面的，是三份入口文件裡六段還在講舊故事的文字，而評分者會照著其中一段動手。先修那六段，其他都可以不動。**
 
 ---
 ---
