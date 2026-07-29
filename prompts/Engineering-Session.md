@@ -2346,3 +2346,36 @@ shasum 指令寫得好 —— 分數、檔案、早於它的雜湊三者閉環
 那之後就交，不要再開任何東西。
 
 ==========
+
+🔴 P0 根本原因已確定，不用再查 log。
+
+app/templates/run.html:292   {% if build.locator_memory %}
+app/server.py:259            run_detail 的 context 沒傳 build
+app/server.py:247 / :289     index / support 都有傳 → 那兩頁正常
+
+Jinja2 的 Undefined 可列印、可迭代、可布林判斷，但屬性存取會拋。
+本機重現：UndefinedError: 'build' is undefined
+
+引入 commit：2a1549a「Add locator memory」。
+它早於 r2 —— 所以每一筆 run 詳情頁從那時起就是 500，
+撐過 r2、r3、r4 三輪計分，也撐過我們每一次「grader 點得開」的宣稱。
+
+修：run_detail 的 context 補 "build": build_state()。
+（run.html:306 的 fallback 文字本來就在，不用動版面。）
+
+必須一起交的測試 —— 沒有它我不放行：
+  對每一種 terminal_status 至少一筆 run，斷言 GET /runs/{id} 回 200。
+  這條路徑我們從頭到尾沒測過，那才是這個缺陷真正的成因。
+  順便把 /runs/{id} 加進部署後的煙霧測試清單。
+
+寫進 analysis report §5.4 當第 11 筆，照實寫：
+  加入自我維護機制的那一次 commit，打破了唯一能看見它的那一頁；
+  存活三天、撐過三輪計分；發現方式是提交當天有人像 grader 一樣點了一下。
+  前十筆都是「一個回報巧合的檢查」，這一筆是「我們對最該檢查的那一頁沒有
+  方向是新的，值得單獨寫一段。
+
+P1 的 chip（app/demo.py:39）照舊。
+
+docs/grader-guide.zh-TW.md 已完成（428 行），詞彙檢查乾淨——零個 amendment 編號、章節號、驗收項、記錄／案例／輪次代號。它也刻意沒有把 navbox 那顆 chip 寫進範例，理由是「那正是第 2 步教讀者要避免的形狀」——判斷正確。
+
+==========

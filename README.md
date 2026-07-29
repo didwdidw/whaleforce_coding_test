@@ -1,4 +1,5 @@
 # Task 1 — Generalized Browser Automation Agent
+**中文精簡版：[README.zh-TW.md](README.zh-TW.md)**
 
 Give it a task in plain English. It runs the task in a real browser against public, read-only pages,
 and returns either **a verified answer with the evidence used to verify it**, or **an honest
@@ -93,7 +94,7 @@ What needs a key is the model-driven path, which is everything on a site we did 
 ### Tests and evaluation
 
 ```bash
-pytest                                    # 600 tests, ~17 s (a real browser runs
+pytest                                    # 610 tests, ~20 s (a real browser runs
                                           # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
@@ -224,9 +225,13 @@ owner / acceptance session** that owned the spec, wrote the acceptance criteria,
 disputes and never wrote product code; and an **engineering session** that implemented from the
 frozen spec and never decided what "correct" meant. The separation was the point. A single session
 that both defines success and reports success will report success — which is the same defect, one
-level up, as an agent that both answers and verifies. `docs/task1-spec.md` §16 is the record: every
-change to the spec is a numbered amendment appended to frozen text, each with
-the defect that caused it.
+level up, as an agent that both answers and verifies. The rules the engineering session was given are
+committed as `docs/engineering-brief.md` — including the one that mattered most, that a spec
+requirement in its way is stopped on and argued, never quietly reinterpreted. `docs/task1-spec.md`
+§16 is the record of what those arguments produced: every change to the spec is a numbered amendment
+appended to frozen text, each with the defect that caused it. Amendment 26 was cited in two modules
+and three tests before anybody wrote it into §16 — the discipline failing on the last day, recorded
+where it failed rather than back-dated.
 
 **What AI was clearly good at.** Writing the deterministic verifier, the RFC 9309 robots matcher, the
 evidence store and the taxonomy plumbing — dense, rule-following code with sharp edges. Also at
@@ -247,6 +252,15 @@ The pattern is the same in all three: **fluent, structurally correct, confidentl
 checked against reality.** Every one of them is a claim about the system rather than a bug in it,
 which is exactly the class of error that reviews aimed at code do not catch. What worked as a
 counter was running the deployed system as an adversary rather than reading the diff.
+
+**A fourth, of a different shape, found on submission day.** `/runs/{id}` — the page this README
+links to for every trace, artifact and refusal — had been answering **500 for three days, through
+all three scored rounds**. The commit that added locator memory read `build.locator_memory` in the
+template without adding `build` to that route's context, and Jinja2 raises on a missing key only
+when something asks it for an attribute, so nothing else broke and the suite stayed green. Unlike
+the three above, this was an ordinary bug rather than a false claim — it survived because **no test
+had ever fetched the page**, not because anyone reasoned about it wrongly. It is defect 11 in the
+analysis report's §5.4; the fix ships with a test that opens the page once per terminal status.
 
 **Where the human was load-bearing.** Deciding what to cut, refusing to accept point fixes where a
 requirement class was needed, and the calls that spent money or changed what we promised. Amendment

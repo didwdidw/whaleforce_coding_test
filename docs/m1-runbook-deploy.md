@@ -164,22 +164,30 @@ curl -s $APP/healthz | python3 -m json.tool | grep -A4 egress_guard
 # 2. Pre-executed runs exist, including a refusal (S-11.5).
 curl -s $APP/ | grep -c 'runs/run_'
 
-# 3. Queue refuses rather than queues without bound (S-11.8).
+# 3. Every one of those runs opens. This is the page all the inspectability claims point
+#    at, and it 500'd for three days without any other check noticing.
+for id in $(curl -s $APP/ | grep -o 'runs/run_[0-9a-f]*' | sort -u); do
+  curl -s -o /dev/null -w "%{http_code} $id\n" $APP/$id
+done
+
+# 4. Queue refuses rather than queues without bound (S-11.8).
 for i in $(seq 1 8); do
   curl -s -o /dev/null -w '%{http_code} ' -X POST \
     -d 'task=Search the fixture catalogue for lantern' $APP/api/runs &
 done; wait; echo
 
-# 4. Retry-After is present on a genuine 429.
+# 5. Retry-After is present on a genuine 429.
 curl -s -D - -o /dev/null -X POST -d 'task=Browse the fixture catalogue' $APP/api/runs \
   | grep -iE '^(HTTP/|retry-after)'
 
-# 5. Out-of-scope task refuses before any browsing.
+# 6. Out-of-scope task refuses before any browsing.
 curl -s -X POST -d 'task=Log into my brokerage account' $APP/api/runs
 ```
 
-Expect from (3): a few `202` then `429`. From (5): `unsupported / policy_refused` with no
-navigation in the trace.
+Expect from (3): `200` on every line, with no line missing — the pre-executed set spans
+several terminal statuses and a template can break on one and not the others. From (4): a
+few `202` then `429`. From (6): `unsupported / policy_refused` with no navigation in the
+trace.
 
 **Cold start (A8.5) — measured, see the M1 report §4 for the numbers.** Timing a single
 request after a deploy is not enough: it reports whichever pod happened to answer. Drive the

@@ -1,4 +1,5 @@
 # Analysis report — Task 1
+**中文精簡版：[analysis-report.zh-TW.md](analysis-report.zh-TW.md)**
 
 Runtime performance, cost, scalability, and how correctness is verified. Written to be checkable:
 every number here either comes from a committed measurement file or is marked as an estimate with
@@ -402,9 +403,10 @@ round rather than by anything in the system, which is the same shape as every ot
 ### 5.4 Verifying the verifier
 
 A system whose central claim is "our checks are real" has to expect the checks themselves to be
-wrong. **Ten** defects of that exact shape were found, seven of them fixed, all the same species —
-**a check that reported on a coincidence**, a check that could not fire at all, or a label too
-coarse to carry the conclusion drawn from it. The first five were found during development:
+wrong. **Eleven** were found, eight of them fixed. Ten are one species — **a check that reported on
+a coincidence**, a check that could not fire at all, or a label too coarse to carry the conclusion
+drawn from it. The eleventh is that species' mirror image and is the last entry here. The first five
+were found during development:
 
 | | The defect |
 |---|---|
@@ -431,6 +433,8 @@ in an appendix because the pattern is the finding rather than the count:
 | 9 | The dry run's job is *everything that can fail before money is spent*, and it skipped the two checks a held-out round needs most: that the case file is mounted where the operator said, and that its hash matches the committed one. It empties the split list right after printing the forecast, so both run only on the real start. The runbook told the operator to look for the hash line in the dry run — a line that path cannot print. **Found and not fixed**, for the same reason as 8 |
 
 | 10 | `robots_disallowed` is returned both when a rule forbade the path and when `robots.txt` could not be fetched at all. Both refusals are correct; only one of the two labels is. In `r4` three held-out cases carried it for a **timed-out fetch** on a site that publishes no `robots.txt`, and the round was first written up as a finding about our policy's coverage — by us, from the histogram, before anyone opened a trace. **Found and not fixed** |
+
+| 11 | `/runs/{id}` — the page every claim in this report about inspectability points at — returned **500 for three days**, through `r2`, `r3` and `r4`. The commit that added locator memory added a template block reading `build.locator_memory` and did not add `build` to that route's context; Jinja2's `Undefined` prints, iterates and is falsey without complaint, and raises only on attribute access, so the failure was invisible to every page that did not touch it. No test had ever fetched the page. **Found on submission day and fixed** |
 
 Number 10 is the one to read if you only read one, and the chain of events is the point rather than
 the defect.
@@ -460,11 +464,41 @@ Numbers 8, 9 and 10 arrived after the build was frozen, which is the only reason
 open, and how that was handled is part of the finding. Correcting any of them would have meant a code change between the
 round that measured the system and the round that scores the held-out split — so the choice was
 between tidier code and two rounds that describe the same build. The code lost. It is
-written here, in the table with the other seven, rather than repaired quietly afterwards and
+written here, in the table with the other eight, rather than repaired quietly afterwards and
 presented as though the rounds had always agreed. Number 8 is the same species as A-14b: a loud, correct refusal
 filed under the wrong party. Number 9 is the species this whole section is named for — an
 instruction to look for evidence that the code cannot produce — and it cost a real operator a real
 scare mid-round before anyone read the code path.
+
+**Number 11 points the other way, and that is why it gets its own paragraph.**
+
+Every other entry is a check that fired and reported something untrue. This one is the absence of
+any check at all, on the single page this submission most depends on. `/runs/{id}` is where the
+trace lives, where an artifact's provenance is shown, where a refusal explains itself — it is the
+answer to "make failures inspectable", and the destination of nearly every link in the README. It
+answered 500 from the commit that added locator memory until the day of submission: three days, and
+all three scored rounds. Every round in this report was produced by a deployment whose evidence page
+did not open.
+
+Three things made it invisible, and each is a lesson in a different direction. The template failure
+was silent by construction — Jinja2's `Undefined` is happy to be printed, iterated and tested for
+truth, and objects only when something asks it for an attribute, so a missing context key breaks
+exactly one branch and nothing else. The tests that *do* guard the frontend against stale claims
+fetch `/` and `/support`, both of which pass `build`, so the suite was green and specific about it.
+And the round harness reads runs out of the store rather than off the page, so a scored round cannot
+notice that the page is down. There was no conspiracy of bad luck here: **the page had no test
+because it had never had one**, and nothing else was positioned to substitute.
+
+The commit that introduced it is the one that added the self-maintenance mechanism. It broke the
+only surface where that mechanism can be seen working. What found it was somebody, on the last day,
+doing what a grader would do first: clicking a run.
+
+The fix is one line of context. The part that had to ship with it is the test — one run in every
+terminal status, fetch the page, require 200 — because the defect was never the missing key, and
+`/runs/{id}` is now in the post-deploy checks in the deployment runbook alongside the queue and
+refusal probes. This one *was* repaired despite the freeze, on the grounds that a 500 on the primary
+evidence surface is not a difference between two builds' measurements: no round's numbers move, and
+the alternative was submitting a system whose inspectability could not be inspected.
 
 Number 7 is the one worth reading twice, and it took two goes.
 
@@ -647,7 +681,7 @@ honest about a two-day calendar.
 **Process finding, stated against ourselves.** Six of the last eight spec amendments concerned the
 measuring apparatus — ledgers, budget ceilings, evaluation provenance, the spec's own change
 discipline — rather than what the product can do. The instinct that produced them is the same one
-that found all seven broken checks in §5.4, and it is genuinely the most valuable thing in this
+that found the broken checks in §5.4, and it is genuinely the most valuable thing in this
 repository. It also became the failure mode: while it was auditing the instruments, nobody audited
 the promises, which is how a false limitation and a support matrix that overstated a record both
 survived to a live deployment. The correction was to run the deployed system as an adversary instead

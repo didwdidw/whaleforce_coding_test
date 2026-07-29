@@ -262,6 +262,7 @@ async def run_detail(request: Request, run_id: str) -> Response:
         "latency": latency_summary(run),
         "position": state.queue.position_of(run_id),
         "verdict": verdict,
+        "build": build_state(),
         # An evidence bundle stores the artifact's state as it was at verification time. Two
         # weeks later that is stale, and rendering it would offer a link to bytes that are
         # gone. The state is re-resolved now so expiry shows as "expired on <date>" rather
