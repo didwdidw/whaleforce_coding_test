@@ -986,3 +986,19 @@ Note, 我們打算給 grader 看的所有報告（跟作業評分絕對有關的
 除非你現在還有掃描到什麼大錯誤，不然不用再修了，沒時間了。
 
 在你打包所有東西的過程中你也再次 review 了整個 task，請順便更新 task2-seam.md，這是我們跟 task 2 的協定。把他根據我們現在的實際狀況更新，我可以先開始做 task 2 了。
+
+==========
+
+reviewer 的報告回來了，你看一下要怎麼精進
+note 他說可以刪的文件列表請非常謹慎看待。寧願少刪也不要多刪。
+final reviwer brief 不要刪，你這邊改完我會請他再 loop 一次。所以你改完後也請順便確認一下有沒有需要改這份的內容
+----------
+報告已寫在 acceptance-report.md。除了它和 prompts/Final-Reviewer-Session.md，沒有動任何檔案。
+
+最需要你先看的三件事：
+
+1. N1／N2／N3 是同一種病，而且都在前十分鐘會被踩到 —— 首頁 pre-executed 標籤實際 0 列（/api/runs 也回 405，沒有備援路徑）、user-guide 把已知必被拒的 navbox 任務列為「應該成功」、OP-5 在整個部署找不到任何成功實例。三個都是文件說了頁面上不成立的事。
+2. 系統本體查得住 —— 我逐位元組驗過核心宣稱：sha256 自算一致、GICS Sector 標籤在原始 HTML 被切開而值仍在、排序狀態可從存檔的 headerSortDown 獨立讀出。not a clean unsupported 徽章也找到活實例了（brief 說沒有，那個記載已過期）。
+3. 兩件 brief 沒料到的實測結果：中文承諾層任務實際跑出 T-DECLARED + succeeded_verified（三份文件三種說法，而實際能力是最好的那種）；/support L-1 補救版公告 budget_exhausted、實測 verification_mismatch（已知問題 3 說七條全部重現，這條沒有）。
+
+grader-guide 的評語、改寫建議（引原句）、以及 subagent 的文件清理清單都在報告裡。

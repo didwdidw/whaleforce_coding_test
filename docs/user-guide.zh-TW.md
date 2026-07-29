@@ -88,9 +88,19 @@
 
 ## 3. 怎麼下任務
 
-### 規則一：**用英文寫**
+### 規則一：**建議用英文寫**（中文可以用，但不在公布的數字裡）
 
-宣告的承諾只涵蓋英文任務。中文只有「拒絕」那一側有翻譯（例如中文的「登入我的券商帳戶」一樣會被擋），但能力面沒有。中文問題最好的情況也只會掉到 experimental 層。
+四項承諾的中文措辭**路由層認得**。實測過這一句：
+
+```
+在維基百科的 List of S&P 500 companies 條目上，把成分股表格依 GICS Sector 遞減排序，並告訴我第一列
+```
+
+拿到 `T-DECLARED` + `succeeded_verified`，2/2 宣稱通過獨立重解析，答案與英文版一致。拒絕那一側也有翻譯（中文的「登入我的券商帳戶」一樣會被擋）。
+
+**沒有被翻譯的是那些必須對上頁面文字的值**——欄位標題、分類名稱、商品欄位標籤，請照頁面上的拼寫寫（像上面那句裡的 `GICS Sector`）。
+
+**我們公布的成功率不涵蓋中文**，因為評測集全是英文。能用，但那個數字不保證它。
 
 ### 規則二：**必須指名網站或頁面**
 
@@ -132,16 +142,18 @@ Tier 在**開始執行之前**就決定，會顯示在 Runs 表格和 run 詳情
 On the Wikipedia list of S&P 500 companies, sort the constituents table by GICS Sector descending and tell me the top row
 ```
 ```
-Expand the collapsed navbox on that article and tell me its Energy group
+On the Wikipedia article for Apple Inc., expand the first collapsed box at the foot of the page and tell me its title and the label of its first row group.
 ```
 ```
 Go to the nonfiction category listing on books.toscrape.com and read the second page of results
 ```
 ```
-Open the product detail page for A Light in the Attic and read its labelled product information
+On books.toscrape.com, open A Light in the Attic and tell me its UPC.
 ```
 
-**預期看到**：`T-DECLARED` + `succeeded_verified` + `Counts as success: yes`。點進去在 Claims and evidence 會看到 `Bound to label` / `Extracted span` / 可點開的 artifact 與 SHA-256；What was checked 那段的 gate 全部 pass。
+**這四句都在線上實測過**，都拿到 `T-DECLARED` + `succeeded_verified` + `Counts as success: yes`。點進去在 Claims and evidence 會看到 `Bound to label` / `Extracted span` / 可點開的 artifact 與 SHA-256；What was checked 那段的 gate 全部 pass。
+
+> ⚠️ 首頁的範例按鈕裡，第二顆寫的是 `Expand the collapsed navbox on that article and tell me its Energy group`——**那一顆一定會被拒絕**，因為「that article」是在指涉上一顆按鈕、沒有指名頁面，剛好撞上下面的規則二。那是示範按鈕的措辭問題，不是這項能力做不到；請用上面那句。
 
 ### (b) 應該誠實失敗或棄權的 — `/support` 的 L-1 到 L-7
 

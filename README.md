@@ -11,6 +11,14 @@ It is built for one user: someone who would rather have no number than a wrong o
 **Frontend surfaces:** `/` submit + recent runs · `/runs/{id}` full trace · `/support` support matrix
 and known limitations · `/coverage` evidence coverage · `/healthz` operational state
 
+> **This repository holds more documents than anyone should read.** Seven are for assessment; the
+> rest are process record, listed by path in the appendix of the guide below and nowhere claimed to
+> be worth your time. The seven: **`docs/grader-guide.zh-TW.md`** (start here — a walkthrough of the
+> live system with the implementation explained step by step), this README, `docs/analysis-report.md`,
+> the live `/support` page, `eval/`, `prompts/`, and `acceptance-report.md` (an independent
+> reviewer's findings, published unedited). If you read three things, read the guide, §6 of this file,
+> and `acceptance-report.md`.
+
 ---
 
 ## 1. The one idea
@@ -158,9 +166,16 @@ abstains when it cannot prove its answer — not a confident guess.
 
 ### The promise has a language
 
-The declared promise is **English tasks only**. Chinese and other languages reach the experimental
-path at best. This is a stated limitation, not an oversight — a promise we have not evaluated is not
-a promise.
+The **measured** promise is English only: every case in all four splits is English, so the published
+rates say nothing about any other language. A promise we have not evaluated is not a promise.
+
+That is not the same as "Chinese does not work", and an earlier version of this section said the
+wrong one of those — that Chinese reached the experimental path at best. The admission table the
+router reads carries the site names, the operations' verbs, the ordering words and every refusal in
+Chinese, and the deployment answers a Chinese promised-record task with `T-DECLARED` and
+`succeeded_verified`. What is *not* translated is any value that has to match text the page renders —
+a column header, a category name — because the promised articles are published in English. `/support`
+had this right; this file did not, and an independent reviewer caught the disagreement by running it.
 
 ---
 

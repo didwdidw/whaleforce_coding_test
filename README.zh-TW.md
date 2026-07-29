@@ -109,7 +109,7 @@ python -m eval.harness --split experimental
 
 ### 承諾有語言限制
 
-宣告的承諾**只涵蓋英文任務**。中文與其他語言最多只走到 experimental 路徑。這是明說的限制：沒評估過的東西不算承諾。
+宣告的承諾**只涵蓋英文任務**——公布的成功率不含中文，因為評測集全是英文。但中文不是走不通：四項承諾的中文措辭路由層認得，實測可到 `T-DECLARED` 並通過驗證（見 `docs/grader-guide.zh-TW.md` 步驟 2）。沒被翻譯的是必須對上頁面文字的值（欄位標題、分類名稱），請照頁面拼寫。**沒評估過的東西不算承諾，但也不等於做不到。**
 
 ---
 
@@ -303,7 +303,7 @@ python -m eval.harness --split experimental
 | `app/` | 系統本體。`postcondition.py` 凍結、`executor.py` 瀏覽、`verifier.py` 是 gate、`suspicion.py` 稽核安靜的結果、`memory.py` 是 locator memory、`robots.py` + `egress.py` 是政策邊界 |
 | `fixture/` | 我們自建的站點：POST-only 搜尋、JS 分頁、阻擋式覆蓋層、injection 頁面 |
 | `eval/` | harness、dev 與 experimental split、結果、provenance、`oracles.py`（OP-4 的獨立推導）、`spend_ledger.py` |
-| `docs/task1-spec.md` | 凍結的工程 spec 與其修訂（26 條）。**推理軌跡在這裡** |
+| `docs/task1-spec.md` | 凍結的工程 spec 與其修訂（27 條）。**推理軌跡在這裡** |
 | `docs/task1-discovery.md` | 最初的探索推理，刻意不更新 |
 | `docs/analysis-report.md` | 效能、成本、可擴展性，以及正確性如何驗證 |
 | `docs/task2-seam.md` | Task 2 的契約——已設計、刻意未建（Amendment 25） |

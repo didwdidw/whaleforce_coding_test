@@ -14,7 +14,7 @@ where the substantive decisions happen.
 
 The separation is the point, and it is the same idea as the product's own design: a session that both
 defines success and reports success will report success, exactly as an agent that both answers and
-verifies will verify itself. `docs/task1-spec.md` §16 is the durable output — twenty-five numbered
+verifies will verify itself. `docs/task1-spec.md` §16 is the durable output — twenty-seven numbered
 amendments appended to frozen text, each naming the defect that caused it.
 
 ## The decisions worth reading
