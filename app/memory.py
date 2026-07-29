@@ -145,7 +145,7 @@ def _reading(counters: dict[str, Any]) -> str:
         return ("Nothing is stored yet. A locator is written back only by a run that ended "
                 "succeeded_verified, so these counters cannot move until one does.")
     if not uses:
-        return (f"{stored} locators stored and none consulted. Memory is only reached for "
+        return (f"{stored} locators stored and none consulted. Memory is only consulted "
                 f"when a locator stops resolving, and nothing has stopped resolving on this "
                 f"deployment — so these zeros are the expected reading, not a dead "
                 f"mechanism. They are a measurement rather than a silence because the write "
