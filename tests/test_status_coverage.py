@@ -199,3 +199,40 @@ def test_the_current_milestone_comes_from_the_build_and_not_from_a_second_copy(s
 
     assert CoverageLedger(store).current == build_milestone
     assert CoverageLedger(store).report()["milestone"] == build_milestone
+
+
+def test_the_page_describes_its_own_storage_from_the_store_and_not_from_prose(store,
+                                                                             monkeypatch):
+    """It said the opposite of what was true. The ledger lives on a mounted volume and
+    accumulates across redeploys, and the page told the reader a redeploy resets it — which
+    turns "this path has never once been driven here" into "we restarted recently", and
+    that is the only conclusion the page exists to support.
+
+    So the sentence is rendered from `storage_status()["persistent"]`, and this asserts the
+    rendering against that same value rather than against the sentence.
+    """
+    from fastapi.testclient import TestClient
+
+    from app import server
+
+    previous = server.state.store
+    server.state.store = store
+    server.state.coverage = CoverageLedger(store)
+    try:
+        client = TestClient(server.app, raise_server_exceptions=False)
+        for persistent in (True, False):
+            monkeypatch.setattr(store, "storage_status",
+                                lambda persistent=persistent: {
+                                    "persistent": persistent, "data_dir": "/data/task1"})
+            page = client.get("/coverage").text
+            assert page.count("/data/task1") >= 1
+            if persistent:
+                assert "survives restarts" in page
+                assert "resets" not in page
+                assert "since its last restart" not in page
+            else:
+                assert "resets it" in page
+                assert "survives restarts" not in page
+    finally:
+        server.state.store = previous
+        server.state.coverage = CoverageLedger(previous)

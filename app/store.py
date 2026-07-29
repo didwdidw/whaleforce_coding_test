@@ -383,6 +383,16 @@ class Store:
         params.append(limit)
         return [self._row_to_run(r) for r in self._conn.execute(sql, params)]
 
+    def runs_page(self, *, limit: int, offset: int = 0) -> list[Run]:
+        """A page of the whole run table, newest first — what `GET /api/runs` serves."""
+        rows = self._conn.execute(
+            "SELECT * FROM runs ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (int(limit), int(offset)))
+        return [self._row_to_run(r) for r in rows]
+
+    def run_count(self) -> int:
+        return int(self._conn.execute("SELECT COUNT(*) AS n FROM runs").fetchone()["n"])
+
     def session_run_count(self, session_id: str) -> int:
         row = self._conn.execute(
             "SELECT COUNT(*) AS n FROM runs WHERE session_id = ? AND pre_executed = 0",

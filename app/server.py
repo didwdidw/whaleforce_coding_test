@@ -206,19 +206,29 @@ async def _seed_pre_executed() -> None:
 
 # ---- pages ---------------------------------------------------------------------
 
-def _distinct_by_task(runs: list[Run], *, limit: int) -> list[Run]:
-    """One row per distinct task, newest first, pre-executed demonstrations kept."""
+def _homepage_rows(recent: list[Run], pinned: list[Run], *, limit: int) -> list[Run]:
+    """One row per distinct task, newest first, with every pinned demonstration present.
+
+    The demonstrations are selected separately rather than filtered out of `recent`: a
+    deployment that has served a few dozen runs pushes them out of any window of recent
+    ones, and "keep it if we happen to see it" is how the badge the page promises came to
+    render on nothing at all. A live run of the same task does not replace the pinned row —
+    both are shown, because they are different claims about that task.
+    """
+    keep = {run.id: run for run in pinned}
+    room = max(0, limit - len(keep))
     seen: set[str] = set()
-    kept: list[Run] = []
-    for run in runs:
+    for run in recent:
+        if run.id in keep:
+            continue
         key = run.task.strip().lower()
-        if key in seen and not run.pre_executed:
+        if key in seen:
             continue
         seen.add(key)
-        kept.append(run)
-        if len(kept) >= limit:
+        keep[run.id] = run
+        if len(keep) - len(pinned) >= room:
             break
-    return kept
+    return sorted(keep.values(), key=lambda r: r.created_at, reverse=True)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -226,8 +236,9 @@ async def home(request: Request) -> HTMLResponse:
     # Deduplicated by task, newest kept. The list is what a grader sees first, and the
     # measurement tools submit the same probe task on every deploy — so the front page had
     # become eight identical fixture searches with the pre-executed demonstrations pushed
-    # off the bottom. Nothing is hidden: the runs are all still at /api/runs.
-    runs = _distinct_by_task(state.store.recent_runs(limit=60), limit=20)
+    # off the bottom. Nothing is hidden: every run is listed at GET /api/runs.
+    runs = _homepage_rows(state.store.recent_runs(limit=60),
+                          state.store.recent_runs(limit=8, pre_executed=True), limit=20)
     # A pinned demonstration never expires, so it ages instead. Showing when its evidence
     # was captured keeps a two-week-old run reading as a dated demonstration rather than as
     # a current result (A11.3).
@@ -280,6 +291,10 @@ async def coverage(request: Request) -> HTMLResponse:
     """
     return TEMPLATES.TemplateResponse(request, "coverage.html", {
         "report": state.coverage.report(),
+        # What the page says about its own persistence is read from the store rather than
+        # written into the prose: the page claimed a redeploy reset it while the ledger sat
+        # on a mounted volume, which inverts how a long "never produced" list reads.
+        "storage": state.store.storage_status(),
     })
 
 
@@ -353,6 +368,48 @@ async def submit(request: Request, task: str = Form(default="")) -> Response:
     response = JSONResponse(payload, status_code=202)
     response.set_cookie("sid", session_id, max_age=86_400, httponly=True, samesite="lax")
     return response
+
+
+#: A page of the run list. Large enough that a grader normally gets everything in one call,
+#: bounded because the list is served from one process that is also executing runs.
+RUNS_PAGE_MAX = 500
+
+
+def _run_summary(run: Run) -> dict[str, Any]:
+    return {"id": run.id, "task": run.task, "tier": run.tier.value,
+            "execution_path": run.execution_path,
+            "state": run.effective_state.value,
+            "terminal_status": run.terminal_status.value if run.terminal_status else None,
+            "failure_class": run.failure_class.value if run.failure_class else None,
+            "counts_as_success": run.counts_as_success,
+            "steps": run.budget.steps,
+            "duration_seconds": (None if not (run.started_at and run.finished_at)
+                                 else round(run.finished_at - run.started_at, 2)),
+            "created_at": run.created_at, "pre_executed": run.pre_executed,
+            "detail_url": f"/runs/{run.id}", "json_url": f"/api/runs/{run.id}"}
+
+
+@app.get("/api/runs")
+async def api_runs(limit: int = RUNS_PAGE_MAX, offset: int = 0) -> Response:
+    """Every stored run, newest first.
+
+    The homepage shows one row per distinct task, and the reason that is not hiding
+    anything is this endpoint. It was documented before it existed and answered 405, which
+    made the de-duplication a claim with nothing behind it.
+    """
+    limit = max(1, min(int(limit), RUNS_PAGE_MAX))
+    offset = max(0, int(offset))
+    total = state.store.run_count()
+    runs = state.store.runs_page(limit=limit, offset=offset)
+    returned = offset + len(runs)
+    return JSONResponse({
+        "total": total, "returned": len(runs), "limit": limit, "offset": offset,
+        "truncated": returned < total,
+        "next_offset": returned if returned < total else None,
+        "note": ("Every run this deployment has stored, newest first — the full list the "
+                 "homepage table is a de-duplicated view of. Storage is persistent, so "
+                 "this spans redeploys."),
+        "runs": [_run_summary(r) for r in runs]})
 
 
 @app.get("/api/runs/{run_id}")

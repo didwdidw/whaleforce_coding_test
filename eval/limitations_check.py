@@ -28,10 +28,10 @@ import pathlib
 import time
 from typing import Any
 
-from app.limitations import LIMITATIONS
+from app.limitations import LIMITATIONS, UNPINNED
 from eval.harness import Deployment
 
-CHECK_VERSION = "limitations-check/1.0"
+CHECK_VERSION = "limitations-check/1.1"
 REPO = pathlib.Path(__file__).parent.parent
 
 
@@ -57,10 +57,14 @@ def _compare(expected_status: str, expected_class: str | None,
     if seen.get("terminal_status") != expected_status:
         return False, (f"published {expected_status!r}, observed "
                        f"{seen.get('terminal_status')!r}")
-    # The failure class is compared only when the entry names one. An entry that names a
-    # status and no class is making the narrower claim, and holding it to the wider one
-    # would report a false discrepancy.
-    if expected_class and seen.get("failure_class") != expected_class:
+    # The class is compared at the grain the entry publishes it, including when the entry
+    # publishes none: `None` is the claim that the outcome carries no class, and it is
+    # checked like any other. Only the explicit UNPINNED is skipped. Comparing status alone
+    # was looser than what the entries said, so the check could call an entry reproducible
+    # while the class next to it on the page was wrong.
+    if expected_class == UNPINNED:
+        return True, ""
+    if seen.get("failure_class") != expected_class:
         return False, (f"published failure_class {expected_class!r}, observed "
                        f"{seen.get('failure_class')!r}")
     return True, ""
@@ -86,9 +90,12 @@ def run(base_url: str, *, deadline: float, only: str = "") -> dict[str, Any]:
             print(f"[{CHECK_VERSION}] {limit.id} remedy: {limit.remedy_task[:60]}…",
                   flush=True)
             remedy_seen = _observe(deployment, limit.remedy_task, deadline)
-            remedy_ok, remedy_why = _compare(limit.remedy_outcome, None, remedy_seen)
+            remedy_ok, remedy_why = _compare(limit.remedy_outcome,
+                                             limit.remedy_failure_class, remedy_seen)
             record["remedy"] = {"task": limit.remedy_task,
-                                "published": limit.remedy_outcome,
+                                "published": {
+                                    "terminal_status": limit.remedy_outcome,
+                                    "failure_class": limit.remedy_failure_class},
                                 "observed": remedy_seen, "reproduces": remedy_ok,
                                 "discrepancy": remedy_why}
             record["reproduces"] = record["reproduces"] and remedy_ok

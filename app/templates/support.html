@@ -142,9 +142,11 @@
           {% if l.failure_class %}<br><code>{{ l.failure_class }}</code>{% endif %}</td>
         <td style="min-width:280px">{{ l.what_happens }} {{ l.why }}
           {% if l.remedy_task %}<br><span class="sub"><strong>Also run with this
-          entry:</strong> “{{ l.remedy_task }}” → <code>{{ l.remedy_outcome }}</code>.
+          entry:</strong> “{{ l.remedy_task }}” → <code>{{ l.remedy_outcome }}</code>{%
+          if l.remedy_failure_class %} / <code>{{ l.remedy_failure_class }}</code>{% endif %}.
           A phrasing an entry claims fixes the task is part of what the entry says, so it
-          is part of what has to reproduce.</span>{% endif %}</td>
+          is part of what has to reproduce — status and class both, which for one release
+          it was not.</span>{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>

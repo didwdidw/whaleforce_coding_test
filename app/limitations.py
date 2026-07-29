@@ -17,11 +17,20 @@ from dataclasses import dataclass
 from typing import Any
 
 
+#: An entry that deliberately does not pin a failure class says so with this value, and the
+#: check reports it as skipped. `None` used to carry that meaning by omission, which made a
+#: field nobody compares look exactly like one that compares and passes — that is how L-1's
+#: remedy published `budget_exhausted` through a check that called all seven reproducible.
+UNPINNED = "unpinned"
+
+
 @dataclass(frozen=True)
 class Limitation:
     id: str
     task: str
     outcome: str
+    #: The class the run ends with, `None` for a status that has none, or `UNPINNED`.
+    #: All three are checked; only the last one is a decision not to check.
     failure_class: str | None
     what_happens: str
     why: str
@@ -31,12 +40,14 @@ class Limitation:
     #: `eval.limitations_check` runs both against the deployment.
     remedy_task: str = ""
     remedy_outcome: str = ""
+    remedy_failure_class: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {"id": self.id, "task": self.task, "outcome": self.outcome,
                 "failure_class": self.failure_class,
                 "what_happens": self.what_happens, "why": self.why,
-                "remedy_task": self.remedy_task, "remedy_outcome": self.remedy_outcome}
+                "remedy_task": self.remedy_task, "remedy_outcome": self.remedy_outcome,
+                "remedy_failure_class": self.remedy_failure_class}
 
 
 LIMITATIONS: tuple[Limitation, ...] = (
@@ -53,15 +64,18 @@ LIMITATIONS: tuple[Limitation, ...] = (
              "— searching for it and picking a result — is choosing a starting page the "
              "task never named. Naming the article gets the run to the right table, and "
              "this particular task then meets a second limitation rather than an answer: "
-             "sorting by CIK, the run does not recognise that the sort landed and spends "
-             "the rest of its 25 steps trying to re-find the article, ending "
-             "`failed / budget_exhausted`. Both halves are run against the deployment "
-             "with the entry. An earlier version of this entry claimed the second phrasing "
-             "succeeded; it never did, and the check below is why it stopped being able to "
-             "say so."),
+             "the run clicks the CIK header, spends its 25 steps, and the verifier reads "
+             "the table's own sort state as unsorted — so the claim is refused and the run "
+             "ends `failed / verification_mismatch` rather than returning the ordering it "
+             "was looking at. Both halves are run against the deployment with the entry. "
+             "An earlier version of this entry claimed the second phrasing succeeded; it "
+             "never did. A later one published the right explanation with the wrong class "
+             "next to it, and the check below could not see the difference until it was "
+             "taught to compare the class as well as the status."),
         remedy_task=("In the List of S&P 500 companies article on Wikipedia, sort by CIK "
                      "ascending and tell me which company is first."),
         remedy_outcome="failed",
+        remedy_failure_class="verification_mismatch",
     ),
     Limitation(
         id="L-2",

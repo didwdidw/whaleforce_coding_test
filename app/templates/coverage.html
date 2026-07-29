@@ -35,16 +35,25 @@
   </p>
   {% endif %}
   <p class="sub">
-    This counts <strong>this deployment since its last restart</strong>, so the list above
-    starts long and shortens as outcomes occur. Some of it can be provoked from the outside —
+    {% if storage.persistent %}
+    This counts <strong>every run this deployment has ever recorded</strong>, in
+    <code>{{ storage.data_dir }}</code> on a mounted volume, so it survives restarts and
+    redeploys and only ever shortens. A value still listed as never produced has not been
+    produced <em>at all</em> here — not since a restart.
+    {% else %}
+    Storage is not on a mounted volume in this process
+    (<code>{{ storage.data_dir }}</code>), so this counts only since the last restart and a
+    redeploy resets it. Read the never-produced list accordingly.
+    {% endif %}
+    Some of it can be provoked from the outside —
     ask for the fixture's ground-truth answer key and you will get
     <code>robots_disallowed</code>;
     submit faster than the queue drains and you will get <code>queue_full</code>. The rest
     cannot be triggered by a well-formed request, which is the point of them, so the
     milestone gate itself is asserted in the regression suite
     (<code>test_every_status_due_by_m2_is_reached_by_running_the_product</code>) where every
-    path is driven in one store. Storage here is ephemeral, so a redeploy resets this table
-    while the suite's assertion is unaffected.
+    path is driven in one store — a run of the suite is a fresh store and never adds to the
+    table above.
   </p>
 </div>
 

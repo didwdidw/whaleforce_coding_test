@@ -71,13 +71,17 @@
   <h2>Runs</h2>
   <p class="sub">Rows badged <span class="badge b-dim">pre-executed</span> were run at
     startup, including a refusal, so there is something inspectable before you wait for
-    anything. This table is newest first, so they lead it on a fresh deployment and sink as
-    real runs arrive — find them by the badge rather than by position. Their evidence is
-    <strong>pinned</strong> — never evicted by age or disk pressure — so each one shows the
-    date its evidence was captured: a demonstration is dated, not current.</p>
-  <p class="sub">One row per distinct task, newest kept. The measurement tools submit the
-    same probe on every deploy, and without this the first screen was the same fixture
-    search eight times over. Every run is still listed at <code>/api/runs</code>.</p>
+    anything. This table is newest first, so they sink as real runs arrive — find them by
+    the badge rather than by position. They are selected for this table by that flag rather
+    than by being recent, so they are here however long the deployment has been up. Their
+    evidence is <strong>pinned</strong> — never evicted by age or disk pressure — and the
+    ones that captured any carry the date it was captured: a demonstration is dated, not
+    current. The refusal captured none, which is why it shows no date.</p>
+  <p class="sub">Otherwise one row per distinct task, newest kept. The measurement tools
+    submit the same probe on every deploy, and without this the first screen was the same
+    fixture search eight times over. Nothing is hidden by it: every run this deployment has
+    ever stored is listed at <a href="/api/runs"><code>GET /api/runs</code></a>, which is a
+    longer list than this one.</p>
   <div class="scroll">
   <table>
     <thead><tr>

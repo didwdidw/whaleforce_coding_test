@@ -125,3 +125,32 @@ def test_the_detail_page_renders_a_run_carrying_trace_artifacts_and_a_verdict(cl
 
 def test_an_unknown_run_is_a_404_and_not_a_crash(client):
     assert client.get("/runs/run_deadbeefdead").status_code == 404
+
+
+@pytest.mark.parametrize("status", list(TerminalStatus), ids=lambda s: s.value)
+def test_both_halves_of_counts_as_success_are_rendered(client, status):
+    """The guides tell a reader to trust this field rather than the status word, and the
+    page rendered it only when it was false. An absent badge then meant "it succeeded" and
+    "it has not finished" at once, which is the one distinction the field exists to make.
+
+    Asserted against `run.counts_as_success` rather than against a list of statuses, so the
+    page follows the rule if the rule changes."""
+    run_id = _saved(client, state=RunState.DONE, terminal_status=status,
+                    failure_class=None if status is TerminalStatus.SUCCEEDED_VERIFIED
+                    else FailureClass.POSTCONDITION_UNMET)
+    from app import server
+
+    run = server.state.store.load_run(run_id)
+    page = client.get(f"/runs/{run_id}").text
+
+    if run.counts_as_success:
+        assert ">counts as success<" in page
+        assert "does not count as success" not in page
+    else:
+        assert "does not count as success" in page
+
+
+def test_a_run_still_in_flight_makes_neither_claim(client):
+    """Neither badge is a statement about a run that has not ended."""
+    page = client.get(f"/runs/{_saved(client, state=RunState.RUNNING)}").text
+    assert "counts as success" not in page
