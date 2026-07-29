@@ -39,7 +39,8 @@ from app.memory import LocatorMemory
 from app.models import StrategyFamily
 from app.planner import Planner, Proposal, ProposalRejected, ResponseTruncated
 from app.postcondition import (
-    AbsenceMode, ClaimSpec, Postcondition, Relation, RequiredAction,
+    ANSWERS_A_VALUE, COVERS_A_REGION, AbsenceMode, ClaimSpec, Postcondition, Relation,
+    RequiredAction,
 )
 from app.records import (
     GATE_OPERATIONS, HOST_IN_TASK, POLICY_ROUTES, PROMISED_RECORDS, RECORD_BY_ROUTE,
@@ -472,7 +473,7 @@ class Executor:
 
         foreign = self.names_a_site_we_do_not_serve(run.task)
         operation, candidates, hits = ("generic", [], {}) if foreign else self.route(run.task)
-        plan = (self._plan_generic(run.task) if foreign else
+        plan = (self._undeclared_plan(run.task) if foreign else
                 self._select_plan(run.task) if operation else None)
 
         mismatch = self.plan_answers_task(run.task, plan.postcondition) if plan else ""
@@ -501,7 +502,7 @@ class Executor:
         if plan is None:
             # Not a promised record. It is attempted anyway, by the generic loop — "we have
             # no script for this" is a fact about us, never a policy refusal of the task.
-            plan = self._plan_generic(run.task)
+            plan = self._undeclared_plan(run.task)
             entry = self._step(
                 run, StepKind.NOTE,
                 f"No promised record matches; attempting as {Tier.EXPERIMENTAL.value}"
@@ -1408,6 +1409,14 @@ class Executor:
         return remaining
 
     def _select_plan(self, task: str) -> Plan | None:
+        """The declared plan for a task, reconciled against what the task asked for.
+
+        Every declared planner returns through here, which is what makes A28.2 an audit
+        rather than four separate promises to remember it.
+        """
+        return self._reconcile_asked_for(task, self._declared_plan(task))
+
+    def _declared_plan(self, task: str) -> Plan | None:
         name, _, _ = self.route(task)
         if name is None:
             return None
@@ -2857,6 +2866,120 @@ class Executor:
             return ("answer",)
         return tuple(f"answer_{i}" for i in range(1, len(parts) + 1))
 
+    #: Words that cannot make a label and a question be about the same thing.
+    LABEL_STOPWORDS = frozenset({"the", "and", "for", "its", "that", "this", "there",
+                                 "was", "were", "are", "with", "from", "shown"})
+
+    @classmethod
+    def _names_the_label(cls, part: str, label: str) -> bool:
+        """Whether the question names what this claim is bound to."""
+        asked = {w for w in re.findall(r"[a-z0-9]+", part.lower()) if len(w) >= 3}
+        words = {w for w in re.findall(r"[a-z0-9]+", label.lower())
+                 if len(w) >= 3 and w not in cls.LABEL_STOPWORDS}
+        return bool(words & (asked - cls.LABEL_STOPWORDS))
+
+    @classmethod
+    def unanswered_parts(cls, parts: tuple[str, ...],
+                         claims: tuple[ClaimSpec, ...]) -> tuple[int, ...]:
+        """Which asked-for parts this claim set has nothing to answer with (A28.2).
+
+        A claim answers a part when it carries a value at all — a state transition does
+        not, however honestly it is verified — and then when the question names the label
+        it is bound to, or the claim verifies a whole region the question is asking inside
+        of, or there is simply a value claim spare. Claims are consumed as they are used,
+        so three questions cannot be answered by one field.
+
+        **What it deliberately does not decide is which value answers which question.** A
+        question that names no label takes whichever value claim is free, and a region
+        claim covers anything asked about its region. That is the same weaker binding those
+        claims already carry, and the alternative fails a run that reads exactly what was
+        asked for in words the plan does not repeat — "read its labelled product
+        information" names none of `UPC`, `Availability`, `Price`. The gap this leaves is
+        an asked-for part paired with a value that is not it; the gap it closes is an
+        asked-for part with no value at all, which is what reached `succeeded_verified`.
+        """
+        pool = [c for c in claims if c.relation in ANSWERS_A_VALUE and not c.optional]
+        if any(c.relation in COVERS_A_REGION for c in pool):
+            return ()
+        unmatched: list[int] = []
+        for index, part in enumerate(parts):
+            hit = next((c for c in pool if cls._names_the_label(part, c.label)), None)
+            hit = hit or (pool[0] if pool else None)
+            if hit is None:
+                unmatched.append(index)
+            else:
+                pool.remove(hit)
+        return tuple(unmatched)
+
+    def _reconcile_asked_for(self, task: str, plan: Plan | None) -> Plan | None:
+        """Make every planner obey A25.3, rather than the one that was wired to it (A28.2).
+
+        `asked_for_parts` was written, tested over eleven task shapes, and called from
+        `_plan_generic` alone. Every other planner compiles a postcondition from the same
+        task text and none of them was ever reconciled against it, so `_plan_wiki_expand`
+        froze *"expand box 1 and report that it is no longer collapsed"* for a task that
+        asked for two values and reached `succeeded_verified` having answered neither.
+
+        So the reconciliation happens once, here, where every declared plan passes. An
+        asked-for part with nothing to answer it gets the generic `LOCATED_LABEL` claim
+        A13.2.3 permits: the run must bind that value to a label in the stored artifact or
+        the claim does not verify, and a run that verifies some of its claims and not all
+        of them is `partial` — loud, and never counted as a success.
+        """
+        if plan is None or not plan.postcondition.claims:
+            # A plan with no claims is a policy demonstration — the robots refusals — which
+            # never browses and has nothing to answer with by construction.
+            return plan
+        # Directives are how a run is executed, not values anybody asked for: left in,
+        # `seed mu2-text` parsed as a second question and made a correct demonstration
+        # partial for having answered it.
+        parts = self.asked_for_parts(self._strip_directives(task))
+        unmatched = self.unanswered_parts(parts, plan.postcondition.claims)
+        if not unmatched:
+            return plan
+        names = self.claim_names(parts)
+        taken = {c.name for c in plan.postcondition.claims}
+        added = tuple((f"asked_{names[i]}" if names[i] in taken else names[i], parts[i])
+                      for i in unmatched)
+        listing = "\n".join(f"  {name}: {part}" for name, part in added)
+        pc = plan.postcondition
+        plan.postcondition = replace(
+            pc,
+            goal=(f"{pc.goal}\n\nThis task also asks for {len(added)} value(s) the plan "
+                  f"above does not name. Emit one `extract` for each, pointing at the "
+                  f"element that holds it with `label_anchor` set to the exact visible "
+                  f"text of the label it is bound to:\n{listing}\nCode re-reads each value "
+                  f"from its label. Answering the rest and stopping is a partial result, "
+                  f"not a success."),
+            inputs={**pc.inputs, "asked_for": list(parts)},
+            claims=pc.claims + tuple(
+                ClaimSpec(name=name, label="", relation=Relation.LOCATED_LABEL,
+                          value_type="string") for name, _ in added),
+        )
+        plan.read_step = self._also_read_labels(plan.read_step,
+                                                tuple(name for name, _ in added))
+        return plan
+
+    def _also_read_labels(self, read_step, names: tuple[str, ...]):
+        """The plan's own read, plus the located-label reading for the parts it does not
+        cover. Wrapping rather than replacing: the declared claims are still read by the
+        code that declared them."""
+        async def read(ctx: ExecutionContext) -> None:
+            if read_step is not None:
+                await read_step(ctx)
+            ctx.candidate.update(self._read_located_labels(ctx, names))
+        return read
+
+    def _undeclared_plan(self, task: str) -> Plan | None:
+        """The generic plan, through the same reconciliation every declared one passes.
+
+        It builds its claims from `asked_for_parts` already, so this is a no-op on it — and
+        that is the point: no planner reaches execution without the check having been run
+        over it, so "which callers obey A25.3" is answered by the two entry points rather
+        than by remembering.
+        """
+        return self._reconcile_asked_for(task, self._plan_generic(task))
+
     def _plan_generic(self, task: str) -> Plan | None:
         """A postcondition for a task on a site we have never seen (A13.2).
 
@@ -2924,11 +3047,19 @@ class Executor:
         catches a value that is not bound to its label, and a page that changed underneath
         the run. It would not catch the rule itself being wrong.
         """
+        names = [c["name"] for c in (ctx.run.postcondition or {}).get("claims", [])]
+        ctx.candidate = self._read_located_labels(ctx, tuple(names) or ("answer",))
+
+    def _read_located_labels(self, ctx: ExecutionContext,
+                             names: tuple[str, ...]) -> dict[str, Any]:
+        """Each named claim's value, read from the label the model pointed at.
+
+        Shared by the undeclared path and by the claims A28.2 adds to a declared plan for
+        the parts its own script does not read — the binding rule is the same one either
+        way, and stating it twice is how the two would come to differ.
+        """
         from app.verifier import AnchorAmbiguous, AnchorNotFound, _located_label
 
-        ctx.candidate = {}
-        names = [c["name"] for c in (ctx.run.postcondition or {}).get("claims", [])]
-        names = names or ["answer"]
         # One reading per asked-for part, in the order the task asked (A25.3). The extracts
         # are walked forwards for the same reason: the model was told to emit them in that
         # order, and pairing the last extract with the first claim would bind a value to
@@ -2954,12 +3085,12 @@ class Executor:
             # re-reads after a correction meant the later reading, and nothing about a
             # one-value task says the first attempt is the answer.
             anchor, value = readings[-1]
-            ctx.candidate = {"answer": value, "answer_anchor": anchor}
-            return
+            return {names[0]: value, f"{names[0]}_anchor": anchor}
+        candidate: dict[str, Any] = {}
         for name, (anchor, value) in zip(names, readings):
-            ctx.candidate[name] = value
-            ctx.candidate[f"{name}_anchor"] = anchor
-        return
+            candidate[name] = value
+            candidate[f"{name}_anchor"] = anchor
+        return candidate
 
     def _plan_wiki_special(self, low: str) -> Plan:
         """A task a person would reasonably ask, on a path a real site forbids.

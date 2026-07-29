@@ -47,7 +47,9 @@ class SessionQuotaExceeded(AdmissionRefused):
     def __init__(self, cap: int):
         super().__init__(
             f"This session has used its {cap}-run allowance on the public demo. "
-            f"The cap exists so one visitor cannot exhaust the shared browser capacity.",
+            f"The cap exists so one visitor cannot exhaust the shared browser capacity. "
+            f"Open a new private window to continue, or read any run already listed on the "
+            f"home page — a refusal here does not hide anything that has already run.",
             FailureClass.SESSION_QUOTA, None)
 
 
@@ -61,6 +63,9 @@ class QueueSnapshot:
     refused_queue_full: int
     refused_session_quota: int
     completed: int
+    #: The only one of these limits a visitor can hit by reading the site rather than by
+    #: hammering it, and the one the health endpoint did not print.
+    session_run_cap: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -72,6 +77,7 @@ class QueueSnapshot:
             "accepted": self.accepted,
             "refused_queue_full": self.refused_queue_full,
             "refused_session_quota": self.refused_session_quota,
+            "session_run_cap": self.session_run_cap,
             "completed": self.completed,
         }
 
@@ -173,4 +179,5 @@ class RunQueue:
             running=len(self._running), queued=self._queue.qsize(),
             concurrency=self._policy.concurrency, depth=self._policy.depth,
             accepted=self.accepted, refused_queue_full=self.refused_queue_full,
-            refused_session_quota=self.refused_session_quota, completed=self.completed)
+            refused_session_quota=self.refused_session_quota, completed=self.completed,
+            session_run_cap=self._policy.session_run_cap)

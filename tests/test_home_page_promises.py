@@ -66,7 +66,7 @@ def test_the_promised_badge_and_capture_date_are_on_a_row_that_is_really_there(c
     pinned = _busy_deployment(client)
     page = client.get("/").text
 
-    row = re.search(rf"<tr>(?:(?!</tr>).)*{pinned.id}(?:(?!</tr>).)*</tr>", page, re.S)
+    row = re.search(rf"<tr[^>]*>(?:(?!</tr>).)*{pinned.id}(?:(?!</tr>).)*</tr>", page, re.S)
     assert row, "the pinned demonstration is not on the page at all"
     assert "pre-executed" in row.group(0), "the row is there and the promised badge is not"
 

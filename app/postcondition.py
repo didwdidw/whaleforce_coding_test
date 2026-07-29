@@ -63,6 +63,26 @@ class Relation(str, enum.Enum):
     SORT_STATE = "sort_state"
 
 
+#: Relations whose verified value can be an *answer* to something a person asked for. The
+#: rest are evidence that the page changed state — true, checkable, and no answer to any
+#: question. Reading a state claim as an answer is exactly how OP-5 returned
+#: `succeeded_verified` for "tell me its title and the label of its first row group" while
+#: the only thing it verified was that a box was no longer collapsed.
+ANSWERS_A_VALUE: frozenset[Relation] = frozenset({
+    Relation.TABLE_ROW_CELL, Relation.TABLE_COLUMN_CELL, Relation.COUNTER_ECHO,
+    Relation.PAGER_POSITION, Relation.LIST_ENUMERATION, Relation.LOCATED_LABEL,
+    Relation.TABLE_TOP_ROW,
+})
+
+#: Of those, the ones that verify a whole region rather than one value — every cell of the
+#: top row, every member of a list. Which cell or which member a question wants is not
+#: knowable at plan time, so one of these answers whatever is asked about its region. The
+#: limit is worth stating: it covers the region it enumerates and nothing outside it.
+COVERS_A_REGION: frozenset[Relation] = frozenset({
+    Relation.LIST_ENUMERATION, Relation.TABLE_TOP_ROW,
+})
+
+
 class AbsenceMode(str, enum.Enum):
     """Which proof of absence this plan is entitled to attempt (Amendment 3)."""
 

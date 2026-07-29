@@ -183,18 +183,62 @@ def _planner_status() -> dict[str, Any]:
     return state.planner_status
 
 
+def _demo_generation(sha: str = "") -> str:
+    """Which build a set of demonstrations belongs to, carried on the runs themselves."""
+    return f"pre-executed:{sha or state.git_sha or 'dev'}"
+
+
+def _pinned_build(pinned: list[Run]) -> str:
+    """The build the pinned rows came from, read off the rows. A page that describes them
+    has to describe *them*, not the process doing the rendering."""
+    marks = {r.session_id.split(":", 1)[-1] for r in pinned if ":" in r.session_id}
+    return marks.pop() if len(marks) == 1 else ""
+
+
+def _stale_demonstrations(pinned: list[Run], generation: str) -> str:
+    """Why the pinned demonstrations no longer demonstrate this build, or "" if they do.
+
+    Both halves are checked because either one makes the row a claim about something that
+    is not there any more: the build, because the verifier gained three gates and a
+    re-resolution summary since the rows a grader is told to open first were produced, and
+    the task list, because a demonstration nobody can reproduce from the buttons on the
+    page is not a demonstration of the buttons on the page.
+    """
+    if not pinned:
+        return "nothing is pinned yet"
+    builds = {r.session_id for r in pinned}
+    if builds != {generation}:
+        return f"pinned by {', '.join(sorted(builds))}, this build is {generation}"
+    if {r.task for r in pinned} != set(PRE_EXECUTED):
+        return "the demonstration list has changed"
+    return ""
+
+
 async def _seed_pre_executed() -> None:
     """Pre-execute a few runs so the homepage is immediately inspectable (S-11.5).
 
     One of them is a refusal on purpose: a grader should be able to open a non-success run
     without having to provoke one.
+
+    Seeded once and then kept, until the demonstrations stop demonstrating this build. The
+    store outlived the container long before anybody noticed what that meant: the runs a
+    grader is told to open first were produced months of commits earlier and showed four
+    verification gates where a current run shows seven, with nothing on the page saying so.
+    Both halves of "stale" are checked — the demo list and the build — because either one
+    changing makes the row a claim about something that no longer exists.
     """
-    if state.store.recent_runs(limit=1, pre_executed=True):
+    pinned = state.store.recent_runs(limit=50, pre_executed=True)
+    stale = _stale_demonstrations(pinned, _demo_generation())
+    if not stale:
         return
+    if pinned:
+        log.info("re-seeding demonstrations (%s): %d pinned run(s) withdrawn",
+                 stale, state.store.unpin_pre_executed())
+    generation = _demo_generation()
     await asyncio.sleep(1.0)
     for task in PRE_EXECUTED:
         tier, _ = state.executor.classify(task)
-        run = Run(id=new_id("run"), task=task, tier=tier, session_id="pre-executed",
+        run = Run(id=new_id("run"), task=task, tier=tier, session_id=generation,
                   pre_executed=True)
         state.store.save_run(run)
         try:
@@ -237,8 +281,8 @@ async def home(request: Request) -> HTMLResponse:
     # measurement tools submit the same probe task on every deploy — so the front page had
     # become eight identical fixture searches with the pre-executed demonstrations pushed
     # off the bottom. Nothing is hidden: every run is listed at GET /api/runs.
-    runs = _homepage_rows(state.store.recent_runs(limit=60),
-                          state.store.recent_runs(limit=8, pre_executed=True), limit=20)
+    demos = state.store.recent_runs(limit=8, pre_executed=True)
+    runs = _homepage_rows(state.store.recent_runs(limit=60), demos, limit=20)
     # A pinned demonstration never expires, so it ages instead. Showing when its evidence
     # was captured keeps a two-week-old run reading as a dated demonstration rather than as
     # a current result (A11.3).
@@ -255,6 +299,12 @@ async def home(request: Request) -> HTMLResponse:
         "browser": state.supervisor.status(),
         "demo_tasks": CHIPS,
         "placeholder": PLACEHOLDER,
+        # Which build produced the pinned rows, and whether the buttons offer those same
+        # tasks. Both are read off what is being rendered: the page said the buttons were
+        # the pre-executed tasks while three of four differed, and said the demonstrations
+        # ran at startup while they had been pinned since an older build.
+        "demo_build": _pinned_build(demos),
+        "demo_tasks_match": {r.task for r in demos} <= set(CHIPS),
         "build": build_state(),
     })
 
@@ -274,6 +324,21 @@ async def run_detail(request: Request, run_id: str) -> Response:
         "position": state.queue.position_of(run_id),
         "verdict": verdict,
         "build": build_state(),
+        # The budget the page shows, from the setting the executor enforces rather than
+        # written into the template beside it.
+        "max_steps": settings.budgets.max_steps,
+        "elapsed_at_load": (round(time.time() - run.started_at, 1)
+                            if run.started_at and not run.finished_at else 0),
+        # The trace names its own artifacts `step-2` while the progress line counts
+        # execution steps: `Step 11: Snapshot captured: step-2` is two different numbers
+        # called the same thing in one sentence.
+        "last_summary": (re.sub(r":\s*step-\d+\s*$", "", run.trace[-1].summary)
+                         if run.trace else ""),
+        # Which claims were declared optional before the run. A failed optional claim draws
+        # a red line on a run that succeeded, and unlabelled it reads as a contradiction
+        # rather than as the declared design it is.
+        "optional_claims": {c.get("name"): c.get("optional")
+                            for c in (run.postcondition or {}).get("claims", [])},
         # An evidence bundle stores the artifact's state as it was at verification time. Two
         # weeks later that is stale, and rendering it would offer a link to bytes that are
         # gone. The state is re-resolved now so expiry shows as "expired on <date>" rather

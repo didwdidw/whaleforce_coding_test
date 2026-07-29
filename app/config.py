@@ -238,8 +238,13 @@ class QueuePolicy:
     concurrency: int = field(default_factory=lambda: _int("QUEUE_CONCURRENCY", 2))
     depth: int = field(default_factory=lambda: _int("QUEUE_DEPTH", 2))
     retry_after_seconds: int = field(default_factory=lambda: _int("QUEUE_RETRY_AFTER", 60))
-    # S-11.12: a per-session cap on the public demo, surfaced as a designed state.
-    session_run_cap: int = field(default_factory=lambda: _int("SESSION_RUN_CAP", 10))
+    # S-11.12: a per-session cap on the public demo, surfaced as a designed state. It does
+    # no monetary work — the daily billed ceiling does that — and no capacity work, which
+    # is `concurrency` and `depth` above. Its only job is stopping one runaway source on a
+    # public URL, and 10 was low enough to stop a reader instead: the grader guide alone
+    # asks for six runs and /support offers seven more tasks to paste, against a lifetime
+    # count behind a cookie that lives for a day.
+    session_run_cap: int = field(default_factory=lambda: _int("SESSION_RUN_CAP", 50))
 
 
 @dataclass(frozen=True)

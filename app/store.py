@@ -393,10 +393,28 @@ class Store:
     def run_count(self) -> int:
         return int(self._conn.execute("SELECT COUNT(*) AS n FROM runs").fetchone()["n"])
 
+    def unpin_pre_executed(self) -> int:
+        """Stop treating the current demonstrations as demonstrations, without deleting
+        them. A pinned row claims to show what this build does; one produced by an older
+        build does not, and the honest correction is to withdraw the claim rather than the
+        evidence — the runs stay in the table and on `GET /api/runs`."""
+        cur = self._conn.execute("UPDATE runs SET pre_executed = 0 WHERE pre_executed = 1")
+        self._conn.commit()
+        return cur.rowcount
+
+    #: Refusals that never used a browser slot. The run row is written before admission —
+    #: deliberately, so a refused request is inspectable like any other — and counting those
+    #: rows against the session allowance charged a visitor for the capacity they were just
+    #: told they could not have.
+    NOT_CHARGED_TO_A_SESSION = ("queue_full", "session_quota")
+
     def session_run_count(self, session_id: str) -> int:
+        """Runs this session has actually been admitted for."""
+        placeholders = ",".join("?" * len(self.NOT_CHARGED_TO_A_SESSION))
         row = self._conn.execute(
-            "SELECT COUNT(*) AS n FROM runs WHERE session_id = ? AND pre_executed = 0",
-            (session_id,)).fetchone()
+            f"SELECT COUNT(*) AS n FROM runs WHERE session_id = ? AND pre_executed = 0 "
+            f"AND (failure_class IS NULL OR failure_class NOT IN ({placeholders}))",
+            (session_id, *self.NOT_CHARGED_TO_A_SESSION)).fetchone()
         return int(row["n"])
 
     @staticmethod

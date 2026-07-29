@@ -55,8 +55,18 @@
   {% if run.explanation %}<p>{{ run.explanation }}</p>{% endif %}
 
   {% if run.effective_state.value != 'done' %}
-  <p class="sub" id="progress">Waiting…
-    {% if position is not none %}Queued at position {{ position }}.{% endif %}</p>
+  {# What it is waiting on, not that it is waiting. A run can be waiting for a browser
+     context or waiting on the model, and those are minutes apart in what they mean. The
+     step budget rides along because a fail-closed cap is the most distinctive thing this
+     system does and a run that ends `budget_exhausted` used to give no warning at all. #}
+  <p class="sub" id="progress">
+    {%- if position is not none %}Queued at position {{ position }} — waiting for a browser
+      context.
+    {%- elif not run.trace %}Starting — waiting for a browser context.
+    {%- else %}Step {{ run.budget.steps }} / {{ max_steps }} —
+      {% if last_summary.startswith('Model call') %}waiting on the model.
+      {% else %}{{ last_summary }}{% endif %}
+    {%- endif %}</p>
   <p class="sub" id="progress-transport"></p>
   {% endif %}
 </div>
@@ -80,6 +90,12 @@
           {% if c.ok %}<span class="badge b-ok">verified</span>
           {% else %}<span class="badge b-bad">not verified</span>
             <code>{{ c.failure_class }}</code>{% endif %}
+          {# A red line on a run that succeeded needs its own explanation, or it reads as a
+             contradiction the page is hiding. Optional claims are declared optional in the
+             frozen postcondition, before the run — not excused afterwards. #}
+          {% if optional_claims.get(c.name) %}<span class="badge b-dim">optional</span>
+            <span class="sub">declared optional at plan time, so it does not decide the
+            outcome</span>{% endif %}
         </p>
         {% if c.reason %}<p class="sub" style="margin:0 0 8px">{{ c.reason }}</p>{% endif %}
         {% if c.evidence %}
@@ -110,6 +126,10 @@
         {% endif %}
       </div>
     {% endfor %}
+  {% elif run.effective_state.value != 'done' %}
+    {# "No claim was produced" reads as a verdict. While the run is going it means "not
+       yet", and the two are opposite readings of the same sentence. #}
+    <p class="sub">No claim yet — the run is still going.</p>
   {% else %}
     <p class="sub">No claim was produced.</p>
   {% endif %}
@@ -278,7 +298,10 @@
 <div class="panel">
   <h2>Budget and provenance</h2>
   <dl class="kv">
-    <dt>Steps</dt><dd>{{ run.budget.steps }} of 25</dd>
+    {# Live while the run is going, and the only place the step count comes from — the
+       heading line reads the same value. Two counters on one page disagreed for the whole
+       of a 25-step run, with nothing saying which one was current. #}
+    <dt>Steps</dt><dd id="live-steps">{{ run.budget.steps }} of {{ max_steps }}</dd>
     <dt>Model calls</dt><dd>{{ run.budget.llm_calls_exploration }} exploration /
       {{ run.budget.llm_calls_recovery }} recovery</dd>
     <dt>Tokens</dt><dd>{{ run.budget.input_tokens }} in / {{ run.budget.output_tokens }} out</dd>
@@ -336,8 +359,22 @@
   var runId = {{ run.id | tojson }};
   var progress = document.getElementById('progress');
   var transport = document.getElementById('progress-transport');
+  var liveSteps = document.getElementById('live-steps');
+  var maxSteps = {{ max_steps }};
+  // Anchored on the server's own measurement at render time and advanced by this clock,
+  // so no comparison between two machines' clocks is involved.
+  var elapsedAtLoad = {{ elapsed_at_load }}, loadedAt = Date.now();
   var deadline = Date.now() + 300000;
   var es = null, poller = null, watchdog = null;
+
+  function elapsed() {
+    return Math.round(elapsedAtLoad + (Date.now() - loadedAt) / 1000) + 's';
+  }
+  // The trace names its own artifacts `step-2`; the progress line counts execution steps.
+  // Both spellings of "step" in one sentence meant two different numbers.
+  function clean(summary) {
+    return summary.replace(/:\s*step-\d+\s*$/, '');
+  }
 
   function say(text) { if (progress) { progress.textContent = text; } }
   function note(text) { if (transport) { transport.textContent = text; } }
@@ -358,9 +395,14 @@
   // here at the same instant it does on the API.
   function render(state, steps, last, position) {
     if (state === 'done') { stop(); window.location.reload(); return; }
-    say(state === 'queued' && position !== null && position !== undefined
-      ? 'Queued at position ' + position + ' — waiting for a browser context.'
-      : (last ? 'Step ' + steps + ': ' + last : 'Starting…'));
+    if (liveSteps) { liveSteps.textContent = steps + ' of ' + maxSteps; }
+    if (state === 'queued' && position !== null && position !== undefined) {
+      say('Queued at position ' + position + ' — waiting for a browser context.');
+      return;
+    }
+    if (!last) { say('Starting — waiting for a browser context.'); return; }
+    say('Step ' + steps + ' / ' + maxSteps + ' · ' + elapsed() + ' — '
+      + (last.indexOf('Model call') === 0 ? 'waiting on the model.' : clean(last)));
   }
 
   function pollOnce() {

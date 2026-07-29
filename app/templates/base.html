@@ -45,6 +45,14 @@ th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);
       vertical-align:top}
 th{color:var(--dim);font-weight:600}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* The link into a run has to be on screen without knowing the table scrolls sideways:
+   both guides open by telling a reader to click into a run, and at the default width the
+   column was 100px past the right edge with no scrollbar showing. Pinned, not hidden —
+   the rest of the row still scrolls under it. */
+td.pin,th.pin{position:sticky;right:0;background:var(--panel);
+              border-left:1px solid var(--line);text-align:right}
+tr.rowlink{cursor:pointer}
+tr.rowlink:hover td{background:var(--bg)}
 form.submit input[type=text]{width:100%;padding:11px 13px;border:1px solid var(--line);
        border-radius:8px;background:var(--panel);color:var(--ink);font:inherit}
 button{padding:10px 18px;border-radius:8px;border:1px solid var(--accent);

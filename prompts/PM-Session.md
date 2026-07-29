@@ -1021,3 +1021,15 @@ OP-5 承諾「取出展開前看不到的值」。我照 eval/dev-set.md DEV-04 
 其餘：第一輪十一項修好十項（N10 未修），修法比我建議的更徹底。新發現另外五項中低——首頁「fixture 按鈕就是示範用的同一批任務」4 筆有 3 筆不符、示範其實不是每次開機重跑且來自三天前一個只有 4 道閘門的舊版本、Runs 表格預設把 inspect 整欄切在畫面外（容器 922px / 表格 1022px）、grader-guide 內部三處自相矛盾（含「/coverage 那兩句錯的自述」其實已修）。
 
 UX 部分：執行中頁面首次載入的資訊其實夠好，但只有標題那一行會動，會出現標題 Step 11 而下方 Budget 仍寫 Steps 2 of 25；No claim was produced. 在執行中讀起來像結論；Step 11: Snapshot captured: step-2 一行兩個 step 意思不同；25 步預算沒搬到進度行，跑到 budget_exhausted 全程沒預警。細節與建議都在報告 C 節。
+
+==========
+
+請給我 可以直接複製給 eng 的完整 prompt
+告訴他要改什麼，有沒有什麼驗收方式
+並且是不是eng回報做完並一起commit & push之後，我就可以再請 reviewer 做最後一次了？
+
+==========
+
+確認一下
+現在的版本有任何的 budget 限制嗎
+grader 在合理使用下有沒有打到 budget limit 而不給他繼續使用的風險？

@@ -38,8 +38,13 @@
     {% endfor %}
   </ul>
   <p class="sub" style="margin-top:10px">The first four run live against the real sites and
-    are planned by the model. The fixture ones are the same tasks the pre-executed runs
-    below used, and they need no model at all.</p>
+    are planned by the model. The fixture ones need no model at all, and
+    {% if demo_tasks_match %}every pre-executed row below was submitted from one of these
+    buttons, character for character — pressing one re-runs that demonstration rather than
+    a task that reads like it.
+    {% else %}<strong>the pre-executed rows below were submitted from an earlier wording of
+    these buttons</strong>, so pressing one produces a new run rather than a re-run of the
+    demonstration it resembles.{% endif %}</p>
 </div>
 
 <div class="panel">
@@ -69,14 +74,18 @@
 
 <div class="panel">
   <h2>Runs</h2>
-  <p class="sub">Rows badged <span class="badge b-dim">pre-executed</span> were run at
-    startup, including a refusal, so there is something inspectable before you wait for
-    anything. This table is newest first, so they sink as real runs arrive — find them by
-    the badge rather than by position. They are selected for this table by that flag rather
-    than by being recent, so they are here however long the deployment has been up. Their
-    evidence is <strong>pinned</strong> — never evicted by age or disk pressure — and the
-    ones that captured any carry the date it was captured: a demonstration is dated, not
-    current. The refusal captured none, which is why it shows no date.</p>
+  <p class="sub">Rows badged <span class="badge b-dim">pre-executed</span> are
+    demonstrations, including a refusal, so there is something inspectable before you wait
+    for anything. They are <strong>seeded once and then kept</strong> — not re-run on every
+    restart — and re-seeded when the build changes, so what they show is the checks this
+    build performs{% if demo_build %}: these were produced by
+    <code>{{ demo_build }}</code>{% endif %}. This table is newest first, so they sink as
+    real runs arrive — find them by the badge rather than by position. They are selected
+    for this table by that flag rather than by being recent, so they are here however long
+    the deployment has been up. Their evidence is <strong>pinned</strong> — never evicted
+    by age or disk pressure — and the ones that captured any carry the date it was
+    captured: a demonstration is dated, not current. The refusal captured none, which is
+    why it shows no date.</p>
   <p class="sub">Otherwise one row per distinct task, newest kept. The measurement tools
     submit the same probe on every deploy, and without this the first screen was the same
     fixture search eight times over. Nothing is hidden by it: every run this deployment has
@@ -86,12 +95,12 @@
   <table>
     <thead><tr>
       <th>Task</th><th>Tier</th><th>Path</th><th>Outcome</th><th>Counts as success</th>
-      <th>Steps</th><th>Duration</th><th></th>
+      <th>Steps</th><th>Duration</th><th class="pin"></th>
     </tr></thead>
     <tbody>
     {% for r in runs %}
-      <tr>
-        <td>{{ r.task[:74] }}{% if r.task|length > 74 %}…{% endif %}
+      <tr class="rowlink" data-href="/runs/{{ r.id }}">
+        <td title="{{ r.task }}">{{ r.task[:74] }}{% if r.task|length > 74 %}…{% endif %}
           {% if r.pre_executed %}<span class="badge b-dim">pre-executed</span>
             {% if captured.get(r.id) %}
               <span class="sub">evidence captured {{ captured[r.id] }}</span>
@@ -112,7 +121,7 @@
             {% else %}<span class="badge b-dim">no</span>{% endif %}</td>
         <td>{{ r.budget.steps }}</td>
         <td>{% if r.finished_at and r.started_at %}{{ ((r.finished_at - r.started_at) * 1) | round(1) }}s{% else %}—{% endif %}</td>
-        <td><a href="/runs/{{ r.id }}">inspect</a></td>
+        <td class="pin"><a href="/runs/{{ r.id }}">inspect</a></td>
       </tr>
     {% else %}
       <tr><td colspan="8" style="color:var(--dim)">Pre-executed runs are still starting.
@@ -127,9 +136,24 @@
 function fill(btn){
   document.getElementById('task').value = btn.textContent.trim();
 }
+// Anywhere in the row opens the run. The inspect link is still there and still works;
+// this is so a reader who never scrolls the table sideways can get into one at all.
+document.querySelectorAll('tr.rowlink').forEach(function (row) {
+  row.addEventListener('click', function (e) {
+    if (e.target.closest('a') || window.getSelection().toString()) return;
+    window.location = row.dataset.href;
+  });
+});
 document.getElementById('submit-form').addEventListener('submit', async function (e) {
   e.preventDefault();
   var note = document.getElementById('submit-note');
+  var button = e.target.querySelector('button[type=submit]');
+  // Two rounds of review needed two or three clicks to submit, and nothing on screen
+  // distinguished "the click did not land" from "it landed and nothing has happened yet".
+  // Whatever the cause, an unambiguous state is cheap: the first click is the one that
+  // counts and the button says so.
+  if (button.disabled) return;
+  button.disabled = true;
   note.textContent = 'submitting…';
   var body = new URLSearchParams({task: document.getElementById('task').value});
   var res = await fetch('/api/runs', {method: 'POST', body: body});
@@ -138,6 +162,7 @@ document.getElementById('submit-form').addEventListener('submit', async function
     note.textContent = data.explanation + ' (HTTP 429'
       + (res.headers.get('Retry-After') ? ', Retry-After ' + res.headers.get('Retry-After') + 's' : '')
       + ')';
+    button.disabled = false;
     return;
   }
   window.location = data.detail_url;

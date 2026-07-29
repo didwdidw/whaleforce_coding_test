@@ -332,7 +332,7 @@ curl -s https://wf-agent.zeabur.app/api/eval-results   | python3 -m json.tool
 **連續送很多筆會拿到 429**
 併發只有 2、佇列深度也只有 2。塞滿之後 API 回 **`HTTP 429`**，body 是 `blocked / queue_full`，並帶 **`Retry-After`** header（網頁上會直接把這句話顯示在 Run 按鈕旁邊）。**這是設計行為**，不是掛掉——它選擇明確拒絕而不是無上限地排隊。順帶一提，這也是你能自己在 `/coverage` 上把 `queue_full` 從 overdue 變成 observed 的方法。
 
-另外每個瀏覽器 session（cookie，24 小時）有 **10 次** 的額度上限，超過會拿到 `blocked / session_quota`。這是公開 demo 防止單一訪客吃光共用資源用的。
+另外每個瀏覽器 session（cookie，24 小時）有 **50 次** 的額度上限，超過會拿到 `blocked / session_quota`。這是公開 demo 防止單一訪客吃光共用資源用的；被佇列或額度擋掉的那幾筆不算進去，只有真的被收下的執行才扣額度。上限本身印在 `/healthz` 的 `queue.session_run_cap`。
 
 **一筆 model-driven 的 run 要多久**
 大約 **5–15 秒**。走到預算用完的（例如 L-1 補救版、L-2）會拖到 25–30 秒。`scripted` 路徑通常 1 秒內。硬上限是 **180 秒 / 25 步 / 12 次模型呼叫**（上限值也印在 `/support` 和 `/healthz`）。

@@ -2481,3 +2481,198 @@ A15 切換：公開站需要一個誠實的政策值。
 工作單裡對每一項都寫了驗收條件，共通規則是：測試必須斷言程式推導出來的值，不能斷言那句話本身——前三項就是因為測試只釘住散文才活下來的。
 
 ==========
+你是這個 repo 的 engineering session。請照 docs/engineering-brief.md 的既有規則工作：
+規格擋路就停下來爭論，不准安靜地重新詮釋；不決定什麼叫「正確」，那是 PM 的事。
+
+# 背景（30 秒）
+
+第二輪獨立審查（只用瀏覽器、沒讀任何產品程式碼）確認上一輪五項頁面修正全部到位、沒有復發，
+但在系統本體找到一個更嚴重的缺陷，並另外找到四項頁面問題與四項執行中 UX 缺口。
+
+完整工作單：docs/eng-round-final-2.md
+審查報告原文：acceptance-report.md（第二輪在前）
+PM 裁決：docs/task1-spec.md §16 Amendment 28，驗收項 A-84 / A-85
+
+# 要做什麼
+
+## 第 1 項（critical，時間不夠就只做這個）
+
+OP-5 對它沒有回答的問題回傳 succeeded_verified。
+
+重現：把 eval/dev-set.md 的 DEV-04 原文送進去
+  "On the Wikipedia article for Apple Inc., expand the first collapsed box at the
+   foot of the page and tell me its title and the label of its first row group."
+凍結的 goal 會變成「expand collapsed box 1 and report that it is no longer collapsed」，
+唯一宣稱 still_collapsed，結果 succeeded_verified、counts as success。
+被問的標題與 row group 標籤一個都沒答，而答案就在存檔的位元組裡。
+DEV-05（"how many entries are in its first row group"）同樣。
+
+成因（已定位，請自己複驗）：
+- app/executor.py:2148-2166，GROUP_PHRASE 只匹配「具名」row group（the 'Hardware' group）。
+  兩個標準案例問的是「序數」的（its first row group），regex 不中，
+  ClaimSpec("group", …) 從來沒被 append，凍結條件就只剩狀態轉換那一個宣稱。
+- 更深一層：app/executor.py:2876 的 asked_for_parts 已經實作了 A25.3
+  （n 個被問的部分 → n 個宣稱，否則 partial），有 tests/test_asked_for_parts.py 跨十一種句型的
+  參數化測試，而它只被 _plan_generic 呼叫。其他編譯凍結條件的地方從來沒有被拿這條規則稽核過。
+- verifier 救不了：app/verifier.py:475-505 比對的是「宣稱 vs 存檔」，從頭到尾看不到任務原文。
+
+要做的，照這個順序：
+
+(1a) 把規則套上去（A28.2 / A-84）
+     每一個從任務文字編譯 postcondition 的 planner，都要拿自己的宣稱集合去和
+     asked_for_parts 對帳。任何被問到、卻沒有對應宣稱的部分，一律補成一個 LOCATED_LABEL 宣稱
+     —— 就是 _plan_generic 已經在用、A13.2.3 已經允許的那個較弱綁定。
+     綁不上就自然變成 partial：大聲、而且不算成功。不需要新的 relation。
+
+(1b) 只有在 (1a) 完成且有時間才做
+     讓 GROUP_PHRASE 認得序數形式（its first row group → 第 n 個 navbox-group cell），
+     並替 DEV-05 加上 count 形式，讓這兩題走決定性路徑而不是依賴模型送出 extract。
+     這一項風險較高，排第二。
+
+(1c) A-85：app/records.py:54 是 /support 頁上 OP-5 的承諾字串
+     （"Expand a collapsed box and extract a value not visible beforehand"）。
+     在 (1a) 落地之前，這句要說明它目前實際交付的是狀態轉換。
+     所有文件端（README、README.zh-TW、兩份 analysis report、grader-guide）我已經改完，
+     這是最後一個還在溢出的地方。(1a) 落地後可以改回來。
+
+驗收（這一項的驗收方式本身就是重點）：
+  - 新測試要驅動 DEV-04 / DEV-05 的「原文任務字串」，斷言凍結下來的 postcondition
+    帶有一個對應被問值的宣稱。
+  - 另一個測試要斷言：一次只綁上 still_collapsed 的執行終局是 partial，不是 succeeded_verified。
+  - ❌ 反例：一個「當 group 被具名時 _plan_wiki_expand 產生兩個宣稱」的測試不算數 ——
+    那條路徑本來就是好的，那樣寫等於把缺陷再犯一次。
+  - 請自己驗證這句話而不是相信我：「_plan_wiki_expand 是唯一有條件宣稱的 declared planner，
+    其他（_plan_book_detail / _plan_book_category / _plan_wiki_sort）宣稱固定超集，
+    只會多 claim 不會少。」這句是整個 scope 論證的基礎，如果它是錯的請立刻回報。
+
+❌ 不准改成把承諾縮小。§4 承諾的是 verified value；A25.3 禁止在任何分層上丟掉被問的部分。
+   改措辭會讓違規原封不動地留著，只是把證據刪掉。
+
+## 第 2 項（medium）首頁說「範例按鈕就是預先執行的那批任務」，4 筆有 3 筆不是
+
+  按鈕：Is any product **in the fixture catalogue** priced over £100?
+  示範列：Is any product priced over £100?
+  （browse listing、gated page 兩筆同樣多了 fixture 字樣；只有 lantern 那筆一致）
+
+這是上一輪去重修法的副作用：示範字串被改掉以免被按鈕擠掉，而那句說明沒有跟著改。
+評分者點按鈕會得到一列幾乎同名、其實是另一筆的紀錄，並以為自己重跑了示範。
+
+做法：既然現在示範列是靠旗標選進來的，字串不需要再刻意不同 —— 讓它們一致；
+      或者把說明改成「這些按鈕是那批示範任務的變體」。
+驗收：一個測試拿渲染出來的按鈕字串去比對 seed 的示範任務，兩者分歧就失敗。
+
+## 第 3 項（medium）「run at startup」不成立，而且示範來自舊 build
+
+證據：/healthz uptime_seconds 145、首頁 Runs this generation 0、Restarts 0，
+      而示範的證據日期是 2026-07-27，/coverage 的 succeeded_verified First run 就是
+      run_505c6ac2b811，跨了不知道多少次重啟都沒變。它們是「種一次然後釘住」，不是每次開機重跑。
+      app/templates/index.html 與 docs/grader-guide.zh-TW.md L56/L60 都寫 startup。
+
+更嚴重的一半：打開 run_505c6ac2b811，What was checked 只有 4 道閘門
+（postcondition_frozen / artifact_available / artifact_source_matches_plan / required_actions_present）。
+現行執行有 6～7 道，還多一行「N of M claims were independently re-resolved」，
+以及 artifact_origin_is_the_named_site、artifact_source_is_accounted_for_by_the_trace、
+landing_explained_from_the_plan_target，trace 每一步還有 freshly derived 定位來源徽章。
+→ 評分者被指示最先點開的那幾筆，展示的是一個比我們現在弱的驗證器，頁面上沒有一個字說明。
+   那一列還顯示紅色 empty_state not verified / locator_not_found 掛在 succeeded_verified 上
+   （因為是 optional claim），沒有解釋。
+
+做法：優先「用現行 build 重新種一次示範」—— 這同時解掉措辭問題。
+      不能重種就改寫成 seeded once and pinned，並在那幾列標上產生它的 build。
+      不論哪一種，optional claim 的紅線要標明它是 optional。
+
+## 第 4 項（medium）inspect 欄在預設寬度被切在畫面外
+
+量到：runs table 容器 clientWidth 922、scrollWidth 1022、inspect 右緣 1022、載入時 scrollLeft 0。
+     深色主題沒有任何橫向捲動提示。Task 欄 245px，任務文字截到約 40 字。
+影響：兩份指南的第一個動作都是「捲到 Runs 表格、點一筆進去」，而那個連結預設看不見；
+     指南步驟 8 要把 /support 七條任務原文和表格逐條比對，截斷讓這件事只能逐筆點開做。
+做法：整列可點，或 inspect 用 position: sticky; right: 0。兩者都要把完整任務文字放進 title 屬性。
+
+## 第 5 項（low）Run 按鈕要點兩三次
+
+兩輪六次提交全中。markup 看起來是對的（chips 是 type="button"，Run 是 type="submit"，
+handler preventDefault 正確），很可能是合成點擊的產物 —— 請用真的滑鼠點一次確認。
+如果手動也重現：第一次點擊就 disable 按鈕並顯示 submitting…。
+
+## 執行中 UX（四項，全在同一頁）
+
+首次載入其實很好：action trace 已經渲染到當下那一步、Execution: still running、Steps 2 of 25。
+問題是之後只有標題那一行會前進，所以會同時出現標題 Step 11 和 Budget 面板 Steps 2 of 25，
+兩個數字互相矛盾、都沒有標「哪個是即時的」。
+
+  (a) 「No claim was produced.」在執行中就出現，讀起來是結論，實際意思是「還沒有」。
+      執行中改成 No claim yet — the run is still going.
+  (b) 「Step 11: Snapshot captured: step-2」一行兩個 step 意思不同（執行步數 vs 規劃步驟名）。
+      把 artifact 的內部名稱從進度行拿掉。
+  (b) 「Step 11: Snapshot captured: step-2」一行兩個 step 意思不同（執行步數 vs 規劃步驟名）。
+      把 artifact 的內部名稱從進度行拿掉。
+  (c) 進度行沒有經過時間、也沒有步數預算。這個系統最有辨識度的行為就是 fail-closed 步數上限，
+      而一筆最後 budget_exhausted 的執行全程沒有預警。改成 Step 11 / 25 · 8s。
+  (d) 「Waiting…」沒說在等什麼。至少分成 waiting for a browser context 和 waiting on the model。
+
+要嘛讓整組面板都會前進，要嘛明確標出哪些欄位是即時的。不要在畫面上留下兩個矛盾的步數。
+
+# 通則（這一輪的那一條）
+
+上一輪的規則是：測試要拿渲染出來的頁面去比對程式碼推導出來的值，不能比對那句話本身。
+這一輪要補的是下一條：**一條規則寫下來的時候，要一併列出它的呼叫端。**
+asked_for_parts 本身完全正確、測試也完整 —— 它只是被接到了需要它的其中一個地方，
+而「誰在編譯 postcondition、他們每一個都遵守這條規則嗎」這個稽核從來沒有人做過。
+第 1 項落地時，真正重要的那個測試是「每一條編譯 postcondition 的路徑都有對帳」，
+不是「這個 parser 會動」。
+
+# 完成後
+
+1. 跑完整測試（目前 638 個）與 python -m eval.harness --split dev，兩者都要在報告裡貼結果。
+2. commit（照專案慣例，訊息用英文、精簡、講改了什麼功能與原因，不要把 claude 加成 co-author）。
+3. push —— 在這台主機上 push 就是部署，會有 12–23 秒的使用者可見中斷，
+   部署到可用約 112–176 秒。計分輪已結束，現在 push 是允許的。
+4. 回報時請包含：新的 build sha、以及 https://wf-agent.zeabur.app/healthz 上
+   顯示的 build sha 已經換成它的確認 —— 沒有這個確認就不算部署完成。
+5. 如果第 1 項的 (1a) 沒有完全落地，請明說，不要用 (1c) 的措辭修正冒充它。
+
+---
+然後就可以請 reviewer 跑最後一輪。 需要注意的：
+
+1. 等 build sha 真的換掉再開始——上一輪 reviewer 就是拿 d844a9a7e9c3 對照的，如果他在部署完成前開跑，會驗到舊版本並回報「沒修」。
+2. brief 已經是第三輪版，第十節就是 OP-5 這一筆（我把它寫進「已知問題」而不是藏起來），查證表換成這一輪的六項。裡面有一句話請不要拿掉：如果第 1 項只是被改了措辭而沒改行為，那就是同一個病的第三次發作，請直接這樣寫。
+3. 如果 ENG 回報 (1a) 沒做完、只做了 (1c)，先別叫 reviewer——那一輪的結論會是「你們把承諾縮小了」，而那正是 Amendment 28 明文禁止的做法，會白花一輪。
+
+==========
+全部改完 commit & push & redeploy 完後跟我講一聲
+我再請 reviewer 驗一次
+
+==========
+再多補一個改動。你最後回報的時候要明確說明你是否有聽到我現在補的這個指令並且做完：
+
+## 6. Session 執行上限 10 次，會在評審跑完自己的題目之前就把他擋掉（high）
+
+現況：SESSION_RUN_CAP=10，app/store.py:396 是終身計數（沒有時間視窗），
+cookie sid 存活 86400 秒 → 撞到就是卡 24 小時。
+照 grader-guide 走，光指南自己叫他做的就有 6 筆，/support 還有 7 條可貼任務。
+
+另外兩個放大因素：
+- app/server.py:342 的 save_run() 在 admit() 之前，所以「佇列滿了被 429 擋掉」的那筆
+  也會被算進 10 次額度裡。被拒絕的執行不該扣額度。
+- SessionQuotaExceeded 的訊息沒告訴使用者怎麼繼續。
+
+Do：
+(a) SESSION_RUN_CAP 預設 10 → 50。
+    這道上限不做金錢工作——錢由每日計費上限 USD 0.50 管，而線上累計計費目前是 0。
+    它也不做容量工作——那是 concurrency 2 / depth 2 在做。它唯一的工作是擋掉
+    公開網址上的失控來源，50 對那個工作綽綽有餘，對評審則完全咬不到。
+    ❌ 不要直接移除：blocked / session_quota 是宣告過的狀態，寫在 spec §5 和 /coverage 上。
+       移除它會讓這個 failure_class 變成第二個「宣告了但到不了」的狀態，
+       而第一個（injection_detected）已經被列進我們自己的限制清單了。
+(b) 只計算真的被收下的執行——把計數改成排除 failure_class 屬於 queue_full / session_quota
+    的那些。（不要改成把 save_run 移到 admit 之後：那會讓被拒絕的執行沒
+(c) 訊息補一句可行動的下一步：「Open a new private window to continue, o
+(d) /healthz 的 queue 區塊把 session_run_cap 一起公布——目前 concurrency/
+    唯一真的會擋住訪客的那個數字反而沒印。
+(e) docs/grader-guide.zh-TW.md L46 的「每個 session 10 次」跟著改成 50。
+
+❌ 不要動每筆執行的 25 步 / 180 秒。那是 fail-closed 的產品論點本身，
+   指南第六節公開寫了為什麼不放寬，改它會讓那段話變成空話。
+
+==========

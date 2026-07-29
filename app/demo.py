@@ -36,7 +36,11 @@ DEMO_REFUSED: tuple[str, ...] = (
 PROMISED_TASKS: tuple[str, ...] = (
     "On the Wikipedia list of S&P 500 companies, sort the constituents table by GICS "
     "Sector descending and tell me the top row",
-    "Expand the collapsed navbox on that article and tell me its Energy group",
+    # Names its own article. "That article" read as a follow-on from the chip above it and
+    # resolved to nothing, so the one button offering OP-5 could not reach OP-5: it refused
+    # for having no entry point, on the record Amendment 28 is about.
+    "On the Wikipedia article for Apple Inc., expand the first collapsed box and tell me "
+    "its Hardware group",
     "Go to the nonfiction category listing on books.toscrape.com and read the second page "
     "of results",
     "Open the product detail page for A Light in the Attic and read its labelled product "
