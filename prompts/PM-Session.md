@@ -894,3 +894,51 @@ manifest 自己承認它不是 exporter 產的。 "tool": "rescued-by-hand/1.0"�
 HEAD 6f3ec87，已推／部署 app 0767aa7e1e9d，ok: true（bundle 之後那次 doc commit 尚在建）／tests 600 passing／花費 billed USD 0.1515 / 上限 8.00
 
 可以做最後一次通讀了。
+
+==========
+
+兩件都做完推了 —— 但我在推之前發現自己寫錯了一個重要結論，順手一起改了，這件比另外兩件重要。
+
+⚠️ 我上一輪寫的「三筆 robots 是我們的直覺比政策寬」是錯的
+
+你叫我去點 r4 的失敗 bundle 確認 grader 路徑通不通。點開 TST-03 之後看到的不是規則：
+
+"source": "unfetchable",
+"rule": "robots.txt could not be fetched: URLError: <urlopen error timed out>",
+"directive": null, "pattern": null
+
+三筆完全一樣，同一個 host。查下去：
+
+- books.toscrape.com 根本沒有 robots.txt —— 它回 404，我們的 matcher 讀成不受限
+- r3 在 20 分鐘前用同一個站跑了 7 個 case，全部 no_robots_txt / allowed=True
+- 現在再打，404、0.6 秒
+
+所以真相是：在 r4 那 78 秒的窗口裡，一次網路逾時讓三筆 held-out case 死在一個我們承諾的站上。 拒絕行為本身是對的（robots.txt 讀不到就不瀏覽，那是 fail-closed inventory 裡的既有規則），但那不是政策覆蓋面的發現，是一次可用性事件。
+
+我是從 histogram 推出那個結論的，在打開任何一筆 trace 之前。 那正是整個系統設計要防的錯誤 —— 而抓到它的，是我們一小時前才搶救出來、剛發佈上線的那批證據。README 和 report 兩邊都改了。
+
+改後的誠實敘述：
+
+- 1/8 不動（S-10.6，第一次跑就是分數，跑壞了不重跑），但明寫它是下限，而且 r4 量到的可用性成分不亞於能力成分
+- 五筆沒瀏覽拆成兩半：三筆是那次逾時，兩筆是任務沒指名站或頁（L-1 的 entry-point 限制，這個是真的）
+- tier 路由的發現站得住，沒動 —— §3 的警語照留
+
+記成 defect 10：robots_disallowed 同時承載「站方禁止」與「我們問不到站方」，兩種拒絕都對、只有一個標籤對。不修（理由同 8、9）。也沒有加 retry ——「要多努力才算爭取到許可」。§5.4 現在是十筆、修好七筆。
+
+1. 兩個 split 都公布了，雜湊對上
+
+43ee8ce52acf…  eval/test-set.md         ← 與 manifest
+0ebb86c047cf…  eval/validation-set.md   ← 同上
+holdout-manifest.md 更新了「In repo」欄，並加了給讀者的指令。test 從此是 regression suite，不再是 held-out；validation 公布但從未執行。runbook 兩處「never in the image」改成描述當時怎麼跑的，不是描述今天的 repo。
+
+2. verified vs pass
+
+補上從屬子句，點名 EXP-03：站方沒有 empty-state 元素，拒絕下結論就是該 case 宣告的正確結果，所以它 failed / locator_not_found 而算 pass，同時因為什麼都沒 verified 而不在那個 3 裡面。
+
+3. EXP-05 沒動
+
+線上狀態
+
+901cc082339c 已部署。/ /support /coverage /healthz 全通，TST-03/run.json 都 200 —— grader 第一個動作會做的事是通的。
+
+600 tests passing，花費 USD 0.1515 / 8.00。沒有再開新東西。

@@ -364,9 +364,15 @@ On the part that *is* about capability, the two sets were not measuring the same
 > could not have produced ourselves, because every case we wrote was written by someone who already
 > knew what the router takes.**
 
-**This system's bottleneck is what it accepts, not what it gets right.**
+**What the remaining five cases say, and what they do not.** Setting the three timed-out cases
+aside, `r4` leaves five: two refused at admission (no page or site named), two that browsed and
+failed on capability (`budget_exhausted`, `postcondition_unmet`), and one verified. That is an even
+split between *not getting in* and *not getting it right*, on **n=5** — which is too few to name a
+bottleneck, and an earlier draft of this section named one anyway. The tier-routing finding above
+does not depend on it and stands on its own evidence.
 
-What the histogram says about *why*, without opening a single case:
+What the histogram said about *why* — and, underneath it, the more useful lesson, which is what
+happens when you read a histogram this way:
 
 - **The three `robots_disallowed` are not a policy finding at all — they are one transient network
   failure, and reading them as coverage was our own error, caught by clicking the evidence we had
@@ -383,6 +389,21 @@ What the histogram says about *why*, without opening a single case:
   `site × operation` while the implementation recognises something narrower — and the held-out set
   found more of it than our own dev split could, because our dev cases were written by whoever knew
   what the router accepts.
+> **If you are running your own tasks and you see `blocked / robots_disallowed`, open the trace
+> before concluding the site forbids it.** The step's `robots` record distinguishes two things this
+> failure class does not:
+>
+> - `"source": "rule"` — the site's `robots.txt` really does disallow the path, and the matched rule
+>   is quoted beside it.
+> - `"source": "unfetchable"` — **we could not read the policy**, so we refused rather than browse a
+>   site whose rules we had not seen. That is fail-closed behaviour working, not the site saying no.
+>
+> This is not hypothetical: it happened three times in our own held-out round, on
+> `books.toscrape.com` — a site that publishes **no `robots.txt` at all** (it 404s, which we read as
+> unrestricted) and which we browse successfully in every other round. If it happens to you, it is
+> the same transient fetch failure, and it is defect 10 in the analysis report rather than a
+> surprise.
+
 - **The one declared case that ran to an answer, passed.** Of the four declared cases, one produced
   a verified answer, one exhausted its step budget, and two were mis-tiered before they got that far.
 

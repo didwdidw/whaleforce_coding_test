@@ -324,11 +324,19 @@ a fourth build, and this document would have to explain why *that* one was singl
 checked before the first case. **1 of 8.** The dev split on the same build was 10 of 11.
 
 A gap that size between a set we wrote and a set we did not is the most informative number in this
-document, and the histogram says where it comes from without any case being opened: three
-`robots_disallowed`, two `policy_refused`, one `budget_exhausted`, one `postcondition_unmet`, one
-success. **Five of the eight never browsed.**
+document. The histogram is where you start — three `robots_disallowed`, two `policy_refused`, one
+`budget_exhausted`, one `postcondition_unmet`, one success; **five of the eight never browsed** —
+and it is *not* where you finish, which this section originally got wrong and §5.4's defect 10
+records in full. Opened case by case, those five are two different things: **three were a
+`robots.txt` fetch that timed out** on a site that publishes none, and **two were refused for naming
+no page or site to start from**. Only the second pair is a property of the system.
 
-So the two sets were not measuring the same thing:
+That leaves five cases carrying any signal about capability: two refused at admission, two that
+browsed and failed (`budget_exhausted`, `postcondition_unmet`), one verified. An even split on
+**n=5**, which is not enough to name a bottleneck — and an earlier version of this section named
+one.
+
+With that said, the two sets were still not measuring the same thing:
 
 - The dev and experimental splits measure **how well the system answers a task it accepts.** On that
   question the answer is good, and `r3` is the evidence.
@@ -424,10 +432,26 @@ in an appendix because the pattern is the finding rather than the count:
 
 | 10 | `robots_disallowed` is returned both when a rule forbade the path and when `robots.txt` could not be fetched at all. Both refusals are correct; only one of the two labels is. In `r4` three held-out cases carried it for a **timed-out fetch** on a site that publishes no `robots.txt`, and the round was first written up as a finding about our policy's coverage — by us, from the histogram, before anyone opened a trace. **Found and not fixed** |
 
-Number 10 is the one to read if you only read one. Every other entry in this table was a check
-reporting a coincidence; this one is *us* reading our own aggregate and drawing a confident,
-wrong conclusion from a `failure_class` that was not precise enough to carry it. It was caught
-because the evidence had just been rescued and published and somebody clicked it. That is the
+Number 10 is the one to read if you only read one, and the chain of events is the point rather than
+the defect.
+
+The product owner read the failure-class histogram, saw three `robots_disallowed`, and instructed
+that it be written up as a finding about our policy's coverage — a good reading of the only evidence
+in front of them, and wrong. The engineering session wrote it into two documents. It survived
+because nothing in the round's *summary* could contradict it: the histogram is exactly as precise as
+the failure class, and the failure class was not precise enough.
+
+What broke it was clicking a link. The evidence for that round had been rescued off the volume by
+hand an hour earlier — the round exported none — and published; the last step before submission was
+to confirm a grader could open a failing case. Opening one showed `source: "unfetchable"` where a
+matched rule should have been, and the claim collapsed in a minute.
+
+So the causal chain runs: **an aggregate too coarse to be checked → a confident conclusion drawn
+from it by the person who set the requirements → written into the submission → caught by evidence
+that had existed for one hour, because somebody opened it.** Every other entry in this table is a
+check reporting a coincidence. This one is *us*, at the last possible moment, doing precisely what
+this system is built to stop a model doing: producing a plausible answer that nothing in the summary
+could falsify. That is the
 argument for the whole design — the trace was there and it disagreed with the summary — and it is
 also the sharpest demonstration in this project that a well-organised number is not the same as a
 true one.
