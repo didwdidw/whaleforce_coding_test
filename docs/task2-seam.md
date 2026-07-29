@@ -1,18 +1,43 @@
-# Task 2 Seam — Filing Acquisition Contract v1.1
+# Task 2 Seam — Filing Acquisition Contract v1.2
 
 **Standalone document.** You do not need to read the Task 1 spec to consume this. Nothing here
 depends on browser plans, locators, agent traces, or any Task 1 internal concept — by design.
 
-**What this is:** the interface where Task 1 (acquisition) hands off to Task 2 (10-K item
-extraction). Task 1 resolves the filing, gets the bytes, and proves what it got. Task 2 decides what
-the bytes mean.
+> ## ⚠️ Read this before anything else: there is no producer
+>
+> **Task 1 was built, submitted, and it does not acquire SEC filings.** It is a general browser
+> automation agent, and the four operations it promises are on `en.wikipedia.org` and
+> `books.toscrape.com`. **No code in this repository emits an acquisition bundle. Nothing will hand
+> you one.**
+>
+> v1.1 of this document was written as a handoff between two halves of one system, on the assumption
+> that the acquisition half would exist. It did not get built — that was a deliberate cut with two
+> days left, recorded as one, not a gap discovered later.
+>
+> **So this document changes role rather than content.** It is no longer *the interface you consume*.
+> It is **the contract you build to** — the shape of the acquisition layer Task 2 must produce for
+> itself before any extraction can be trusted. Every requirement below still holds; what changed is
+> who satisfies it. Wherever the text says *"Task 1 MUST"*, read *"your acquisition layer MUST"*, and
+> wherever it says *"Task 1 guarantees"*, read *"you will have to guarantee"*.
+>
+> Two things follow immediately, and they are the reason this framing is worth keeping rather than
+> deleting:
+>
+> - **§1's separation is still the right design**, and now it is a separation inside one codebase.
+>   Acquisition must not know what a 10-K Item is; extraction must not fetch. Collapsing the two is
+>   how an extractor comes to re-fetch a page mid-parse and produce a result nobody can reproduce.
+> - **§10 said "never fetch from SEC yourself." That prohibition is now void** and is the one clause
+>   that inverts: fetching is yours. What survives from it is the *reason* it existed — one fetch,
+>   hashed, recorded, and never silently repeated.
+>
+> §14 lists what Task 1 actually built that is worth reusing, and what you now have to build that
+> this document assumed you would be given.
 
-**Status:** normative. Field names and status values below are binding. This is the only contract
-document — any proposal or design note elsewhere in the repository is an input to it, not a second
-source of truth.
+**Status:** normative as a build target. Field names and status values below are binding on whatever
+produces bundles. This is the only contract document — any proposal or design note elsewhere in the
+repository is an input to it, not a second source of truth.
 
-**Version:** `acquisition-bundle/1.1`, profile `sec-10k/1.1`. See §13 for the changelog and for what
-was deliberately deferred.
+**Version:** `acquisition-bundle/1.2`, profile `sec-10k/1.2`. See §13 for the changelog.
 
 ---
 
@@ -20,10 +45,12 @@ was deliberately deferred.
 
 This document is sufficient on its own. You do not need the Task 1 spec, its code, or its history.
 
-**What you are inheriting.** Task 1 hands you an immutable, hashed bundle: the filing is already
-resolved to one registrant and one accession, the primary document and the complete submission text
-are already fetched byte-for-byte, the resolution evidence is preserved, and everything that was
-*not* fetched says so explicitly. You never search SEC, and you never re-fetch from SEC.
+**What you are inheriting.** A schema and a set of obligations — not bytes, and not a service. You
+will build the acquisition layer yourself, to the shape below: the filing resolved to one registrant
+and one accession, the primary document and the complete submission text fetched byte-for-byte and
+hashed, the resolution evidence preserved, and everything *not* fetched saying so explicitly. Build
+it as a separate stage with its own output artifact, so that the extractor consumes stored bytes and
+never a live fetch.
 
 **What is yours.** Everything about what the bytes mean: Item 1–16 segmentation, Part I–IV mapping,
 format-variance handling, extraction confidence, your own evaluation set, and your own frontend.
@@ -49,8 +76,10 @@ an analysis of performance, cost, scalability and correctness verification.
    into your own content-addressed store. Reacquisition produces **new** identifiers and hashes; a
    deleted artifact is never silently rebuilt under its old ID.
 
-**What you must not do:** import Task 1 internals (§11), fetch from SEC yourself (§10), alter Task 1's
-hashes or identifiers (§13), or treat any bundle that is not `verified` as usable input (§7.1).
+**What you must not do:** let the extractor fetch (fetching belongs to the acquisition stage and
+happens once, §5), rebuild a hash or an identifier after the fact (§13), or treat any bundle that is
+not `verified` as usable input to extraction (§7.1). The old prohibition on fetching from SEC at all
+is void — see the notice above.
 
 ---
 
@@ -554,7 +583,9 @@ Task 1 side.
 - **Not that content has been cleaned.** Nothing has been normalised.
 - **Not that ticker mappings are authoritative.** The verified CIK is.
 - **Not that XBRL facts represent narrative Item boundaries.**
-- **Not that re-fetching from SEC is free or permitted.** Use `storage_ref`.
+- **Not that re-fetching from SEC is free.** Acquiring is now yours (v1.2), but it happens **once**,
+  in the acquisition stage, under SEC's fair-access limits. The extractor reads `storage_ref`. A
+  parser that re-fetches mid-run produces a result nobody can reproduce.
 - **Not that a citation or a model's judgement alone proves an extracted span.**
 
 ---
@@ -584,7 +615,7 @@ Task 1's store, run model and frontend.
 
 ---
 
-## 12. Out of scope for v1.1
+## 12. Out of scope for this contract
 
 No item schema. No content parsing. No cross-filing normalisation. No historical backfill. No exhibit
 byte retrieval. These are Task 2 decisions and are not pre-empted here.
@@ -592,6 +623,15 @@ byte retrieval. These are Task 2 decisions and are not pre-empted here.
 ---
 
 ## 13. Changelog
+
+### v1.2 (2026-07-29) — the producer does not exist, so the document changes role
+
+Task 1 shipped without an acquisition layer. This version does not change a single field, status or
+check: it changes who is obliged to satisfy them, from "the other half of the system" to "the
+acquisition stage you are about to write". The prohibition on fetching from SEC (§10) is void and
+inverted; everything else stands. §14 is new and records what Task 1 actually produced that is worth
+carrying over. Recorded here rather than by quietly editing v1.1, because a contract that changes
+its meaning without saying so is the failure this whole submission argues against.
 
 ### v1.1 (2026-07-28)
 
@@ -637,3 +677,61 @@ answer**, not a missing convenience:
 Future coverage, not required for v1.1: legacy text and malformed-HTML filings, PDF-primary filings,
 the large-complete-submission budget boundary, and the authorisation cases that arrive with an auth
 system.
+
+---
+
+## 14. What Task 1 actually built, and what you now have to build
+
+Written at the point where Task 1 was submitted, so that Task 2 starts from what is true rather than
+from what this document assumed on 2026-07-28.
+
+### 14.1 Reusable, and worth reusing
+
+None of this is 10-K-specific, and all of it exists as working code in this repository.
+
+| What | Where | Why it transfers |
+|---|---|---|
+| **Evidence-first verification** — a claim counts only if deterministic code re-locates the value inside the *stored* bytes, not the live source | `app/verifier.py` | The whole argument of Task 2 is "the extractor said Item 7 starts here." That is a proposal. Re-finding the boundary in the stored filing is the check. Same shape, different corpus |
+| **A frozen, hashed postcondition** compiled before any work starts | `app/postcondition.py` | Deciding what counts as a correct extraction *after* seeing the document is how a parser talks itself into an answer |
+| **A closed status taxonomy**, extended only by written amendment, where partial results are never rendered as success | `app/models.py` | Item statuses have exactly this problem: `present` / `reserved` / `optional_absent` / `incorporated_by_reference` is a closed set or it is nothing |
+| **Content-addressed artifact store** with dated expiry rather than dangling references | `app/store.py`, `app/evidence.py` | §9's retention rule is already implemented here |
+| **`robots.txt` (RFC 9309) enforcement, egress guard, rate limiting** | `app/robots.py`, `app/egress.py` | SEC publishes a fair-access policy and a rate limit. §8 assumed these were solved because they were |
+| **A held-out evaluation discipline**: hashes committed before the split runs, scored once, published afterwards | `eval/holdout-manifest.md`, `eval/harness.py` | The single most useful thing Task 1 did. It is also what produced its worst number |
+| **Fail-closed budgets** producing an explicit exhaustion status instead of a partial answer | `app/executor.py` | A 10-K is large; a cap you silently hit is a truncated Item nobody flagged |
+| **Frontend patterns** — pre-executed runs so a cold container is never a blank page, an evidence drill-down, an executable limitations list | `app/templates/`, `app/limitations.py` | The submission requires an operable frontend that makes failures inspectable. This is a worked example of that requirement |
+
+### 14.2 What you have to build that this document assumed you would be handed
+
+1. **Resolution** — company name or ticker or CIK to one registrant and one accession, with a
+   candidate set returned rather than a guess when it is ambiguous (§2, §3.4).
+2. **Acquisition** — the mandatory five representations, fetched once, hashed, with the resolution
+   snapshots stored (§5.1). Fetching is now yours; the discipline around it is not negotiable.
+3. **The bundle itself** and the thirteen-check `verified` gate (§4, §6).
+4. **The conformance test** in §11, which no longer tests somebody else's producer but your own.
+
+### 14.3 Four things Task 1 got wrong that will happen to you
+
+These cost real days. They are listed because the shape recurs, not because the details transfer.
+
+1. **A check that reports on a coincidence.** Fifteen defects were found in Task 1's own checking
+   machinery; ten were the same species — a check that passed for a reason unrelated to what it
+   claimed to verify. The extraction analogue is a boundary test that passes because the heading
+   happens to be unique in that filing.
+2. **A published claim nobody executed.** Four of seven published limitations did not reproduce as
+   written. Every claim about behaviour must be executable against the deployment, and re-executed
+   before submission.
+3. **A conclusion drawn from an aggregate instead of a case.** A failure-class histogram was read as
+   a policy finding; opening one stored trace showed it was a network timeout. For Task 2 the
+   temptation is stronger, because item-level accuracy aggregates beautifully and hides exactly the
+   filings that matter.
+4. **A promise stated more widely than it was implemented.** A record promised per
+   `site × operation` was implemented for one hard-coded page. Whatever Task 2 promises per filing
+   *class*, verify it holds for a filing in that class that appears in no evaluation case.
+
+### 14.4 Numbers worth knowing before you plan
+
+Task 1's held-out result was **1 of 8**, against **10 of 11** on its own development set. The gap was
+not capability: five of the eight never began work — three to a transient network failure and two
+because the task named no starting point. **A self-authored evaluation set measures how well a system
+answers what it accepts, and cannot measure how much it accepts.** Whatever Task 2's held-out set is,
+write it before the extractor exists, and have someone who has not read the extractor write it.
