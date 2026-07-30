@@ -134,10 +134,11 @@
     so the rule is now that the list is checked rather than believed.</p>
   <div class="scroll">
   <table>
-    <thead><tr><th>Task</th><th>Outcome</th><th>Why</th></tr></thead>
+    <thead><tr><th>ID</th><th>Task</th><th>Outcome</th><th>Why</th></tr></thead>
     <tbody>
       {% for l in limitations %}
       <tr>
+        <td id="{{ l.id }}">{{ l.id }}</td>
         <td style="min-width:240px">{{ l.task }}</td>
         <td style="white-space:nowrap"><code>{{ l.outcome }}</code>
           {% if l.failure_class %}<br><code>{{ l.failure_class }}</code>{% endif %}</td>

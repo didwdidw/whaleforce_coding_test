@@ -507,7 +507,7 @@ books.toscrape.com **根本不發布** `robots.txt`：正常情況會回 404，�
 | 延遲中位數 | 不用模型 0.16 秒 · 承諾層 5.85 秒 · 實驗層 12.18 秒 |
 | 成本 | 每次用到模型的執行中位數 **USD 0.0019**；整個開發累計實付 **USD 0.1515**（這筆記在持有付費金鑰的計分服務上。公開站是另一個行程、另一本帳，所以 `/healthz` 的 `cumulative_billed_usd` 會是別的數字——見步驟 9 第三點） |
 | 記憶體 | 峰值 2,320 MB / 4 GB，同時只跑 2 筆——**記憶體才是這個系統的瓶頸，不是 CPU 也不是錢** |
-| 測試 | 679 個通過 |
+| 測試 | 680 個通過 |
 | 第二個題目 | 未實作，只有設計好的介面契約 |
 
 ---
@@ -553,7 +553,7 @@ wf-agent/
 │
 ├── docs/                        報告與紀錄（見下）
 ├── prompts/                     三個工作階段的逐字 prompt 紀錄
-├── tests/                       679 個測試
+├── tests/                       680 個測試
 └── deploy/ · Dockerfile         部署
 ```
 
@@ -587,7 +587,7 @@ wf-agent/
 ## D. 想自己重跑
 
 ```bash
-pytest                              # 679 個測試
+pytest                              # 680 個測試
 python -m eval.harness --split dev  # 我們的開發題組
 python -m eval.limitations_check --base-url https://wf-agent.zeabur.app
                                     # 把「已知會失敗的那些任務」逐一對線上系統跑一次

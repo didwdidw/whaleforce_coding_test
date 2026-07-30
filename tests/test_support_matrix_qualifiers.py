@@ -86,6 +86,17 @@ def test_the_qualifier_reaches_the_page(support_page):
                 f"{record.id}'s qualifier is in the code and not on the page")
 
 
+def test_the_cited_entry_can_be_found_on_the_page(support_page):
+    """The qualifier says "L-8 below runs both halves" and the limitations table rendered
+    task, outcome and why — no ids at all. A citation to something the page does not print
+    is the same species of defect as the one this round is about."""
+    body = _flat(support_page)
+    for entry_id in ENTRY:
+        assert re.search(rf">\s*{entry_id}\s*<", body), (
+            f"{entry_id} is published and the page never names it, so nothing that cites "
+            f"it can be found")
+
+
 def test_the_page_answers_the_search_that_found_nothing(support_page):
     body = _flat(support_page).lower()
     for term in ("row group", "ordinal", "hardware"):

@@ -824,7 +824,7 @@ cookie 活 24 小時**，而指南自己就要求評分者跑六筆。這道上�
 | 目前部署的 commit | 以 `/healthz` 的 `git_sha` 為準——**這裡不寫死一組要讀者去比對的代號，請記下你當下看到的那一組** |
 | **計分用的凍結 build** | **`e82cacb9e809`** |
 | 模型 | `gemini-3.1-flash-lite`，固定版本 |
-| 測試 | 679 passing |
+| 測試 | 680 passing |
 
 **部署的 commit 跟計分的 commit 不一定相同，README 也沒有宣稱它們相同。**
 `e82cacb9e809` 之後的 commit 絕大多數是結果、證據與文字；有 code 的是第 11–20 筆缺陷的修正

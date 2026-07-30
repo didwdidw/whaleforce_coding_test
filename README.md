@@ -112,7 +112,7 @@ the free tier. `/healthz` reports which policy is in force and which tiers are u
 ### Tests and evaluation
 
 ```bash
-pytest                                    # 679 tests, ~20 s (a real browser runs
+pytest                                    # 680 tests, ~20 s (a real browser runs
                                           # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
@@ -558,7 +558,10 @@ of seven entries did not reproduce as written**:
 
 **Re-run against the deployment being submitted.** `eval/results/limitations-a96808742813.json`,
 taken 2026-07-30 after L-8 was added: **8 of 8 reproduce as published**, remedies included,
-`do_not_reproduce` empty. (The previous report, `limitations-371ba697fa35.json`, covered seven
+`do_not_reproduce` empty. It was taken on `a96808742813`; the commits after it change the support
+page, the list and its tests and no code any entry executes, so it stands for the build you are
+looking at — the diff is in git rather than in this sentence. (The previous report,
+`limitations-371ba697fa35.json`, covered seven
 entries; a check of seven published under a table of eight would be defect 19 again, so a test now
 fails unless a committed report ran the list exactly as it stands.) Every entry above is a task you
 can paste in and watch fail in the way

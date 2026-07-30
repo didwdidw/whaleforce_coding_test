@@ -75,7 +75,7 @@ APP_ROLE=fixture PORT=8801 ./entrypoint.sh &   # fixture 是獨立行程，先�
 ### 測試與評估
 
 ```bash
-pytest                                    # 679 tests，約 20 秒（tests/test_m2_integration.py 會開真實瀏覽器）
+pytest                                    # 680 tests，約 20 秒（tests/test_m2_integration.py 會開真實瀏覽器）
 python -m eval.harness --split dev
 python -m eval.harness --split experimental
 ```
@@ -270,7 +270,7 @@ python -m eval.harness --split experimental
 - L-5 的 Project Gutenberg 任務已開始**成功**，於是改到真的會棄權的頁面（MDN 相容性格線）。
 - L-7 的 fixture 搜尋現在會透過 empty-state 元素**證明**不存在，而非棄權。
 
-**對送審版本的重跑。** `eval/results/limitations-a96808742813.json`（2026-07-30，加入 L-8 之後）：**八條全部照公告重現**，含補救措辭，`do_not_reproduce` 為空。舊報告只跑了七條——把只驗過七條的結果掛在八條的表下面就是缺陷 19 再發作一次，所以現在有一支測試會在「沒有任何一份報告跑過現行清單」時失敗。
+**對送審版本的重跑。** `eval/results/limitations-a96808742813.json`（2026-07-30，加入 L-8 之後）：**八條全部照公告重現**，含補救措辭，`do_not_reproduce` 為空。這份報告取自 `a96808742813`；之後的 commit 只動支援頁、清單本身與它的測試，沒有動任何條目會執行到的程式碼，所以它對你眼前這個 build 仍然成立——依據是 git 的 diff，不是這句話。舊報告只跑了七條——把只驗過七條的結果掛在八條的表下面就是缺陷 19 再發作一次，所以現在有一支測試會在「沒有任何一份報告跑過現行清單」時失敗。
 
 它還抓到一個沒有任何測試抓到的回歸：Amendment 24 加的 accessibility snapshot 佔了自己的 trace entry，而每個 trace entry 都計入 step budget，於是擷取密集的 run 只剩下設計時一半的瀏覽餘裕。現在一次擷取重新等於一步。
 
