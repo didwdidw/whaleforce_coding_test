@@ -403,11 +403,11 @@ round rather than by anything in the system, which is the same shape as every ot
 ### 5.4 Verifying the verifier
 
 A system whose central claim is "our checks are real" has to expect the checks themselves to be
-wrong. **Twenty-five** were found, twenty-two of them fixed. Ten are one species — **a check that reported
+wrong. **Twenty-six** were found, twenty-three of them fixed. Ten are one species — **a check that reported
 on a coincidence**, a check that could not fire at all, or a label too coarse to carry the
 conclusion drawn from it. Two are that species' mirror image — not a check reporting something
 untrue but **no check at all** — and they are the two halves of one hole, in the same page, found a
-day apart. Eleven are a third kind, all found by independent review of the deployed
+day apart. Twelve are a third kind, all found by independent review of the deployed
 system in the last three days: **pages describing us in our own words**, where nothing was checking
 that the words still matched. That is now the largest group in the table by some distance, and it is
 the one that took the longest to become visible, because reading the repository cannot find any of
@@ -464,6 +464,7 @@ in an appendix because the pattern is the finding rather than the count:
 | 24 | A run in flight showed **two step counts that disagreed** — `Step 11` in the heading and `Steps 2 of 25` in the budget panel — with nothing marking either as live; `No claim was produced.` while it was still going, which reads as a verdict and means *not yet*; `Step 11: Snapshot captured: step-2`, which is two different meanings of "step" in one sentence; and `Waiting…`, which covered a queue slot, a browser context and a model call alike. A run that ended `budget_exhausted` never once signalled the cap it was approaching — the fail-closed budget being the most distinctive behaviour in the system. **Found in the same review, and fixed** |
 
 | 25 | The public demo's session allowance was **10 lifetime runs behind a cookie that lives a day**, and the grader guide alone asks for six. Two amplifiers: a run refused for a full queue was written before admission and counted against the allowance anyway, and the refusal named no way to continue. The cap does no monetary work — that is the daily billed ceiling — and no capacity work — that is concurrency 2 and depth 2 — so the only thing it was doing at 10 was stopping a reader halfway through the guide. **Found by the product owner reading the guide against the code, and fixed**: 50, counted over admitted runs only, with a next step in the message and the number on `/healthz` |
+| 26 | `/support` carried OP-5 as an **unqualified `implemented`** while this build's most important limitation was inside OP-5, and the limitations list — the one table here whose selling point is that a reader can overturn it — still had seven entries, none of them about it. Searching the whole page for `row group`, `ordinal` or `Hardware` returned nothing. Defect 21 was fixed in the executor and the page that advertises the executor was left saying what it said before. **Found by the product owner searching the deployed page, and fixed**: the row states that only named values are reached, L-8 publishes the ordinal form as an executable entry with its remedy, and a test fails unless a committed report ran the list exactly as it stands — an eight-entry table over a seven-entry check is defect 19 again |
 
 Number 10 is the one to read if you only read one, and the chain of events is the point rather than
 the defect.
@@ -493,7 +494,7 @@ Numbers 8, 9 and 10 arrived after the build was frozen, which is the only reason
 open, and how that was handled is part of the finding. Correcting any of them would have meant a code change between the
 round that measured the system and the round that scores the held-out split — so the choice was
 between tidier code and two rounds that describe the same build. The code lost. It is
-written here, in the table with the other twenty-two, rather than repaired quietly afterwards and
+written here, in the table with the other twenty-three, rather than repaired quietly afterwards and
 presented as though the rounds had always agreed. Number 8 is the same species as A-14b: a loud, correct refusal
 filed under the wrong party. Number 9 is the species this whole section is named for — an
 instruction to look for evidence that the code cannot produce — and it cost a real operator a real

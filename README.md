@@ -112,7 +112,7 @@ the free tier. `/healthz` reports which policy is in force and which tiers are u
 ### Tests and evaluation
 
 ```bash
-pytest                                    # 673 tests, ~20 s (a real browser runs
+pytest                                    # 679 tests, ~20 s (a real browser runs
                                           # in tests/test_m2_integration.py)
 python -m eval.harness --split dev        # the dev split, committed in eval/dev-set.md
 python -m eval.harness --split experimental
@@ -542,6 +542,7 @@ itself the point of the rule.
 | **L-5** | *"On developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flat, tell me the Chrome version listed in the browser compatibility table."* | Browses, then abstains (`unsupported / postcondition_unmet`) naming the step, the page and the unsatisfied part of the postcondition. The value sits in a grid whose label is an icon and a column position rather than text, so there is nothing for code to re-read. Whether an unseen page yields a bindable label is a property of the page — the experimental split measures that rate rather than asserting it. **This entry replaced a Project Gutenberg task that had started succeeding**; publishing an abstention that no longer happens is the same defect as publishing a remedy that never worked. |
 | **L-6** | *"Go to the nonfiction category listing on books.toscrape.com and read the second page of results, without the planner."* | Answers correctly (`succeeded_verified`) — but **on the deterministic path**. Both paths satisfy the same postcondition and are verified identically, but no model is in that loop, so it is not evidence of self-correction. Every run records its path and rates are reported per path. |
 | **L-7** | *"Search the fixture catalogue for a term that appears on no page"* | **Proves the absence** (`no_result_verified`): the empty-state element is located and the counter echoes the frozen term. The limitation is what stands behind that — **a page with no empty-state element**, where an abstention may have been caused by our own page reduction dropping the element rather than by the site. Those runs are audited and badged, and the audit only covers what we thought to look for. |
+| **L-8** | *"On the Wikipedia article for Apple Inc., expand the first collapsed box and tell me the label of its first row group."* | **Abstains without answering** (`unsupported / postcondition_unmet`), leaving both the expansion and the asked-for label unverified. OP-5 reaches a value the task *names*; this phrasing asks for the label itself, and a label nobody has written down cannot be frozen as an anchor for verification to re-read. Naming it is the remedy and is executed with the entry: *"…tell me its Hardware group"* ends `succeeded_verified`. **The class belongs to this sentence, not to the family** — asking for a count instead (*"how many entries are in its first row group"*, DEV-05) ends `failed / budget_exhausted`. Until Amendment 28 this whole shape returned `succeeded_verified` for the expansion it had performed; see defect 21. |
 
 **What executing the list actually found.** `python -m eval.limitations_check --base-url
 https://wf-agent.zeabur.app` runs every entry, and the remedy phrasing where one is claimed, against
@@ -555,9 +556,12 @@ of seven entries did not reproduce as written**:
   a page that does abstain (MDN's compatibility grid, whose label is an icon and a column position).
 - L-7's fixture search now **proves** absence via the empty-state element instead of abstaining.
 
-**Re-run against the deployment being submitted.** `eval/results/limitations-371ba697fa35.json`,
-taken 2026-07-29 after the run-page fixes: **7 of 7 reproduce as published**, remedies included,
-`do_not_reproduce` empty. Every entry above is a task you can paste in and watch fail in the way
+**Re-run against the deployment being submitted.** `eval/results/limitations-a96808742813.json`,
+taken 2026-07-30 after L-8 was added: **8 of 8 reproduce as published**, remedies included,
+`do_not_reproduce` empty. (The previous report, `limitations-371ba697fa35.json`, covered seven
+entries; a check of seven published under a table of eight would be defect 19 again, so a test now
+fails unless a committed report ran the list exactly as it stands.) Every entry above is a task you
+can paste in and watch fail in the way
 this table says it will — and if one of them ever stops doing that, the defect is the entry, not the
 system, so the entry is what changes.
 

@@ -44,6 +44,11 @@ class PromisedRecord:
     #: about that category, reached by the same navigation and proven by the same
     #: enumeration, so it is part of OP-6 rather than a fifth promise.
     extra_routes: tuple[str, ...] = ()
+    #: How far the record reaches, when the operation line above is broader than the build.
+    #: Rendered beside the status badge, because an unqualified `implemented` next to an
+    #: operation with a known hole is the support matrix advertising breadth its own
+    #: limitations list denies. Every qualifier names the entry that reproduces it.
+    qualified: str = ""
 
 
 PROMISED_RECORDS: tuple[PromisedRecord, ...] = (
@@ -52,7 +57,12 @@ PROMISED_RECORDS: tuple[PromisedRecord, ...] = (
                    "wiki_sort"),
     PromisedRecord("OP-5", "en.wikipedia.org",
                    "Expand a collapsed box and extract a value not visible beforehand",
-                   "wiki_expand"),
+                   "wiki_expand",
+                   qualified="Named values only. \"tell me its Hardware group\" is verified; "
+                             "the ordinal form \"tell me the label of its first row group\" "
+                             "abstains, because the label itself is what was asked for and "
+                             "no anchor can be frozen for a value nobody has named yet. "
+                             "L-8 below runs both halves."),
     PromisedRecord("OP-6", "books.toscrape.com",
                    "Category navigation and pagination, list-level facts", "book_category",
                    extra_routes=("book_absence",)),

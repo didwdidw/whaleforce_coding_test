@@ -369,7 +369,8 @@ async def support(request: Request) -> HTMLResponse:
     return TEMPLATES.TemplateResponse(request, "support.html", {
         "build": build_state(),
         "records": [{"id": r.id, "site": r.site, "operation": r.operation,
-                     "reachable": r.route in dict(Executor.ROUTES)}
+                     "reachable": r.route in dict(Executor.ROUTES),
+                     "qualified": r.qualified}
                     for r in PROMISED_RECORDS],
         "gates": gate_operations(),
         "limitations": limitations(),

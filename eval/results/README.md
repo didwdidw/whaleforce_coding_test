@@ -28,6 +28,8 @@ one worth reading.
 | `limitations-b9bccb0240af.json` | **The first execution of the published limitations list** against the deployment (A-73). Four of seven entries did not reproduce as written. Kept because it is the evidence for the rule, and deleting the run that justified a rule is how a result set becomes a highlight reel. |
 | `limitations-ca837143e623.json` | The same check after the four entries were corrected: 7 of 7. |
 | `limitations-def383de1d9a.json` | And again on the build carrying OP-7's generalisation, the n-claim postcondition and locator memory — the product changed materially, so the list was re-executed rather than assumed. 7 of 7. |
+| `limitations-371ba697fa35.json` | The re-run promised before submission, after the run-page fixes. 7 of 7 — and the last report taken while the list had seven entries. |
+| `limitations-a96808742813.json` | **The list as it now stands: 8 of 8**, after L-8 published the ordinal form of a row group together with its remedy. A seven-entry check under an eight-entry table is defect 19's shape, so a test fails unless a committed report covers exactly the published ids. L-8's ordinal half abstained twice out of two measurements — `unsupported / postcondition_unmet` — and its named remedy verified in both. |
 
 A score is only meaningful with the provenance block beside it (S-10.7): the commit, the
 model, the credential tier, the split's own hash. All of that is inside each file.

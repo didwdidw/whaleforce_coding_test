@@ -168,6 +168,36 @@ LIMITATIONS: tuple[Limitation, ...] = (
              "audit only covers what we thought to look for: an abstention caused by "
              "something we have no counter for is indistinguishable from a correct one."),
     ),
+    Limitation(
+        id="L-8",
+        task=("On the Wikipedia article for Apple Inc., expand the first collapsed box and "
+              "tell me the label of its first row group."),
+        outcome="unsupported",
+        failure_class="postcondition_unmet",
+        what_happens=("The run abstains rather than answering, naming the step it stopped "
+                      "at and the parts of the frozen postcondition left unverified — the "
+                      "expansion and the asked-for label. Both measured runs wandered into "
+                      "the box's template source page on the way, which is where they say "
+                      "they stopped; what they never do is return a group label."),
+        why=("OP-5 reaches a value the task names. This phrasing names none: 'the label of "
+             "its first row group' asks for the label *itself*, and a label nobody has "
+             "written down cannot be frozen as an anchor at plan time, which is what "
+             "verification re-reads the artifact through. Amendment 28 makes the asked-for "
+             "part a `located_label` claim anyway, so the run has to leave it unbound and "
+             "end loudly — before that it reported the expansion it had performed as though "
+             "that were the answer, and scored `succeeded_verified` for a question it never "
+             "answered. Naming the value is the remedy and it is run with this entry. "
+             "**The class is this sentence's, not the phrasing family's.** The same "
+             "limitation reached by asking for a count instead — 'how many entries are in "
+             "its first row group' — ends `failed / budget_exhausted` on the dev split "
+             "(DEV-05): whether the model gives up or the 25-step budget stops it first "
+             "depends on how long it hunts for a label it cannot bind. Both are loud; only "
+             "the sentence published here was measured for the class beside it."),
+        remedy_task=("On the Wikipedia article for Apple Inc., expand the first collapsed "
+                     "box and tell me its Hardware group"),
+        remedy_outcome="succeeded_verified",
+        remedy_failure_class=None,
+    ),
 )
 
 

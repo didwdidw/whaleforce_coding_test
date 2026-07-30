@@ -75,7 +75,7 @@ APP_ROLE=fixture PORT=8801 ./entrypoint.sh &   # fixture 是獨立行程，先�
 ### 測試與評估
 
 ```bash
-pytest                                    # 673 tests，約 20 秒（tests/test_m2_integration.py 會開真實瀏覽器）
+pytest                                    # 679 tests，約 20 秒（tests/test_m2_integration.py 會開真實瀏覽器）
 python -m eval.harness --split dev
 python -m eval.harness --split experimental
 ```
@@ -261,6 +261,7 @@ python -m eval.harness --split experimental
 | **L-5** | *"On developer.mozilla.org/…/Array/flat, tell me the Chrome version listed in the browser compatibility table."* | 瀏覽後棄權（`unsupported / postcondition_unmet`），指明步驟、頁面與未滿足的 postcondition 部分。該值位於 label 是圖示與欄位位置而非文字的格線中，沒有東西可供程式重讀。**本條取代了一個開始會成功的 Project Gutenberg 任務**：發布一個已不再發生的棄權，與發布一個從未有效的補救是同一種缺陷 |
 | **L-6** | *"Go to the nonfiction category listing on books.toscrape.com and read the second page of results, without the planner."* | 正確作答（`succeeded_verified`），但**走決定性路徑**。兩條路徑滿足相同 postcondition、驗證方式相同，但迴圈中沒有模型，所以這不是 self-correction 的證據。每個 run 都記錄自己的路徑，比率分路徑回報 |
 | **L-7** | *"Search the fixture catalogue for a term that appears on no page"* | **證明不存在**（`no_result_verified`）：定位到 empty-state 元素、計數器回述凍結的搜尋詞。限制在其背後——**沒有 empty-state 元素的頁面**，那裡的棄權可能是我們自己的頁面縮減把元素丟掉造成的，而非站點本身。那些 run 會被稽核與標記，而稽核只涵蓋我們想得到要看的東西 |
+| **L-8** | *"On the Wikipedia article for Apple Inc., expand the first collapsed box and tell me the label of its first row group."* | **不作答就棄權**（`unsupported / postcondition_unmet`），展開與被問的 label 兩者都留在未驗證。OP-5 取得的是任務**指名**的值；這個措辭問的是 label 本身，而沒有人寫下來過的 label 無法在計畫時凍成 anchor 供驗證重讀。指名它就是補救，並且與本條一起被執行：*"…tell me its Hardware group"* 結束於 `succeeded_verified`。**這個 class 屬於這一句，不屬於整個措辭家族**——改問數量（*"how many entries are in its first row group"*，DEV-05）會結束在 `failed / budget_exhausted`。Amendment 28 之前，這整個形狀會為它從未回答的問題回報 `succeeded_verified`（缺陷 21）|
 
 **實際執行這份清單發現了什麼。** `python -m eval.limitations_check --base-url https://wf-agent.zeabur.app` 會對線上系統跑每一條（含宣稱的補救措辭），寫出 `eval/results/limitations-<sha>.json`。第一次執行時，**七條裡有四條沒有照著寫的方式重現**：
 
@@ -268,6 +269,8 @@ python -m eval.harness --split experimental
 - L-4 發布為 `policy_refused`；實際結束於 `robots_disallowed`，後者較準確。
 - L-5 的 Project Gutenberg 任務已開始**成功**，於是改到真的會棄權的頁面（MDN 相容性格線）。
 - L-7 的 fixture 搜尋現在會透過 empty-state 元素**證明**不存在，而非棄權。
+
+**對送審版本的重跑。** `eval/results/limitations-a96808742813.json`（2026-07-30，加入 L-8 之後）：**八條全部照公告重現**，含補救措辭，`do_not_reproduce` 為空。舊報告只跑了七條——把只驗過七條的結果掛在八條的表下面就是缺陷 19 再發作一次，所以現在有一支測試會在「沒有任何一份報告跑過現行清單」時失敗。
 
 它還抓到一個沒有任何測試抓到的回歸：Amendment 24 加的 accessibility snapshot 佔了自己的 trace entry，而每個 trace entry 都計入 step budget，於是擷取密集的 run 只剩下設計時一半的瀏覽餘裕。現在一次擷取重新等於一步。
 

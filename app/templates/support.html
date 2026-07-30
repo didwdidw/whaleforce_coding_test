@@ -14,7 +14,8 @@
       {% for r in records %}
       <tr><td>{{ r.id }}</td><td>{{ r.site }}</td><td>{{ r.operation }}</td>
           <td>{% if r.reachable %}<span class="badge b-ok">implemented ({{ build.milestone }})</span>
-              {% else %}<span class="badge b-warn">declared, not reachable</span>{% endif %}</td></tr>
+              {% else %}<span class="badge b-warn">declared, not reachable</span>{% endif %}
+              {% if r.qualified %}<div class="sub" style="margin-top:6px">{{ r.qualified }}</div>{% endif %}</td></tr>
       {% endfor %}
     </tbody>
   </table>

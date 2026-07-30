@@ -2676,3 +2676,33 @@ Do：
    指南第六節公開寫了為什麼不放寬，改它會讓那段話變成空話。
 
 ==========
+==========
+
+最後一項，只有一處，在 app/records.py：
+
+/support 全頁搜 row group / ordinal / Hardware 命中 0 次，限制清單仍是七條，
+OP-5 那列還是沒有限定的 implemented (M5)。這是整份提交裡唯一以「可被推翻」
+為賣點的表，而本 build 最重要的限制不在上面。
+
+Do：
+- OP-5 那列標明它認得具名 group（its Hardware group），序數形式（its first row group）
+  會以 unsupported / postcondition_unmet 誠實失敗。
+- 限制清單加第八條：序數形式的 row group。照既有格式寫，要能被
+  eval/limitations_check 執行——這條的重點就是它可以被跑出來否決。
+
+Done when：limitations_check 跑第八條會重現它宣稱的 failure class。
+==========
+
+更正：限制清單在 app/limitations.py（不是 records.py），LIMITATIONS tuple。
+
+L-8 有一個坑：序數形式沒有單一穩定的 failure class。r5 實測 DEV-04 是
+unsupported / postcondition_unmet，DEV-05 是 failed / budget_exhausted——
+同一個限制、兩種措辭、兩個 class。
+
+所以：
+- L-8 發布的任務原文和它 pin 的 class 必須是同一句量出來的。做不到就用 UNPINNED
+  明說不釘（那個機制是缺陷 19 修完時加的，一條不釘的條目必須自己講出來）。
+- 加完一定要重跑 python -m eval.limitations_check --base-url https://wf-agent.zeabur.app，
+  把新的 eval/results/limitations-<sha>.json 一起 commit。8 條、約 2 分鐘、不到 USD 0.02。
+  不重跑就是把只驗過七條的結果掛在八條的表下面——那就是缺陷 19 本人。
+- 順手確認有沒有測試在斷言 LIMITATIONS 的長度是 7。
