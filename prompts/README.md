@@ -11,7 +11,7 @@ where the substantive decisions happen.
 |---|---|---|
 | `PM-Session.md` | Product owner / acceptance | Scoping, the spec, the acceptance criteria, and every ruling. Never wrote product code |
 | `Engineering-Session.md` | Engineering | Implementation from the frozen spec. Never decided what "correct" meant |
-| `Final-Reviewer-Session.md` | Independent review | Three rounds against the deployed site, read-only, without reading any product code. Never fixed anything it found. Its output is `acceptance-report.md` |
+| `Final-Reviewer-Session.md` | Independent review | Four rounds against the deployed site, read-only, without reading any product code. Never fixed anything it found. Its output is `acceptance-report.md` |
 
 The separation is the point, and it is the same idea as the product's own design: a session that both
 defines success and reports success will report success, exactly as an agent that both answers and

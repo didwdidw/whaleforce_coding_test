@@ -37,3 +37,8 @@ Be critical, do NOT faltter me.
 請繼續按照上面的mindset去review當前的專案
 一樣不要trace code。單純以使用者的角度去使用這個web並核對跟文件講的是否相符
 理想上這是最後一次review了。看看功能面還有沒有最後的瑕疵。不然就是對要給grader的文件做最嚴格、最仔細的review，確保grader看到的文件的品質與正確性
+
+==========
+
+已經針對你最後一輪的檢查做更新了
+請針對你最後一輪的意見，再從新review一次
