@@ -412,7 +412,9 @@ system in the last three days: **pages describing us in our own words**, where n
 that the words still matched. That is now the largest group in the table by some distance, and it is
 the one that took the longest to become visible, because reading the repository cannot find any of
 them. Number 21 is on its own and is the worst of the set: **a check that was correct, tested, and
-wired to one of the places that needed it.** The
+wired to one of the places that needed it.** Number 25 belongs to none of the four: **a limit that
+did no work it claimed to do** — neither monetary nor capacity — and whose only effect was to stop a
+reader halfway through the guide. The
 first five were found during development:
 
 | | The defect |
